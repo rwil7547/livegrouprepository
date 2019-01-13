@@ -1,0 +1,50 @@
+<apex:page controller="DashboardController">
+    <style>
+
+        .border {
+            border:1px solid gray;
+            border-color: rgb(204,204,204);
+        }
+
+        .banner {
+            text-align: center;
+            font-weight: bold;
+            font: arial;
+            font-size: 12.5px;
+            padding: 6px;
+            background-color: rgb(220, 220, 220); 
+        }
+
+        .content {
+            color: black;
+            font-size: 40px;
+            text-align: center;
+            padding-top: 100px;
+            padding-bottom: 120px;
+        }
+        
+        .container {
+            vertical-align: middle;
+        }
+        
+    </style>
+
+    <div class="border">
+        <div class="banner"> Current net profit </div>
+             
+        <div class="content" id="contentdiv"> 
+            <apex:outputtext value="{0, number,£###,###,##0.00}">
+                <apex:param value="{!VALUE(TEXT(CurrentNetProfit))}"></apex:param>
+            </apex:outputtext>
+        </div>
+    </div>
+    
+    <script>
+        var decimalValue = {!CurrentNetProfit};
+        if (decimalValue < 0 ) {
+            console.log(decimalValue);
+            var myElement = document.querySelector("#contentdiv");
+            myElement.setAttribute("style","color: red; margin: auto;");
+            }      
+    </script> 
+</apex:page>

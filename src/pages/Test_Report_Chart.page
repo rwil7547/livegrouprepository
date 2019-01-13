@@ -1,0 +1,5 @@
+<apex:page standardController="Account" >
+<apex:pageBlock title="Change since yesterday">
+ <p>Test content, {!$User.FirstName}</p>
+</apex:pageBlock>
+</apex:page>

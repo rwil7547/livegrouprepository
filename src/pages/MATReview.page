@@ -1,0 +1,26 @@
+<apex:page controller="MATController" docType="html-5.0" lightningStylesheets="true">
+     <style>
+     body{ background-color:#B0C4DF;  }
+     </style>
+     <apex:sectionHeader title="TREND ANALYSIS USING MOVING ANNUAL TOTALS" subtitle="" id="banner"/>
+     <apex:pageBlock >
+         <apex:pageBlockTable value="{!entries}" var="entry">
+             <apex:column headerValue="Period" value="{!entry.period}"/>   
+             <apex:column headerValue="Revenue £" >
+                 <apex:outputText value="{0, number, £###,##0.00}">
+                     <apex:param value="{!entry.revenue}"/>
+                 </apex:outputText>            
+             </apex:column>  
+             <apex:column headerValue="Gross Profit £" >        
+                  <apex:outputText value="{0, number, £###,##0.00}">
+                     <apex:param value="{!entry.grossProfit}"/>
+                 </apex:outputText>            
+             </apex:column>  
+             <apex:column headerValue="PTP £" >         
+                 <apex:outputText value="{0, number, £###,##0.00}">
+                     <apex:param value="{!entry.preTaxProfit}"/>
+                 </apex:outputText>            
+             </apex:column>  
+         </apex:pageBlockTable>     
+     </apex:pageBlock>   
+</apex:page>

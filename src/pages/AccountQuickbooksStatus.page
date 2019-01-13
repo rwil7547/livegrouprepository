@@ -1,0 +1,10 @@
+<apex:page standardController="Account" extensions="AccountQuickbooksStatusController">
+	
+		<apex:form rendered="{!rendered}">
+				<apex:commandButton value="Create in Quickbooks" action="{!createCustomer}" rendered="{!ISNULL(Account.QuickbooksId__c)}" />				
+		</apex:form>
+		<apex:outputText rendered="{!NOT(rendered)}">
+			Account created in Quickbooks. Refresh the page to see the Quickbooks Id.
+		</apex:outputText>
+	
+</apex:page>

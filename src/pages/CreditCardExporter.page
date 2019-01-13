@@ -1,0 +1,186 @@
+<!--
+ - Created by Ronan Williams on 20/11/2018.
+ -->
+
+<apex:page id="CreditCardExporter" controller="CreditCardExportController" lightningStylesheets="true">
+
+    <style>
+        body{
+            background-image: url("{!$Site.BaseUrl}/_slds/images/themes/lightning_blue/lightning_blue_background.png");
+            background-size: 100%;
+            background-repeat: no-repeat;
+            background-position: top;
+            background-color:#B0C4DF;
+            background-attachment: fixed;
+        }
+        .importer {
+            display: flex;
+        }
+        .block {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+        }
+        .blockEntry {
+            margin-top: 10px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            background-color: white;
+            border-radius: 5px;
+            padding: 9px;
+            position: relative;
+        }
+        .line {
+            display: grid;
+            grid-template-columns: 20% 20% 10% 40%;
+            margin-top: 4px;
+            border-bottom: 0.5px solid lightgrey;
+        }
+        .strong {
+            font-weight: bold;
+        }
+        .header {
+            display: flex;
+            border-bottom: 0.5px solid lightgrey;
+        }
+        .exportButton {
+            position: absolute;
+            top:10px;
+            right: 15px;
+        }
+
+    </style>
+
+    <div>
+        <div class="block" id="reportBlocks">
+            <div class="blockEntry">
+                <h1>Credit Card Importer</h1>
+                <div class="importer">
+                    <span>
+                        <b>CSV File</b>
+                        <input type="file" id="csvfile" accept="text/csv" onchange="readBlob()"/>
+                    </span>
+                    <input id="uploadButton" style="display:none;" type="button" onclick="uploadCSV()" value="Process CSV"/>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var csvString = '';
+
+        function uploadCSV() {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.CreditCardExportController.parseCSVString}',
+                csvString,
+                loadResponse
+            );
+        }
+
+        function readBlob() {
+            var files = document.getElementById('csvfile').files;
+
+            for (var x = 0; x < files.length; x++){
+                if (files[x].type !== "application/vnd.ms-excel"){
+                    alert('Please select a file of the appropriate type!');
+                    return;
+                }
+                console.log(files[x].type);
+            }
+
+            var file    = files[0];
+            var start   =  0;
+            var stop    = file.size - 1;
+
+            var reader = new FileReader();
+
+            // If we use onloadend, we need to check the readyState.
+            reader.onloadend = function(evt) {
+                if (evt.target.readyState === FileReader.DONE) {
+                    document.getElementById('uploadButton').style.display = 'block';
+                    csvString = evt.target.result;
+                }
+            };
+
+            var blob = file.slice(start, stop + 1);
+            reader.readAsBinaryString(blob);
+
+            return csvString;
+        }
+
+        function loadResponse(result, event){
+
+            document.getElementById('uploadButton').style.display = 'none';
+
+            console.log('length is ' + result.length);
+
+            for (var x = 0; x < result.length; x++){
+
+                console.log('adding block');
+
+                var exported        = !!(result[x].ExpensifyId__c);
+                var expensifyId     = (exported) ? result[x].ExpensifyId__c : '';
+                var checkedStatus   = (exported) ? 'checked' : '';
+
+                var submitButton = (exported) ? '' : '<input class="exportButton" id="' + result[x].Id + 'button" ' +
+                    'type="button" value="Export" onclick="exportReport(\'' + result[x].Id + '\')" />';
+                var headerInfo = '<div class="header">' +
+                    '<h2>' + result[x].Employee__r.FirstName__c + ' ' + result[x].Employee__r.LastName__c + '</h2>' +
+                    '<h2 style="margin-left:30px;">' + 'Card statement for ' + new Date(result[x].Date__c).toString().substr(0, 10) + '</h2>' +
+                    '<h2 style="margin-left:30px;">' + '£' + result[x].TotalAmount__c.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</h2>' +
+                    '<h2 style="margin-left:30px;">Imported: <input type="checkbox" id="' + result[x].Id + 'checkbox" ' +
+                        // ' disabled="true" checked="' + exported + '"/></h2>' +
+                        ' disabled="true" ' +  checkedStatus + '/></h2>' +
+                    '<h2 style="margin-left:30px;" id="' + result[x].Id + 'expensify">Expensify Id: ' + expensifyId +  '</h2>' +
+                    '</div>';
+                var lineInfo = '<div class="line strong">' +
+                    '<div>TRANSACTION DATE</div>' +
+                    '<div>MERCHANT</div>' +
+                    '<div style="text-align:right;padding-right: 10px;">AMOUNT (GBP)</div>' +
+                    '<div>COMMENT</div>' +
+                    '</div>';
+
+                var lines = result[x].CreditCardLines__r;
+                for (var y = 0; y < lines.length; y++){
+                    var date = new Date(lines[y].TransactionDate__c);
+                    lineInfo +=
+                        '<div class="line">' +
+                            '<div>' + date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + '</div>' +
+                            '<div>' + lines[y].Merchant__c + '</div>' +
+                            '<div style="text-align:right;padding-right: 10px;">' +
+                                    '£' + lines[y].Amount__c.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
+                            '</div>' +
+                            '<div></div>' +
+                        '</div>';
+                }
+
+                document.getElementById('reportBlocks').innerHTML += '<div class="blockEntry">' + submitButton  + headerInfo + lineInfo + '</div>';
+            }
+        }
+
+        function exportReport(Id){
+
+            document.getElementById(Id + 'button').disabled = 'true';
+            document.getElementById(Id + 'button').style.opacity = '0.5';
+
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.CreditCardExportController.postReport}',
+                Id,
+                function(result){
+                    if (result){
+                        if (result === 'ERROR'){
+                            document.getElementById(Id + 'expensify').innerHTML = 'EXPORT FAILED';
+                        } else {
+                            console.log(result);
+                            document.getElementById(Id + 'button').style.display = 'none';
+                            document.getElementById(Id + 'expensify').innerHTML = 'Expensify Id: ' + result;
+                            document.getElementById(Id + 'checkbox').checked = 'true';
+                        }
+                    }
+                }
+            );
+        }
+
+    </script>
+</apex:page>

@@ -1,0 +1,107 @@
+<apex:component controller="OpportunityBannerController">
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+    <style>
+        .fullcontainer {
+            width: 80%; 
+            height: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .imagecontainer {
+            float: left;
+            margin-left: 20px;            
+        }        
+        .invoicecontainer { 
+            float: left;
+            position: relative;
+            font-family: roboto;
+            text-align: center;
+            vertical-align: middle;
+            color: white;               
+        } 
+        .text {
+            height: 90%; 
+            width: 75%;
+            position: absolute;
+            margin: auto;
+            top: 0%;
+            left:0%;
+            right:0%;
+            bottom:0%;
+            color:#fff;                                 
+        }
+        .containerChild {
+            overflow: hidden;
+            cursor: pointer;
+        }
+        #child {
+            float:left;
+            width: 1000px;
+            overflow: hidden;
+        }                
+    </style>
+    <div class="fullcontainer">
+
+        <div align="left" class="imagecontainer">
+            <img id="statusImage"
+                src="" 
+                alt="Stage name" 
+                style="width: 90%"
+                />
+        </div >
+        <div class="containerChild" id="scheduleContainer" ondblclick="changeRender()">
+            <div id="child">
+                <apex:repeat value="{!schedules}" var="is" >
+                    <div class="invoicecontainer" >
+                        <img src="{!IF(is.paymentStatus='Payment recieved',$Resource.InvoicePaidReceived,
+                            IF(is.invoiceStatus='Invoice sent',$Resource.InvoicePaidNotReceived,
+                            IF(CONTAINS(is.invoiceStatus,'ago'),$Resource.InvoiceOverdue, $Resource.InvoiceNoAction)))}" 
+                            style="width: 91%" 
+                            /><br/>
+                        <div class="text">
+                            <br/>                
+                            <div><b>{!is.name}</b></div>
+                            <div><apex:outputText value="£{0,number,###,###,##0.00}">
+                                  <apex:param value="{!is.amount}" />
+                            </apex:outputText></div>
+                            <div>{!is.invoiceStatus}</div> 
+                            <div>{!is.paymentStatus}</div>
+                        </div>
+                    </div>        
+                </apex:repeat>
+            </div>  
+        </div>            
+    </div>
+
+    <script>
+        var stageName = '{!opp.StageName}';
+        if (stageName == 'Repeat Prospect') {
+            document.getElementById("statusImage").src="{!$Resource.RepeatProspect}";       
+        } else if (stageName == 'Pipeline prospect') {
+            document.getElementById("statusImage").src="{!$Resource.PipelineProspect}"; 
+        } else if (stageName == 'Costed prospect') {
+            document.getElementById("statusImage").src="{!$Resource.CostedProspect}"; 
+        } else if (stageName == 'Closed Won') {
+            document.getElementById("statusImage").src="{!$Resource.ClosedWon}";
+        } else if (stageName == 'Closed Lost') {
+            document.getElementById("statusImage").src="{!$Resource.ClosedLost}"; 
+        }
+
+        function changeRender() {
+            window.top.location.href = '{!listView}';
+        }
+
+        $("#child").draggable({ 
+            cursor: "move", 
+            containment: "containerChild",
+            revert : true,
+            axis: 'x',
+            stop: function() {
+              if($("#child").position().left < 1)
+                  $("#child").css("left", "720px");
+            }
+        });       
+    </script> 
+
+</apex:component>

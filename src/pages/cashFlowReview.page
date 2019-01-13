@@ -1,0 +1,1723 @@
+<apex:page controller="CashFlowReviewController" sidebar="false" lightningStylesheets="true" docType="html-5.0" cache="true">
+   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
+   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+   <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+   <style>
+      #pageBlock{
+      text-align:center;
+      }
+      div {
+      border-radius: 3px;
+      }
+      .details {
+      padding: 8px;
+      }
+      .master-grid-container {
+      display: grid;
+      grid-template-columns: 43px auto;
+      }
+      .grid-container {
+      display: grid;
+      grid-template-columns: 46vw 46vw;
+      }       
+      .grid-container4 {
+      display: grid;
+      grid-template-columns: 15vw 75vw;
+      padding: 5px;
+      } 
+      .grid-container5 {
+      display: grid;
+      grid-template-columns: auto auto auto;
+      padding: 5px;
+      } 
+      .settingsPanel {
+      display: grid;
+      grid-template-columns: auto auto;
+      }
+      .paymentRunRows {
+      display: grid;
+      //grid-template-columns: auto auto auto auto auto;
+      grid-template-columns: 18.4vw 18.4vw 18.4vw 18.4vw 18.4vw;
+      }
+      ::-webkit-scrollbar { 
+      display: none; 
+      }
+      .grid-item {
+      padding: 3px;
+      }            
+      .excelColumns {
+      height: 30vh;
+      overflow-x: scroll;
+      } 
+      #info {
+      overflow-y: scroll;
+      max-height:76vh;
+      }     
+      body{
+      background-image: url("{!$Site.BaseUrl}/_slds/images/themes/lightning_blue/lightning_blue_background.png"); 
+      background-size: 100%;
+      background-repeat: no-repeat;
+      background-position: top;
+      background-color:#B0C4DF;  
+      }
+      .header {
+      top: 0;
+      z-index: 1;
+      position: center;
+      background-color: #f1f1f1;
+      min-margin-left: 16%;
+      margin-left:16%;
+      margin-right: 10.5%;
+      }
+      .progress-container {
+      width: 100%;
+      height: 8px;
+      background: #ccc;
+      }
+      .progress-bar {
+      height: 8px;
+      background: #4caf50;
+      width: 0%;
+      }
+      .grid-item #customEntry {
+      position:absolute;
+      right:5px;
+      top:5px;
+      }
+      .excelInfo,#detailDiv  {
+      position: absolute;
+      right: 50%;
+      margin-right: -200px;
+      top: 35px;      
+      width: 400px;
+      font-size:10px;
+      z-index: 15;
+      background: white;
+      padding: 5px;
+      border: 1px solid grey;
+      text-align: left;             
+      }
+      .tab {
+      overflow: hidden;
+      border: 1px solid #ccc;
+      background-color: #f1f1f1;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      }
+      .tab div {
+      background-color: inherit;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      transition: 0.3s;
+      display: block;
+      }
+      .tab div:hover {
+      background-color: #ddd;
+      }
+      .tab div.active {
+      background-color: #ccc;
+      }
+      #newEntry, #changedEntry {
+      position: absolute;
+      left: 0; 
+      right: 0;
+      bottom: 0;
+      top: 0;   
+      margin-left: auto; 
+      margin-right: auto; 
+      margin-bottom: auto; 
+      margin-top: 20vh;   
+      width: 400px;
+      z-index:100; 
+      }
+      #paymentRun {
+      position: absolute;
+      left: 0; 
+      right: 0;
+      bottom: 0;
+      top: 0;   
+      margin-left: auto; 
+      margin-right: auto; 
+      margin-bottom: auto; 
+      margin-top: 10vh;   
+      width: 95vw;
+      z-index:100;      
+      }
+      #backdrop {
+      position:fixed;
+      left: 0; 
+      right: 0;
+      bottom: 0;
+      top: 0; 
+      margin-left: auto; 
+      margin-right: auto; 
+      margin-bottom: auto; 
+      margin-top: auto; 
+      height: 100vh;
+      width: 100vw;
+      background-color:white;
+      opacity: 0.7;
+      z-index:50;
+      }
+      .spinner {
+      margin: 0px auto;
+      width: 50px;
+      height: 40px;
+      text-align: center;
+      font-size: 10px;
+      }
+      .spinner > div {
+      background-color: #333;
+      height: 100%;
+      width: 6px;
+      display: inline-block;
+      -webkit-animation: sk-stretchdelay 1.2s infinite ease-in-out;
+      animation: sk-stretchdelay 1.2s infinite ease-in-out;
+      }
+      .spinner .rect2 {
+      -webkit-animation-delay: -1.1s;
+      animation-delay: -1.1s;
+      }
+      .spinner .rect3 {
+      -webkit-animation-delay: -1.0s;
+      animation-delay: -1.0s;
+      }
+      .spinner .rect4 {
+      -webkit-animation-delay: -0.9s;
+      animation-delay: -0.9s;
+      }
+      .spinner .rect5 {
+      -webkit-animation-delay: -0.8s;
+      animation-delay: -0.8s;
+      }
+      @-webkit-keyframes sk-stretchdelay {
+      0%, 40%, 100% { -webkit-transform: scaleY(0.4) }  
+      20% { -webkit-transform: scaleY(1.0) }
+      }
+      @keyframes sk-stretchdelay {
+      0%, 40%, 100% { 
+      transform: scaleY(0.4);
+      -webkit-transform: scaleY(0.4);
+      }  20% { 
+      transform: scaleY(1.0);
+      -webkit-transform: scaleY(1.0);
+      }
+      }
+      .tablinks{
+      text-align: center;
+      font-size:22px;
+      font-color:#D3D3D3;
+      padding: 3px;
+      }
+      .shakeDiv {
+      animation: shake 0.5s; 
+      }
+      @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+      }
+      .droptarget {     
+      padding: 1px;
+      height: 50vh;
+      overflow: scroll;
+      }
+      .paymentRunDescription {
+      display: grid;
+      grid-template-columns: 11vw auto;
+      overflow-wrap: break-word;      
+      }   
+      .box { 
+      position: absolute;
+      content: '';
+      height: 1px;
+      right: 40%;
+      left: 3%;
+      bottom: 2px;
+      }
+   </style>
+   <div id="backdrop" style="display:none;" onclick="hideAll()"></div>
+   <apex:form id="theForm">
+      <!-- Tab links -->
+      <apex:actionFunction action="{!deleteEntry}" immediate="true" name="methodOneInJavascript" oncomplete="refreshPage();" status="myStatus">
+         <apex:param name="entryId" assignTo="{!entryId}" value="" />
+         <apex:param name="entryParentDate" assignTo="{!entryParentDate}" value="" />
+         <apex:param name="type" assignTo="{!deleteEntryType}" value="" />
+      </apex:actionFunction>
+      <!-- MASTER GRID CONTAINTER -->
+      <div class="master-grid-container">
+         <!-- LEFT SIDE NAVIGATION MENU -->
+         <div class="grid-item">
+            <div class="tab">
+               <div class="tablinks active" onclick="openTab(event,'default')" id="defaultTab"><i class="fas fa-chart-line"></i></div>
+               <div class="tablinks" onclick="openTab(event,'excelTab')" id="excelTab"><i class="fas fa-table"></i></div>
+               <div class="tablinks" onclick="openTab(event,'analyser')" id="analyserTab"><i class="fas fa-chart-bar"></i></div>
+               <div class="tablinks" onclick="openTab(event,'settings')" id="settingsTab"><i class="fas fa-wrench"></i></div>
+            </div>
+         </div>
+         <!-- END LEFT SIDE NAVIGATION MENU -->
+         <!-- START MAIN BODY CONTENT --> 
+         <div>
+            <!-- FIRST TAB CONTENT -->
+            <div id="dashboard" style="display:block;">
+               <div class="grid-container" >
+                  <div class="grid-item" onresize="callAction()">
+                     <div class="chartPanel" >
+                        <apex:pageBlock title="Cashflow forecast next 180 days">
+                           <apex:pageBlockButtons location="top">
+                              <apex:commandButton value="APPROVE" action="{!approveFlow}" rendered="{!AND(NOT(approved),OR($User.Email = 'ronan.williams@livegroup.co.uk', $User.Email = 'salesinvoices@livegroup.co.uk'))}"/>
+                              <apex:outputPanel rendered="{!NOT(approved)}">
+                                 &nbsp; Pending approval 
+                                 <apex:outputText rendered="{!lastApproval != null}">&nbsp; (last approved {!((TODAY() - lastApproval))} days ago)</apex:outputText>
+                              </apex:outputPanel>
+                              <apex:outputPanel rendered="{!approved}">
+                                 &nbsp; <i style="font-size:17px;" class="far fa-check-square"></i> &nbsp; Approved (expires in {!(7 - (TODAY() - lastApproval))} day/s)
+                              </apex:outputPanel>
+                           </apex:pageBlockButtons>
+                           <div style="height:80vh;">
+                              <div class="header">
+                                 <div class="progress-container">
+                                    <div class="progress-bar" id="myBar" ></div>
+                                 </div>
+                              </div>
+                              <div style="height:75vh;width:50vw;font-size:8px;" id="theChart" ></div>
+                           </div>                            
+                        </apex:pageBlock>
+                     </div>
+                  </div>
+                  <div>
+                     <!-- START OF RIGHT HAND SIDE GRID -->
+                     <div class="grid-item" >
+                        <apex:pageBlock title="Transaction Overview">
+                           <apex:pageBlockButtons location="top">
+                              <apex:outputPanel onclick="showForm('newEntry')">
+                                 <apex:outputText styleClass="btn" value="ADD CUSTOM ENTRY" />
+                              </apex:outputPanel>
+                              <apex:outputPanel onclick="showPaymentRunsForm()">
+                                 <apex:outputText styleClass="btn" value="MANAGE PAYMENT RUNS" />
+                              </apex:outputPanel>
+                           </apex:pageBlockButtons>
+                           <div style="height:80vh;">
+                              <div  id="info" onscroll="changeScroller()" style="font-size:10px;">
+                                 <apex:repeat value="{!flowEntries}" var="x">
+                                    <div id="{!x.flow.Number__c}" style="font-size:10px;">
+                                       <apex:pageBlock title="{!x.dayValue}">
+                                          <apex:outputText rendered="{!(x.flow.In__c + x.flow.InPlus__c) = 0 && (x.flow.Out__c + x.flow.OutPlus__c) = 0}">
+                                             <div style="font-size:11px;">No transactions to show</div>
+                                          </apex:outputText>
+                                          <apex:pageBlockSection columns="2"  collapsible="false" rendered="{!NOT((x.flow.In__c + x.flow.InPlus__c) = 0 && (x.flow.Out__c + x.flow.OutPlus__c) = 0)}">
+                                             <apex:outputPanel >
+                                                <!-- INFO ABOUT AMOUNT IN TO GO HERE -->
+                                                <apex:outputPanel rendered="{!(x.flow.In__c + x.flow.InPlus__c) > 0}">
+                                                   <div style="color:green;" >
+                                                      <span>
+                                                         <i class="fas fa-arrow-up"></i>
+                                                         <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                            <apex:param value="{!x.flow.In__c + x.flow.InPlus__c}"/>
+                                                         </apex:outputText>
+                                                      </span>
+                                                   </div>
+                                                </apex:outputPanel>
+                                                <apex:outputPanel rendered="{!(x.flow.In__c + x.flow.InPlus__c) < 0}">
+                                                   <div style="color:red;" >
+                                                      <span>
+                                                         <i class="fas fa-arrow-down"></i>
+                                                         <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                            <apex:param value="{!x.flow.In__c + x.flow.InPlus__c}"/>
+                                                         </apex:outputText>
+                                                      </span>
+                                                   </div>
+                                                </apex:outputPanel>                                                
+                                                <apex:pageBlockTable value="{!x.flow.InEntries__r}" var="entry" style="font-size:10px;" rendered="{!x.flow.InEntries__r.size > 0}">
+                                                   <apex:column style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}">
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Quickbooks'}">
+                                                      <div style="cursor:pointer;" onclick="showForm('changedEntry','{!x.flow.Date__c}',
+                                                         '{!entry.Description__c}:',{!entry.Amount__c},'{!entry.Id}','{!entry.Category__c}')">
+                                                         <img src='https://seeklogo.com/images/Q/quick-books-logo-D276A46B9F-seeklogo.com.png' height="15"/>
+                                                      </div>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Salesforce'}">
+                                                      <img src='http://www.stickpng.com/assets/images/58482f67cef1014c0b5e4a81.png' height="15"/>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Salesforce (P)'}">
+                                                      <img src='https://lh3.googleusercontent.com/nAgCKBc1a-dFQ-g7XBzVg56hTNzRHjLQnd4Pnjzze4yn9ddxQ1L13u_Hz9ObxlcToVln8SZP7l5pdP7oDHQcZg=w1024' height="15"/>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Custom'}" onclick="deleteEntry('{!entry.Id}','{!x.flow.Date__c}','In')">
+                                                      <i id="{!entry.Id}icon" class="far fa-times-circle" style="color:black;cursor:pointer;font-size:12px;"></i>
+                                                   </apex:outputPanel>
+                                                   </apex:column>
+                                                   <apex:column style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}" headerValue="Description" >
+                                                   <div id="{!entry.Id + 'description'}">
+                                                      <apex:outputText value="{!entry.Description__c}"/>
+                                                   </div>
+                                                   </apex:column>                                                       
+                                                   <apex:column headerValue="Value" value="{!entry.Amount__c}"
+                                                   style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}"/>                             
+                                                </apex:pageBlockTable>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel >
+                                                <!-- INFO ABOUT AMOUNT OUT TO GO HERE -->
+                                                <apex:outputPanel rendered="{!(x.flow.Out__c + x.flow.OutPlus__c) > 0}">
+                                                   <div style="color:red;" >
+                                                      <span>
+                                                         <i class="fas fa-arrow-down"></i>
+                                                         <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                            <apex:param value="{!x.flow.Out__c + x.flow.OutPlus__c}"/>
+                                                         </apex:outputText>
+                                                      </span>
+                                                   </div>
+                                                </apex:outputPanel>
+                                                <apex:outputPanel rendered="{!(x.flow.Out__c + x.flow.OutPlus__c) < 0}">
+                                                   <div style="color:green;" >
+                                                      <span>
+                                                         <i class="fas fa-arrow-up"></i>
+                                                         <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                            <apex:param value="{!x.flow.Out__c + x.flow.OutPlus__c}"/>
+                                                         </apex:outputText>
+                                                      </span>
+                                                   </div>
+                                                </apex:outputPanel>                                                
+                                                <apex:pageBlockTable value="{!x.flow.OutEntries__r}" var="entry" style="font-size:10px;" rendered="{!x.flow.OutEntries__r.size > 0}">
+                                                   <apex:column style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}">
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Quickbooks'}">
+                                                      <div style="cursor:pointer;" onclick="showForm('changedEntry','{!x.flow.Date__c}',
+                                                         '{!entry.Description__c}:',{!entry.Amount__c},'{!entry.Id}','{!entry.Category__c}')">
+                                                         <img src='https://seeklogo.com/images/Q/quick-books-logo-D276A46B9F-seeklogo.com.png' height="15"/>
+                                                      </div>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Salesforce'}">
+                                                      <img src='http://www.stickpng.com/assets/images/58482f67cef1014c0b5e4a81.png' height="15"/>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Overheads'}">
+                                                      <i class="far fa-building" style="color:black;font-size:14px;"></i>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Salesforce (P)'}">
+                                                      <img src='https://lh3.googleusercontent.com/nAgCKBc1a-dFQ-g7XBzVg56hTNzRHjLQnd4Pnjzze4yn9ddxQ1L13u_Hz9ObxlcToVln8SZP7l5pdP7oDHQcZg=w1024' height="15"/>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Custom'}" onclick="deleteEntry('{!entry.Id}','{!x.flow.Date__c}','Out')">
+                                                      <i id="{!entry.Id}icon" class="far fa-times-circle" style="color:black;cursor:pointer;font-size:12px;"></i>
+                                                   </apex:outputPanel>
+                                                   <apex:outputPanel rendered="{!entry.Source__c = 'Payroll'}">
+                                                      <i class="fas fa-hand-holding-usd" style="color:black;font-size:16px;"></i>
+                                                   </apex:outputPanel>
+                                                   </apex:column>
+                                                   <apex:column style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}" headerValue="Description" >
+                                                   <div id="{!entry.Id + 'description'}">
+                                                      <apex:outputText value="{!entry.Description__c}"/>
+                                                   </div>
+                                                   </apex:column>    
+                                                   <apex:column style="{!IF(OR(entry.Adjusted__c,entry.Source__c = 'Custom'),"background-color:#FFFF00;","")}" headerValue="Value" value="{!entry.Amount__c}"/>
+                                                </apex:pageBlockTable>
+                                             </apex:outputPanel>
+                                          </apex:pageBlockSection>
+                                          <h2>
+                                             CLOSING BALANCE:
+                                             <span style="{!IF(x.flow.BalancePlus__c < 0, "color:red;","")}">
+                                             <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                                <apex:param value="{!x.flow.BalancePlus__c}"/>
+                                             </apex:outputText>
+                                             </span>
+                                          </h2>
+                                       </apex:pageBlock>
+                                    </div>
+                                 </apex:repeat>
+                              </div>
+                           </div>
+                        </apex:pageBlock>
+                     </div>
+                     <!-- END OF RIGHT HAND SIDE GRID -->
+                  </div>
+               </div>
+            </div>
+            <!-- END OF FRIST TAB CONTENT -->        
+            <!-- START OF SECOND TAB - EXCEL VIEW -->
+            <div id="excel" class="grid-item" style="display:none;height:75vh;">
+               <apex:pageBlock >
+                  <div >
+                     <div style="font-size: 10px;">
+                        <apex:pageBlockTable value="{!'WEEK COMMENCING'}" var="holder" >
+                           <apex:column headerValue="" value="{!holder}" style="width:180px;"/>
+                           <!--<apex:repeat value="{!openingDates}" var="date" >-->
+                           <apex:repeat value="{!dateValuesDisplay}" var="date" >
+                              <apex:column style="width:60px;">
+                                 <apex:outputText value=" {0,date,EEE MMM d}">
+                                    <apex:param value="{!IF(date < TODAY(), TODAY(), date + 1)}"/>
+                                 </apex:outputText>
+                              </apex:column>
+                           </apex:repeat>
+                        </apex:pageBlockTable>
+                     </div>
+                     <div style="font-size: 10px; font-weight:bold;">
+                        <apex:pageBlockTable value="{!1}" var="holder">
+                           <apex:column headerValue="" value="{!'OPENING BALANCE'}" style="width:204px;"/>
+                           <apex:column style="width:70px;">
+                              <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                 <apex:param value="{!currentBalance}"/>
+                              </apex:outputText>
+                           </apex:column>
+                           <apex:repeat value="{!openingDates}" var="date" >
+                              <apex:column style="width:70px;{!IF(flowMap[date].BalancePlus__c < 0,"color:red;","")};" >
+                              <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                 <apex:param value="{!flowMap[date].BalancePlus__c}"/>
+                              </apex:outputText>
+                              </apex:column>
+                           </apex:repeat>
+                        </apex:pageBlockTable>
+                     </div>
+                     <div style="font-size: 10px;" >
+                        <div class="excelColumns" >
+                           <apex:pageBlockTable value="{!inComponents}" var="category">
+                              <apex:column value="{!category.name}" style="width:180px;"/>                   
+                              <apex:repeat value="{!category.valueMap}" var="date">
+                                 <apex:column headerValue="Cash inflows" style="width:60px;{!IF(category.valueMap[date] = 0, "color:white;","")}">
+                                 <div onClick="show('{!category.name}{!date}','{!category.valueMap[date]}')" style="cursor:pointer;">
+                                    <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                       <apex:param value="{!category.valueMap[date]}"/>
+                                    </apex:outputText>
+                                    <div class="{!IF(category.valueMap[date] = 0, "","box")}" style="{!IF(category.valueMap[date]=0,"", cssStyleMap[category.cssStyles[date]])}"></div>
+                                    <div id="{!category.name}{!date}">
+                                       <div style="visibility:hidden;display:none;" >
+                                          <div align="right" onclick="hide('{!category.name}{!date}')">
+                                             <i class="far fa-times-circle" style="color:black;cursor:pointer;"></i>
+                                          </div>
+                                          <h3>
+                                             {!category.name} week commencing 
+                                             <apex:outputText value=" {0,date,EEE MMM d}">
+                                                <apex:param value="{!date - 6}"/>
+                                             </apex:outputText>
+                                          </h3>
+                                          <apex:pageblockTable value="{!category.descriptionMap2[date]}" var="entry1">
+                                             <!-- INSERT COLOR CODES HERE -->
+                                             <apex:column style="{!IF(OR(entry1.Adjusted__c,entry1.Source__c = 'Custom'),"background-color:#FFFF00;","")}">
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Quickbooks'}">
+                                                <img src='https://seeklogo.com/images/Q/quick-books-logo-D276A46B9F-seeklogo.com.png' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Salesforce'}">
+                                                <img src='http://www.stickpng.com/assets/images/58482f67cef1014c0b5e4a81.png' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Overheads'}">
+                                                <i class="far fa-building" style="color:black;font-size:14px;"></i>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Salesforce (P)'}">
+                                                <img src='https://lh3.googleusercontent.com/nAgCKBc1a-dFQ-g7XBzVg56hTNzRHjLQnd4Pnjzze4yn9ddxQ1L13u_Hz9ObxlcToVln8SZP7l5pdP7oDHQcZg=w1024' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Custom'}">
+                                                <i class="far fa-times-circle" style="color:black;font-size:12px;"></i>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Payroll'}">
+                                                <i class="fas fa-hand-holding-usd" style="color:black;font-size:16px;"></i>
+                                             </apex:outputPanel>
+                                             </apex:column>
+                                             <apex:column headerValue="Description" style="background-color:white;">
+                                                <apex:outputText value="{!entry1.Description__c}" />
+                                             </apex:column>
+                                             <apex:column headerValue="Amount" style="background-color:white;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!entry1.Amount__c}"/>
+                                                </apex:outputText>
+                                             </apex:column>
+                                             <div>{!entry1.Details__c}</div>
+                                          </apex:pageblockTable>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 </apex:column>
+                              </apex:repeat>
+                           </apex:pageBlockTable>
+                        </div>
+                        <div style="font-size: 10px; font-weight:bold;">
+                           <apex:pageBlockTable value="{!1}" var="holder">
+                              <apex:column headerValue="" value="{!'TOTAL INFLOW'}" style="width:180px;"/>
+                              <apex:repeat value="{!closingDates}" var="date" >
+                                 <apex:column style="width:60px;">
+                                    <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                       <apex:param value="{!inChanges[date]}" />
+                                    </apex:outputText>
+                                 </apex:column>
+                              </apex:repeat>
+                           </apex:pageBlockTable>
+                        </div>
+                        <!--<br/>-->
+                        <!--<div class="excelColumns" >-->
+                        <div >
+                           <apex:pageBlockTable value="{!outComponents}" var="category">
+                              <apex:column value="{!category.name}" style="width:180px;"/>
+                              <apex:repeat value="{!category.valueMap}" var="date">
+                                 <apex:column headerValue="Cash outflows" style="width:60px;{!IF(category.valueMap[date] = 0, "color:white;","")}">
+                                 <div onClick="show('{!category.name}{!date}','{!category.valueMap[date]}')" style="cursor:pointer;">
+                                    <apex:outputText value="{0, number, £###,###,##0.00}">
+                                       <apex:param value="{!category.valueMap[date]}"/>
+                                    </apex:outputText>
+                                    <div class="{!IF(category.valueMap[date] = 0, "","box")}" style="{!IF(category.valueMap[date]=0,"", cssStyleMap[category.cssStyles[date]])}"></div>
+                                    <div id="{!category.name}{!date}">
+                                       <div style="visibility:hidden;display:none;background-color:white;" >
+                                          <div align="right" onclick="hide('{!category.name}{!date}')">
+                                             <i class="far fa-times-circle" style="color:black;cursor:pointer;"></i>
+                                          </div>
+                                          <h3>
+                                             {!category.name} week commencing 
+                                             <apex:outputText value=" {0,date,EEE MMM d}">
+                                                <apex:param value="{!date - 6}"/>
+                                             </apex:outputText>
+                                          </h3>
+                                          <apex:pageblockTable value="{!category.descriptionMap2[date]}" var="entry1">
+                                             <!-- INSERT COLOR CODES HERE -->
+                                             <apex:column style="{!IF(OR(entry1.Adjusted__c,entry1.Source__c = 'Custom'),"background-color:#FFFF00;","")}">
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Quickbooks'}">
+                                                <img src='https://seeklogo.com/images/Q/quick-books-logo-D276A46B9F-seeklogo.com.png' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Salesforce'}">
+                                                <img src='http://www.stickpng.com/assets/images/58482f67cef1014c0b5e4a81.png' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Overheads'}">
+                                                <i class="far fa-building" style="color:black;font-size:14px;"></i>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Salesforce (P)'}">
+                                                <img src='https://lh3.googleusercontent.com/nAgCKBc1a-dFQ-g7XBzVg56hTNzRHjLQnd4Pnjzze4yn9ddxQ1L13u_Hz9ObxlcToVln8SZP7l5pdP7oDHQcZg=w1024' height="15"/>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Custom'}">
+                                                <i class="far fa-times-circle" style="color:black;font-size:12px;"></i>
+                                             </apex:outputPanel>
+                                             <apex:outputPanel rendered="{!entry1.Source__c = 'Payroll'}">
+                                                <i class="fas fa-hand-holding-usd" style="color:black;font-size:16px;"></i>
+                                             </apex:outputPanel>
+                                             </apex:column>                                       
+                                             <apex:column headerValue="Description" style="background-color:white;">
+                                                <apex:outputText value="{!entry1.Description__c}" />
+                                                <span>
+                                                   <apex:outputPanel rendered="{!entry1.Details__c != ''}" onclick="showDetails('{!entry1.Id}details')">
+                                                      <span class="detailsarrow {!entry1.Id}detailsarrow"  style="font-size:15px;cursor:pointer;color:#D8D8D8;">                                           
+                                                      <i class="fas fa-arrow-circle-right" />
+                                                      </span>
+                                                   </apex:outputPanel>
+                                                </span>
+                                                <div style="display:none;" class="details {!entry1.Id}details">
+                                                   <apex:outputText escape="false" value="{!entry1.Details__c}"/>
+                                                </div>
+                                             </apex:column>
+                                             <apex:column headerValue="Amount" style="background-color:white;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!entry1.Amount__c}"/>
+                                                </apex:outputText>
+                                             </apex:column>
+                                          </apex:pageblockTable>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 </apex:column>
+                              </apex:repeat>
+                           </apex:pageBlockTable>
+                        </div>
+                        <div style="font-size: 10px; font-weight:bold;">
+                           <apex:pageBlockTable value="{!1}" var="holder">
+                              <apex:column headerValue="" value="{!'TOTAL OUTFLOW'}" style="width:180px;"/>
+                              <apex:repeat value="{!closingDates}" var="date" >
+                                 <apex:column style="width:60px;">
+                                    <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                       <apex:param value="{!outChanges[date]}" />
+                                    </apex:outputText>
+                                 </apex:column>
+                              </apex:repeat>
+                           </apex:pageBlockTable>
+                        </div>
+                        <br/>
+                        <div style="font-size: 10px; font-weight:bold;">
+                           <apex:pageBlockTable value="{!1}" var="holder">
+                              <apex:column headerValue="" value="{!'CLOSING BALANCE'}" style="width:194px;"/>
+                              <apex:repeat value="{!closingDates}" var="date" >
+                                 <apex:column style="width:70px;{!IF(flowMap[date].BalancePlus__c < 0,"color:red;","")}">
+                                 <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                    <apex:param value="{!flowMap[date].BalancePlus__c}"/>
+                                 </apex:outputText>
+                                 </apex:column>
+                              </apex:repeat>
+                           </apex:pageBlockTable>
+                        </div>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+            </div>
+            <!-- END OF SECOND TAB - EXCEL VIEW -->
+            <!-- START OF THIRD TAB - ANALYSER -->
+            <div id="analyser" style="display:none;" >
+               <div style="display:block;">
+                  <div class="grid-container" id="revenueGraph">
+                     <div class="grid-item" onresize="callAction()">
+                        <div class="chartPanel" >
+                           <apex:pageBlock title="Revenue breakdown by month">
+                              <div style="height:80vh;">
+                                 <div style="height:40vh;width:43vw;font-size:8px;" id="revenueChart"></div>
+                                 <br/>
+                                 <div class="grid-container5">
+                                   <div class="grid-item" style="text-align:center;font-size:18px;">PAST</div> 
+                                   <div class="grid-item" style="text-align:center;font-size:18px;">FUTURE</div> 
+                                   <div class="grid-item" style="text-align:center;font-size:18px;">TOTAL</div>                                  
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Uninvoiced</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[0]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[0] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Uninvoiced</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[2]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[2] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Uninvoiced</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[4]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[4] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Unpaid</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[1]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[1] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Unpaid</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[3]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[3] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                    <div class="grid-item">
+                                       <!--<apex:pageBlock >-->
+                                          <div style="text-align:center;font-size:18px;">
+                                             <div style="font-weight:bold">Unpaid</div>
+                                             <div>
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[5]}"/>
+                                                </apex:outputText>
+                                             </div>
+                                             <div style="color:grey;">
+                                                <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                   <apex:param value="{!revenueFigures[5] * 1.2}"/>
+                                                </apex:outputText>
+                                             </div>
+                                          </div>
+                                       <!--</apex:pageBlock>-->
+                                    </div>
+                                 </div>
+                              </div>
+                           </apex:pageBlock>
+                        </div>
+                     </div>
+                     <div>
+                        <!-- START OF RIGHT HAND SIDE GRID -->
+                        <div class="grid-item" >
+                           <div class="chartPanel" >
+                              <apex:pageBlock title="COS breakdown by month">
+                                 <div style="height:80vh;">
+                                    <div style="height:40vh;width:43vw;font-size:8px;" id="cosChart"></div>
+                                    <br/>
+                                    <div class="grid-container5">
+                                       <div class="grid-item" style="text-align:center;font-size:18px;">PAST</div> 
+                                       <div class="grid-item" style="text-align:center;font-size:18px;">FUTURE</div> 
+                                       <div class="grid-item" style="text-align:center;font-size:18px;">TOTAL</div> 
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unbilled</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[0]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[0] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unbilled</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[2]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[2] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unbilled</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[4]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[4] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unpaid</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[1]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[1] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unpaid</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[3]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[3] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                       <div class="grid-item">
+                                          <!--<apex:pageBlock >-->
+                                             <div style="text-align:center;font-size:18px;">
+                                                <div style="font-weight:bold">Unpaid</div>
+                                                <div>
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[5]}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                                <div style="color:grey;">
+                                                   <apex:outputText value="{0, number, £###,###,##0.00}">
+                                                      <apex:param value="{!cosFigures[5] * 1.2}"/>
+                                                   </apex:outputText>
+                                                </div>
+                                             </div>
+                                          <!--</apex:pageBlock>-->
+                                       </div>
+                                    </div>
+                                 </div>
+                              </apex:pageBlock>
+                           </div>
+                        </div>
+                        <!-- END OF RIGHT HAND SIDE GRID -->
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <!-- END OF THIRD TAB - ANALYSER -->
+            <!-- START OF FOURTH TAB - SETTINGS -->
+            <div id="settings" style="display:none;" >
+               <div style="display:block;">
+                  <div class="grid-container">
+                     <div class="grid-item">
+                        <apex:pageBlock title="Supplier Profiles">
+                           <div class="settingsPanel" >
+                              <div class="grid-item">
+                                 <apex:pageBlock title="DIRECT DEBITS">
+                                 </apex:pageBlock>
+                                 <apex:pageBlock title="FREELANCERS">
+                                 </apex:pageBlock>
+                              </div>
+                              <div class="grid-item">
+                                 <apex:pageBlock title="ALL OTHER SUPPLIERS">
+                                 </apex:pageBlock>
+                              </div>
+                           </div>
+                        </apex:pageBlock>
+                     </div>
+                     <div>
+                        <!-- START OF RIGHT HAND SIDE GRID -->
+                        <div class="grid-item" >
+                           <apex:pageBlock title="Content coming">
+                              <div class="settingsPanel" >
+                              </div>
+                           </apex:pageBlock>
+                        </div>
+                        <!-- END OF RIGHT HAND SIDE GRID -->
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <!-- END OF FOURTH TAB - SETTINGS -->
+            <!-- END MAIN BODY CONTENT --> 
+         </div>
+         <!-- END MASTER GRID CONTAINER  -->     
+      </div>
+   </apex:form>
+   <apex:form >
+      <!-- NEW ENTRY FORM -->
+      <div id="newEntry" style="display:none;">
+         <apex:pageBlock title="New Entry">
+            <apex:pageBlockButtons location="top">
+               <div id="newEntryHolding" >
+                  <div class="rect1"></div>
+                  <div class="rect2"></div>
+                  <div class="rect3"></div>
+                  <div class="rect4"></div>
+                  <div class="rect5"></div>
+               </div>
+               <div id="newButtons">
+                  <span onclick="holdingMessage();">
+                     <apex:commandButton value="Submit" action="{!insertEntry}" oncomplete="refreshPage();" />
+                  </span>
+                  <apex:outputPanel onclick="hideForm()">
+                     <apex:outputText styleClass="btn" value="Cancel" />
+                  </apex:outputPanel>
+               </div>
+            </apex:pageBlockButtons>
+            <div style="height:100%;">
+               <div id="holdingMessage"></div>
+               <div id="inputForm">
+                  <apex:pageBlockSection columns="1" >
+                     <div id="inputFields">
+                        <apex:selectRadio value="{!newEntryType}" label="Type" required="true">
+                           <apex:selectOption itemValue="In" itemLabel="Money in" />
+                           <apex:selectOption itemValue="Out" itemLabel="Money out" />
+                        </apex:selectRadio>
+                        <apex:inputField value="{!newEntry.Amount__c}" type="auto" html-min="0" required="true" id="input1" styleClass="newInputs"/>
+                        <apex:inputField value="{!newEntry.Description__c}" required="true" id="input2" styleClass="newInputs"/ >
+                        <apex:input type="date" label="Date"  value="{!newEntryDate}" required="true" id="input3" styleClass="newInputs"/>
+                     </div>
+                  </apex:pageBlockSection>
+               </div>
+            </div>
+         </apex:pageBlock>
+      </div>
+      <!-- END NEW ENTRY FORM -->
+   </apex:form>
+   <apex:form >
+      <!-- MANAGE PAYMENT RUNS FORM -->
+      <div id="paymentRun" style="display:none;">
+         <apex:pageBlock title="Manage payment runs">
+            <apex:pageBlockButtons location="top">
+                   <div id="paymentRunHolding" >
+                      <div class="rect1"></div>
+                      <div class="rect2"></div>
+                      <div class="rect3"></div>
+                      <div class="rect4"></div>
+                      <div class="rect5"></div>
+                   </div>
+                   <div id="paymentRunButtons"> 
+                       <span id="paymentRunButton" style="display:none;">
+                          <apex:commandButton value="Update" onclick="updatePaymentRuns();return false;" />
+                          <apex:outputPanel onclick="hideForm()">
+                             <apex:outputText styleClass="btn" value="Cancel" />
+                          </apex:outputPanel>
+                      </span>
+                      <span id="cancelPaymentRun">  
+                          <apex:outputPanel onclick="hideForm()">
+                             <apex:outputText styleClass="btn" value="Cancel" />
+                          </apex:outputPanel>
+                      </span>
+                   </div> 
+            </apex:pageBlockButtons>
+            <div class="paymentRunRows" style="font-size:11px;">
+               <!-- FIRST PAYMENT RUN -->
+               <apex:pageBlock >
+                  <span>
+                     <apex:outputText value=" {0,date,d MMM YYYY}" style="font-weight:bold;font-size:13px;">
+                        <apex:param value="{!openingDates[0] + 1}"/>
+                     </apex:outputText>
+                  </span>
+                  <span style="float:right;font-weight:bold;font-size:12px;"  id="firstRunValue" class="totalValue">
+                     <apex:outputText value="{0, number, £###,###,##0.00}">
+                        <apex:param value="{!firstPaymentRunValue}"/>
+                     </apex:outputText>
+                  </span>
+                  <br/>
+                  <br/>
+                  <div style="border-top:1px solid #e0e0e0;padding:3px;" >    
+                     <span> DESCRIPTION</span>
+                     <span style="float:right;"> AMOUNT </span>
+                  </div>
+                  <div >
+                     <div ondragover="allowDrop(event)" ondrop="drop(event,'{!TEXT(openingDates[0] + 1)}')" class="droptarget" id="firstRun">
+                        <apex:repeat value="{!firstPaymentRun}" var="entry" >
+                           <div draggable="{!IF(entry.Category__c != 'Direct debit',true,false)}" ondragstart="drag(event,{!entry.Amount__c},this.parentNode.id,'firstRun')" 
+                              style="border-top:1px solid #e0e0e0;padding:3px;{!IF(entry.Category__c != 'Direct debit','cursor:pointer;','')}" id="{!entry.Id}" >
+                              <div class="paymentRunDescription">
+                                 <apex:outputText value="{!entry.Description__c}" ></apex:outputText>                              
+                                  <div style="text-align:right;" >
+                                     <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                        <apex:param value="{!entry.Amount__c}"/>
+                                     </apex:outputText>
+                                  </div>
+                               </div>
+                           </div>
+                        </apex:repeat>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+               <!-- SECOND PAYMENT RUN -->
+               <apex:pageBlock >
+                  <span>
+                     <apex:outputText value=" {0,date,d MMM YYYY}" style="font-weight:bold;font-size:13px;">
+                        <apex:param value="{!openingDates[1] + 1}"/>
+                     </apex:outputText>
+                  </span>
+                  <span style="float:right;font-weight:bold;font-size:12px;"  id="secondRunValue" class="totalValue">
+                     <apex:outputText value="{0, number, £###,###,##0.00}">
+                        <apex:param value="{!secondPaymentRunValue}"/>
+                     </apex:outputText>
+                  </span>
+                  <br/>
+                  <br/>
+                  <div style="border-top:1px solid #e0e0e0;padding:3px;" >    
+                     <span> DESCRIPTION</span>
+                     <span style="float:right;"> AMOUNT </span>
+                  </div>
+                  <div >
+                     <div ondragover="allowDrop(event)" ondrop="drop(event,'{!TEXT(openingDates[1] + 1)}')" class="droptarget" id="secondRun">
+                        <apex:repeat value="{!secondPaymentRun}" var="entry" >
+                           <div draggable="{!IF(entry.Category__c != 'Direct debit',true,false)}" ondragstart="drag(event,{!entry.Amount__c},this.parentNode.id,'secondRun')" 
+                              style="border-top:1px solid #e0e0e0;padding:3px;{!IF(entry.Category__c != 'Direct debit','cursor:pointer;','')}" id="{!entry.Id}" >
+                              <div class="paymentRunDescription">
+                                 <apex:outputText value="{!entry.Description__c}" ></apex:outputText>                              
+                                  <div style="text-align:right;" >
+                                     <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                        <apex:param value="{!entry.Amount__c}"/>
+                                     </apex:outputText>
+                                  </div>
+                               </div>
+                           </div>
+                        </apex:repeat>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+               <!-- THIRD PAYMENT RUN -->
+               <apex:pageBlock >
+                  <span>
+                     <apex:outputText value=" {0,date,d MMM YYYY}" style="font-weight:bold;font-size:13px;">
+                        <apex:param value="{!openingDates[2] + 1}"/>
+                     </apex:outputText>
+                  </span>
+                  <span style="float:right;font-weight:bold;font-size:12px;"  id="thirdRunValue" class="totalValue">
+                     <apex:outputText value="{0, number, £###,###,##0.00}">
+                        <apex:param value="{!thirdPaymentRunValue}"/>
+                     </apex:outputText>
+                  </span>
+                  <br/>
+                  <br/>
+                  <div style="border-top:1px solid #e0e0e0;padding:3px;" >    
+                     <span> DESCRIPTION</span>
+                     <span style="float:right;"> AMOUNT </span>
+                  </div>
+                  <div >
+                     <div ondragover="allowDrop(event)" ondrop="drop(event,'{!TEXT(openingDates[2] + 1)}')" class="droptarget" id="thirdRun">
+                        <apex:repeat value="{!thirdPaymentRun}" var="entry" >
+                           <div draggable="{!IF(entry.Category__c != 'Direct debit',true,false)}" ondragstart="drag(event,{!entry.Amount__c},this.parentNode.id,'thirdRun')" 
+                              style="border-top:1px solid #e0e0e0;padding:3px;{!IF(entry.Category__c != 'Direct debit','cursor:pointer;','')}" id="{!entry.Id}" >
+                              <div class="paymentRunDescription">
+                                 <apex:outputText value="{!entry.Description__c}" ></apex:outputText>                              
+                                  <div style="text-align:right;" >
+                                     <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                        <apex:param value="{!entry.Amount__c}"/>
+                                     </apex:outputText>
+                                  </div>
+                               </div>
+                           </div>
+                        </apex:repeat>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+               <!-- FOURTH PAYMENT RUN -->
+               <apex:pageBlock >
+                  <span>
+                     <apex:outputText value=" {0,date,d MMM YYYY}" style="font-weight:bold;font-size:13px;">
+                        <apex:param value="{!openingDates[3] + 1}"/>
+                     </apex:outputText>
+                  </span>
+                  <span style="float:right;font-weight:bold;font-size:12px;"  id="fourthRunValue" class="totalValue">
+                     <apex:outputText value="{0, number, £###,###,##0.00}">
+                        <apex:param value="{!fourthPaymentRunValue}"/>
+                     </apex:outputText>
+                  </span>
+                  <br/>
+                  <br/>
+                  <div style="border-top:1px solid #e0e0e0;padding:3px;" >    
+                     <span> DESCRIPTION</span>
+                     <span style="float:right;"> AMOUNT </span>
+                  </div>
+                  <div >
+                     <div ondragover="allowDrop(event)" ondrop="drop(event,'{!TEXT(openingDates[3] + 1)}')" class="droptarget" id="fourthRun">
+                        <apex:repeat value="{!fourthPaymentRun}" var="entry" >
+                           <div draggable="{!IF(entry.Category__c != 'Direct debit',true,false)}" ondragstart="drag(event,{!entry.Amount__c},this.parentNode.id,'fourthRun')" 
+                              style="border-top:1px solid #e0e0e0;padding:3px;{!IF(entry.Category__c != 'Direct debit','cursor:pointer;','')}" id="{!entry.Id}" >
+                              <div class="paymentRunDescription">
+                                 <apex:outputText value="{!entry.Description__c}" ></apex:outputText>                              
+                                  <div style="text-align:right;" >
+                                     <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                        <apex:param value="{!entry.Amount__c}"/>
+                                     </apex:outputText>
+                                  </div>
+                               </div>
+                           </div>
+                        </apex:repeat>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+               <!-- FINAL PAYMENT RUN -->                               
+               <apex:pageBlock >
+                  <span>
+                     <apex:outputText style="font-weight:bold;font-size:13px;" value="Remainder" />
+                  </span>
+                  <span style="float:right;font-weight:bold;font-size:12px;"  id="finalRunValue" class="totalValue">
+                     <apex:outputText value="{0, number, £###,###,##0.00}">
+                        <apex:param value="{!allOtherPaymentsValue}"/>
+                     </apex:outputText>
+                  </span>
+                  <br/>
+                  <br/>
+                  <div style="border-top:1px solid #e0e0e0;padding:3px;" >    
+                     <span> DESCRIPTION</span>
+                     <span style="float:right;"> AMOUNT </span>
+                  </div>
+                  <div >
+                     <div ondragover="allowDrop(event)" ondrop="drop(event,'{!TEXT(openingDates[4] + 1)}')" class="droptarget" id="finalRun">
+                        <apex:repeat value="{!allOtherPayments}" var="entry" >
+                           <div draggable="{!IF(entry.Category__c != 'Direct debit',true,false)}" ondragstart="drag(event,{!entry.Amount__c},this.parentNode.id,'finalRun')" 
+                              style="border-top:1px solid #e0e0e0;padding:3px;{!IF(entry.Category__c != 'Direct debit','cursor:pointer;','')}" id="{!entry.Id}" >
+                              <div class="paymentRunDescription">
+                                 <apex:outputText value="{!entry.Description__c}" ></apex:outputText>                              
+                                  <div style="text-align:right;" >
+                                     <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                        <apex:param value="{!entry.Amount__c}"/>
+                                     </apex:outputText>
+                                  </div>
+                               </div>
+                           </div>
+                        </apex:repeat>
+                     </div>
+                  </div>
+               </apex:pageBlock>
+            </div>
+         </apex:pageBlock>
+      </div>
+      <!-- END MANAGE PAYMENT RUNS FORM -->
+      <!-- ACTION FUNCTION TO UPDATE PAYMENT RUNS -->
+      <apex:actionFunction action="{!updatePaymentRuns}" name="updatePaymentRunsAction" rerender="" oncomplete="refreshPage()">
+         <apex:param name="paymentRunKeys"  value="" />
+         <apex:param name="paymentRunValues"  value="" />
+      </apex:actionFunction>
+      <!-- END ACTION FUNCTION TO UPDATE ENTRY DATE -->  
+   </apex:form>
+   <apex:form >
+      <!-- CHANGED ENTRY FORM -->
+      <div id="changedEntry" style="display:none;">
+         <apex:pageBlock >
+            <apex:pageBlockButtons location="bottom">
+               <div id="adjustmentHolding" >
+                  <div class="rect1"></div>
+                  <div class="rect2"></div>
+                  <div class="rect3"></div>
+                  <div class="rect4"></div>
+                  <div class="rect5"></div>
+               </div>
+               <span id="adjustbuttons">
+                  <apex:commandButton value="Update" onclick="callActionFunction();return false;" />
+                  <apex:outputPanel onclick="hideForm()">
+                     <apex:outputText styleClass="btn" value="Cancel" />
+                  </apex:outputPanel>
+               </span>
+            </apex:pageBlockButtons>
+            <div style="height:100%;">
+               <h3 id="lineDetails"></h3>
+               <apex:pageBlockSection columns="1" >                        
+                  <label for="invoiceDate">Payment date:</label>
+                  <input type="date" id="paymentDate" required="true" width="55" align="left"/>
+               </apex:pageBlockSection>
+               <div id="entryId" style="display:none;"></div>
+            </div>
+         </apex:pageBlock>
+      </div>
+      <!-- END CHANGED ENTRY FORM -->
+      <!-- ACTION FUNCTION TO UPDATE ENTRY DATE -->
+      <apex:actionFunction action="{!adjustEntry}" name="ajustEntryDate" rerender="" oncomplete="refreshPage()">
+         <apex:param name="entryDate" assignTo="{!adjustedDate}" value="" />
+         <apex:param name="currentId" assignTo="{!entryId}" value="" />
+      </apex:actionFunction>
+      <!-- END ACTION FUNCTION TO UPDATE ENTRY DATE -->  
+      <!-- DETAILS DIV -->
+      <div id="detailDiv" style="display:none;z-index:100;"></div>
+      <!-- END DETAILS DIV -->
+   </apex:form>
+   <script>
+      window.scrollTo(0, 30);
+       
+      var today = new Date().toISOString().split('T')[0];
+      var lastDay = new Date();
+      lastDay.setDate(lastDay.getDate()+179);
+      var lastDate = lastDay.toISOString().split('T')[0];
+      document.getElementById("paymentDate").setAttribute('min', today);
+      document.getElementById("paymentDate").setAttribute('max', lastDate);
+      var newInputs = document.getElementsByClassName('newInputs');
+      newInputs[2].setAttribute('min', today);  
+      newInputs[2].setAttribute('max', lastDate);
+      
+      function holdingMessage() {
+      
+          var newInputs = document.getElementsByClassName('newInputs');
+          if (newInputs[0].checkValidity() && newInputs[1].checkValidity() && newInputs[2].checkValidity()) {
+              document.getElementById('newButtons').style.display = 'none';
+              document.getElementById('newEntryHolding').classList.add('spinner');
+          }
+      }
+      
+      function refreshPage() {
+          window.location.reload();
+      }
+      
+      function deleteEntry(Id, parentDate, type) {
+          var c = window.confirm("Are you sure you want to delete this custom entry?");
+          if (c) {
+              methodOneInJavascript(Id, parentDate, type);
+              document.getElementById(Id + 'description').innerHTML = 'deleting entry...';
+              document.getElementById(Id + 'icon').style.display = 'none';             
+          }
+      }
+      
+      function changeScroller() {
+          var winScroll = document.getElementById("info").scrollTop || document.getElementById("info").scrollTop;
+          var height = document.getElementById("info").scrollHeight - document.getElementById("info").clientHeight;
+          var scrolled = (winScroll / height) * 100;
+          document.getElementById("myBar").style.width = scrolled + "%";
+      }
+      
+      function nav(position) {
+          var myElement = document.getElementById(position);
+          var topPos = myElement.offsetTop;
+          document.getElementById('info').scrollTop = topPos - 630;
+      }
+      
+      document.getElementById('theChart').addEventListener("click", function(event) {
+          var offset = (event.clientX - this.offsetLeft - 100) / this.offsetWidth * 242;
+          //console.log((Math.floor(offset)).toString());
+          var offsetRounded = (Math.floor(offset)).toString();
+      
+          if (offsetRounded > 0 && offsetRounded < 180) {
+              nav(offsetRounded);
+          }
+      });
+      
+      function showForm(name, date, details, amount, Id, category) {
+          if (category != 'Direct debit'){
+              document.getElementById(name).style.display = 'block';
+              document.getElementById("backdrop").style.display = 'block';
+              if (name == 'changedEntry') {
+                  var formattedAmount = amount.toFixed(2);
+                  amount = parseFloat(formattedAmount);
+                  document.getElementById('lineDetails').innerHTML = '<span>' + details + '</span>' +
+                      '<span>' + ' £' + amount.toLocaleString() + '</span>';
+                  var currentDate = new Date(date).toISOString().split('T')[0];
+                  document.getElementById('paymentDate').value = currentDate;
+                  document.getElementById('entryId').innerHTML = Id;
+              }
+          }    
+      }
+      
+      function hideForm() {
+          document.getElementById('newEntry').style.display = 'none';
+          document.getElementById('changedEntry').style.display = 'none';
+          document.getElementById('backdrop').style.display = 'none';
+          document.getElementById('paymentRun').style.display = 'none';
+      }
+      
+      function callActionFunction() {
+          document.getElementById('adjustbuttons').style.display = 'none';
+          var Id = document.getElementById('entryId').innerHTML;
+          var date = document.getElementById('paymentDate').value;
+          ajustEntryDate(date, Id);
+          document.getElementById('adjustmentHolding').classList.add('spinner');
+      }
+      
+      function show(Id, Amount) {
+          if (Amount > 0) {
+              var detail = document.getElementById('detailDiv');
+              detail.style.display = 'block';
+              detail.innerHTML = document.getElementById(Id).firstElementChild.innerHTML;
+              document.getElementById("backdrop").style.display = 'block';
+          }
+      }
+      
+      function hide(Id) {
+          var detail = document.getElementById('detailDiv');
+          detail.style.display = 'none';
+          detail.innerHTML = '';
+          document.getElementById("backdrop").style.display = 'none';
+      }
+      
+      function showPaymentRunsForm(){
+          document.getElementById("paymentRun").style.display = 'block';
+          document.getElementById("backdrop").style.display = 'block';
+      }  
+      
+      function hideAll() {
+          document.getElementById("newEntry").style.display = 'none';
+          document.getElementById("changedEntry").style.display = 'none';
+          document.getElementById('detailDiv').style.display = 'none';
+          document.getElementById("backdrop").style.display = 'none';
+          document.getElementById("paymentRun").style.display = 'none';            
+      }
+      
+      function showDetails(className){
+          var details = document.getElementsByClassName('details');
+          for (var x = 0; x < details.length; x++){
+              details[x].style.display = 'none';
+          }
+      
+          var detailArrows = document.getElementsByClassName('detailsarrow');
+          for (var x = 0; x < detailArrows.length; x++){
+              detailArrows[x].innerHTML = '<i class="fas fa-arrow-circle-right" />';
+          }
+                
+          var detail = document.getElementsByClassName(className);
+          for (var x = 0; x < detail.length; x++){
+              detail[x].style.display = 'block';
+          }
+          
+          var detailArrow = document.getElementsByClassName(className + 'arrow');
+          for (var x = 0; x < detailArrow.length; x++){
+              detailArrow[x].innerHTML = '<i class="fas fa-arrow-circle-down" />';
+          }            
+      }     
+      
+      function openTab(evt, tabName) {
+      
+          var tablinks = document.getElementsByClassName("tablinks");
+          for (var i = 0; i < tablinks.length; i++) {
+              tablinks[i].className = tablinks[i].className.replace(" active", "");
+          }
+      
+          evt.currentTarget.className += " active";
+      
+          var excel = document.getElementById("excel");
+          var dashboard = document.getElementById("dashboard");
+          var analyser = document.getElementById("analyser");
+          var settings = document.getElementById("settings");
+      
+          if (tabName == "excelTab") {
+              dashboard.style.display = "none";
+              analyser.style.display = "none";
+              settings.style.display = "none";
+              excel.style.display = "block";
+          } else if (tabName == "default") {
+              excel.style.display = "none";
+              analyser.style.display = "none";
+              dashboard.style.display = "block";
+              settings.style.display = "none";
+              drawBasic();
+          } else if (tabName == "analyser") {
+              excel.style.display = "none";
+              analyser.style.display = "block";
+              dashboard.style.display = "none";
+              settings.style.display = "none";
+              drawRevenue();
+              drawCos();
+          } else if (tabName == "settings") {
+              excel.style.display = "none";
+              analyser.style.display = "none";
+              dashboard.style.display = "none";
+              settings.style.display = "block";
+          }
+      }
+      
+      //// GOOGLE CHARTING 
+      window.addEventListener("resize", resizeCharts);
+      var x = 0;
+      
+      function resizeCharts() {
+          var txt = x += 1;
+          drawBasic();
+          drawRevenue();
+          drawCos();
+      }
+      
+      
+      google.charts.load('current', {
+          packages: ['corechart', 'line']
+      });
+      google.charts.setOnLoadCallback(drawBasic);
+      
+      function drawBasic() {
+      
+          var data = new google.visualization.DataTable();
+          data.addColumn('string', 'Date');
+          data.addColumn('number', '+ predictive additions');
+          data.addColumn('number', '+ pipeline');
+          data.addColumn('number', 'Confirmed only');
+      
+          data.addRows([
+      
+              <apex:repeat value="{!flowEntries}" var="entry"> 
+                ['{!entry.dateValue}', {!entry.flow.BalancePredict__c}, 
+                {!entry.flow.BalancePlus__c}, {!entry.flow.Balance__c}], 
+              </apex:repeat>  
+                [null, null, null, null]
+          ]);
+      
+          var options = {
+      
+              fontName: 'Tahoma',
+              hAxis: {
+                  format: 'MMM d',
+                  height: '30px'
+              },
+              vAxis: {
+                  format: '£#,###'
+              },
+              chartArea: {
+                  width: '70%'
+              },
+              legend: {
+                  position: 'bottom'
+              },
+              series: {
+                  0: {
+                      color: '#e2b42b',
+                      format: '£#,###'
+                  },
+                  1: {
+                      color: '#7bce5a',
+                      format: '£#,###'
+                  },
+                  2: {
+                      color: '#1073c8',
+                      format: '£#,###'
+                  }
+              }
+      
+          };
+      
+          var chart = new google.visualization.LineChart(document.getElementById('theChart'));
+          var formatter = new google.visualization.NumberFormat({
+              prefix: '£'
+          });
+          formatter.format(data, 1);
+          formatter.format(data, 2);
+          formatter.format(data, 3);
+      
+          chart.draw(data, options);
+      }
+      
+      google.charts.load('current', {
+          'packages': ['corechart', 'bar']
+      });
+      google.charts.setOnLoadCallback(drawRevenue);
+      
+      function drawRevenue() {
+      
+          var data = google.visualization.arrayToDataTable([
+              ['', 'Paid', 'Invoiced', 'Remainder', {
+                  role: 'annotation'
+              }],
+            <apex:repeat value="{!revenueAnalysis}" var="rev"> 
+                ['{!rev[0]}', {!rev[1]}, {!rev[2]}, {!rev[3]}, null] 
+              {!rev[4]} 
+            </apex:repeat> 
+          ]);
+      
+          var options = {
+              fontName: 'Tahoma',
+              //width: getWidth(),
+              isStacked: true,
+              bars: 'vertical',
+              legend: {
+                  position: 'bottom',
+                  textStyle: {
+                      fontSize: 14
+                  }
+              },
+              vAxis: {
+                  format: '£#,###',
+                  viewWindow: {
+                      min: 0
+                  }
+              },
+              series: {
+                  0: {
+                      color: '#e2b42b',
+                      format: '£#,###'
+                  },
+                  1: {
+                      color: '#7bce5a',
+                      format: '£#,###'
+                  },
+                  2: {
+                      color: '#1073c8',
+                      format: '£#,###'
+                  }
+              }
+          };
+      
+          var chart = new google.charts.Bar(document.getElementById('revenueChart'));
+          var formatter = new google.visualization.NumberFormat({
+              prefix: '£'
+          });
+          formatter.format(data, 1);
+          formatter.format(data, 2);
+          formatter.format(data, 3);
+          chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+      
+      google.charts.load('current', {
+          'packages': ['corechart', 'bar']
+      });
+      google.charts.setOnLoadCallback(drawCos);
+      
+      function drawCos() {
+      
+          var data = google.visualization.arrayToDataTable([
+              ['', 'Paid', 'Billed', 'Unbilled', {
+                  role: 'annotation'
+              }], 
+              <apex:repeat value="{!cosAnalysis}" var="rev"> 
+              ['{!rev[0]}', {!rev[1]}, {!rev[2]}, {!rev[3]}, null] {!rev[4]} 
+              </apex:repeat> 
+          ]);
+      
+          var options = {
+              fontName: 'Tahoma',
+              isStacked: true,
+              bars: 'vertical',
+              legend: {
+                  position: 'bottom',
+                  textStyle: {
+                      fontSize: 14
+                  }
+              },
+              vAxis: {
+                  format: '£#,###',
+                  viewWindow: {
+                      min: 0
+                  }
+              },
+              series: {
+                  0: {
+                      color: '#e2b42b',
+                      format: '£#,###'
+                  },
+                  1: {
+                      color: '#7bce5a',
+                      format: '£#,###'
+                  },
+                  2: {
+                      color: '#1073c8',
+                      format: '£#,###'
+                  }
+              }
+          };
+      
+          var chart = new google.charts.Bar(document.getElementById('cosChart'));
+          var formatter = new google.visualization.NumberFormat({
+              prefix: '£'
+          });
+          formatter.format(data, 1);
+          formatter.format(data, 2);
+          formatter.format(data, 3);
+          chart.draw(data, google.charts.Bar.convertOptions(options));
+      }
+      
+      
+       // PAYMENT RUN MANAGER
+       
+       var updatesMap      = new Map();
+       
+       var originalRunId   = '';  
+       var priorRunId      = '';     
+       var priorRunAmount  = 0;
+       var newRunId        = '';     
+       var newRunAmount    = 0;
+       var currentAmount   = 0; 
+      
+       function allowDrop(ev) {
+            ev.preventDefault();
+        }
+      
+        function drag(ev, amount, sourceId, originalRun) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            var sourceTotal = document.getElementById(sourceId + 'Value').innerHTML;
+            var totalFigure = Number(sourceTotal.replace(/[^0-9\.-]+/g,""));            
+            priorRunId     = sourceId + 'Value';
+            priorRunAmount = totalFigure; 
+            currentAmount  = Number(amount);
+            originalRunId  = originalRun;            
+        }
+        
+        function drop(event, date) {
+            event.preventDefault();
+            var data = event.dataTransfer.getData("text");
+            var source = document.getElementById(data);
+
+            var targetDiv;
+            if (event.target.className == "droptarget" ) {
+                targetDiv = event.target;
+            } else if (event.target.parentNode.className == "droptarget" ) {
+                targetDiv = event.target.parentNode;
+            } else if (event.target.parentNode.parentNode.className == "droptarget" ) {
+                targetDiv = event.target.parentNode.parentNode;
+            } else if (event.target.parentNode.parentNode.parentNode.className == "droptarget" ) {             
+                targetDiv = event.target.parentNode.parentNode.parentNode;
+            }
+            
+            if (targetDiv != null){
+                targetDiv.appendChild(source);                        
+                var newAmountDiv = document.getElementById(targetDiv.id + 'Value');
+                changeAmount(newAmountDiv);
+                if (originalRunId != targetDiv.id){
+                    source.style.backgroundColor = '#FFFF00';
+                    updatesMap.set(source.id, date);               
+                } else {
+                    source.style.backgroundColor = '';
+                    updatesMap.delete(source.id);                  
+                }           
+            }
+      
+            var dropTargets = document.getElementsByClassName('droptarget');           
+            for (var x = 0; x < dropTargets.length; x++){
+                dropTargets[x].style.border = "";
+            }
+            
+            if (updatesMap.size > 0){
+                document.getElementById('paymentRunButton').style.display = 'block';
+                document.getElementById('cancelPaymentRun').style.display = 'none';
+            } else if (updatesMap.size == 0){
+                document.getElementById('paymentRunButton').style.display = 'none';
+                document.getElementById('cancelPaymentRun').style.display = 'block';            
+            }
+            console.log(updatesMap.size);
+        }
+      
+       function changeAmount(newAmountDiv) {       
+              var reducedAmount = priorRunAmount - currentAmount;                 
+              var formattedAmount = reducedAmount.toFixed(2);
+              formattedAmount = (reducedAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');             
+              document.getElementById(priorRunId).innerHTML = ' £' + formattedAmount; 
+      
+              var newAmount = Number(newAmountDiv.innerHTML.replace(/[^0-9\.-]+/g,"")) + currentAmount;  
+              var formattedNewAmount = (newAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');                 
+              newAmountDiv.innerHTML = '£' + formattedNewAmount;
+              newAmountDiv.classList.remove('shakeDiv');  
+              newAmountDiv.offsetWidth;
+              newAmountDiv.classList.add('shakeDiv');  
+       }
+      
+       document.addEventListener("dragenter", function(event) {
+            if (event.target.className == "droptarget" ) {
+                event.target.style.border = "3px dotted red";
+            } else if (event.target.parentNode.className == "droptarget" ) {
+                event.target.parentNode.style.border = "3px dotted red";
+            } else if (event.target.parentNode.parentNode.className == "droptarget" ) {
+                event.target.parentNode.parentNode.style.border = "3px dotted red";
+            } else if (event.target.parentNode.parentNode.parentNode.className == "droptarget" ) {
+                event.target.parentNode.parentNode.parentNode.style.border = "3px dotted red";
+            }
+        });   
+      
+        document.addEventListener("dragleave", function(event) {
+            if (event.target.className == "droptarget" ) {
+                event.target.style.border = "";
+            } 
+        });
+        
+        function updatePaymentRuns() {        
+            if (updatesMap.size > 0) {
+                var paymentKeys     = Array.from(updatesMap.keys());
+                var paymentValues   = Array.from(updatesMap.values());
+                updatePaymentRunsAction(JSON.stringify(paymentKeys), JSON.stringify(paymentValues));
+                document.getElementById('paymentRunButtons').style.display = 'none';
+                document.getElementById('paymentRunHolding').classList.add('spinner');
+            }      
+        }
+      
+      
+   </script>
+</apex:page>

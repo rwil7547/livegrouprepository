@@ -1,0 +1,76 @@
+<apex:page >
+    <!-- PAGE RETIRED BY R. WILLIAMS 22/10/2018 -->
+<!--<apex:page standardController="Opportunity" extensions="ReservationController" lightningStylesheets="true">-->
+    <!--<apex:sectionHeader title="Opportunity" subtitle="{!Opportunity.Name}"/>-->
+    <!--<apex:outputLink value="/{!Opportunity.Id}" style="color: rgb(1, 91, 167); font-family: 'Verdana','Geneva',sans-serif;font-size: 10.95px;text-decoration: none;text-decoration-color: rgb(1, 91, 167);text-decoration-line: none;text-decoration-style: solid;"> « Back to {!Opportunity.Name}</apex:outputLink>-->
+    <!--<br/>-->
+    <!--<br/>-->
+    <!--<apex:form >-->
+    <!--<apex:pageBlock title="Equipment can only be reserved for confirmed Opportunities" rendered="{!stage != 'Closed Won'}">    -->
+    <!--</apex:pageBlock>-->
+    <!--<apex:pageMessages escape="false"></apex:pageMessages>-->
+    <!--<apex:pageBlock title="Date Range" rendered="{!stage == 'Closed Won'}">-->
+        <!--<apex:pageBlockButtons location="top">-->
+            <!--<apex:commandButton value="Set custom date range" style="display:none;" id="customDates" action="{!setCustomDates}"/>-->
+        <!--</apex:pageBlockButtons>-->
+        <!--<apex:pageBlockSection title="Event dates (including rig/de-rig days) - unless a custom date range has been set these dates will be used as the default for any new reservations" collapsible="false">-->
+            <!--<apex:outputField value="{!oppDetails.Project_Start__c}" label="Event Start"/>-->
+            <!--<apex:outputField value="{!oppDetails.Project_End__c}" label="Event End"/>-->
+        <!--</apex:pageBlockSection>-->
+        <!--<apex:pageBlockSection title="Custom dates" collapsible="false">-->
+            <!--<apex:outputField value="{!oppDetails.Equipment_Start__c}" label="Custom Reservation Start">-->
+                <!--<apex:inlineEditSupport showOnEdit="customDates, cancelButton"-->
+                                        <!--hideOnEdit="editButton" event="ondblclick"-->
+                                        <!--changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>            -->
+            <!--</apex:outputField>-->
+            <!--<apex:outputField value="{!oppDetails.Equipment_End__c}" label="Custom Reservation End">-->
+                <!--<apex:inlineEditSupport showOnEdit="customDates, cancelButton"-->
+                                        <!--hideOnEdit="editButton" event="ondblclick"-->
+                                        <!--changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>            -->
+            <!--</apex:outputField>            -->
+        <!--</apex:pageBlockSection>        -->
+    <!--</apex:pageBlock>    -->
+    <!--<apex:pageBlock title="Reserved Equipment" rendered="{!stage = 'Closed Won'}">-->
+        <!--<apex:pageBlockButtons location="top" rendered="{!reservationsSize > 0}">-->
+            <!--<apex:commandButton value="Release Selected" action="{!releaseEquipment}" />-->
+            <!--<apex:commandButton value="Save Date Changes" action="{!saveChanges}" style="display:none" id="saveButton"/>-->
+        <!--</apex:pageBlockButtons>     -->
+        <!--<apex:pageBlockTable value="{!equipmentReserves}" var="res" rendered="{!reservationsSize > 0}">           -->
+            <!--<apex:column value="{!res.er.Name__c}"/>   -->
+            <!--<apex:column value="{!res.er.Model__c}"/>-->
+            <!--<apex:column >-->
+                <!--<apex:facet name="header">Start Date</apex:facet>-->
+                <!--<apex:outputField value="{!res.er.Start_Date__c}">-->
+                    <!--<apex:inlineEditSupport showOnEdit="saveButton, cancelButton"-->
+                                            <!--hideOnEdit="editButton" event="ondblclick"-->
+                                            <!--changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>-->
+                <!--</apex:outputField>-->
+            <!--</apex:column> -->
+            <!--<apex:column >-->
+                <!--<apex:facet name="header">Return Date</apex:facet>-->
+                <!--<apex:outputField value="{!res.er.End_Date__c}">-->
+                    <!--<apex:inlineEditSupport showOnEdit="saveButton, cancelButton"-->
+                                            <!--hideOnEdit="editButton" event="ondblclick"-->
+                                            <!--changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>-->
+                <!--</apex:outputField>-->
+            <!--</apex:column> -->
+            <!--<apex:column headerValue="Release">-->
+                <!--<apex:inputcheckbox value="{!res.release}"/> -->
+            <!--</apex:column> -->
+        <!--</apex:pageBlockTable>-->
+    <!--</apex:pageBlock>-->
+    <!--<apex:pageBlock title="Available Equipment" rendered="{!stage = 'Closed Won'}">-->
+        <!--<apex:pageBlockButtons location="top" rendered="{!equipmentSize > 0}">-->
+            <!--<apex:commandButton value="Reserve Selected" action="{!reserveEquipment}" />-->
+        <!--</apex:pageBlockButtons>-->
+        <!--<apex:pageBlockTable value="{!preReserves}" var="res" rendered="{!equipmentSize > 0}">-->
+            <!--<apex:column value="{!res.eq.Name__c}"/>-->
+            <!--<apex:column value="{!res.eq.Model__c}"/>-->
+            <!--<apex:column value="{!res.eq.Type__c}"/>-->
+            <!--<apex:column headerValue="Reserve">-->
+                <!--<apex:inputcheckbox value="{!res.reserved}"/> -->
+            <!--</apex:column>       -->
+        <!--</apex:pageBlockTable>-->
+    <!--</apex:pageBlock>-->
+    <!--</apex:form>-->
+</apex:page>

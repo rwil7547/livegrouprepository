@@ -1,0 +1,132 @@
+<!--
+ - Created by Ronan Williams on 19/12/2018.
+ -->
+
+<apex:page id="QuotePreview" renderAs="pdf" controller="QuotePreviewController" applyBodyTag="false" >
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500" rel="stylesheet"/>
+    <html>
+    <head>
+    <style type="text/css"  media="print">
+        @page {
+            size: letter;
+            margin: 2mm;
+            @top-center {
+                content: "Sample";
+            }
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+            }
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url({!URLFOR($Resource.Poppins, '/root/Poppins-Black.ttf')});
+        }
+
+
+        body {
+
+            font-family: 'Poppins', sans-serif;
+
+            color: red;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 60% 10% 10% 10%;
+            text-align: right;
+
+        }
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td, th {
+            border: 1px solid #dddddd;text-align: left;padding: 8px;
+        }
+
+    </style>
+       <!-- <apex:slds />-->
+    </head>
+    <body>
+    <div style="font-family: Poppins;">
+
+
+        <div style="width: 100%;text-align: right;">
+            <img src="{!$Resource.LiveGroupNewLogo}" width="50%"/>
+        </div>
+        {!quote.Name}
+        USER ID: {!userId}<br/>
+        CONTACT ID: {!contactId}
+
+        COVER PAGE
+
+
+        <div style="page-break-after:always;"/>
+
+        INTRODUCTION PAGE
+
+        <div style="page-break-after:always;"/>
+
+
+
+        <apex:repeat value="{!groupMap}" var="group">
+
+            <br/>
+            <div style="font-family:Helvetica,sans-serif;font-weight: bold;font-size: 20px;">{!group}</div>
+            <br/>
+
+            <table style="font-family: arial, sans-serif;border-collapse: collapse;width: 100%;">
+                <tr>
+                    <th style="font-family:Helvetica,sans-serif;border: 1px solid #dddddd;text-align: left;padding: 8px;width: 55%;font-size: 12px;">DESCRIPTION</th>
+                    <th style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 8%;font-size: 12px;">QTY</th>
+                    <th style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 8%;font-size: 12px;">DAYS</th>
+                    <th style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;">UNIT PRICE</th>
+                    <th style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;">TOTAL</th>
+                </tr>
+
+                <apex:repeat value="{!groupMap[group]}" var="line">
+                    <tr>
+                        <td style="font-family:Helvetica,sans-serif;text-align: left;padding: 8px;width: 55%;font-size: 12px;color:white; background-color: #4b9a99;">
+                            <apex:outputText value="{!line.SBQQ__Description__c}" escape="false"></apex:outputText>
+                        </td>
+                        <td style="text-align: right;width: 8%;font-size: 12px;">
+                            <div style="width: 0;height: 0;border-top: 8px solid transparent;border-left: 20px solid #4b9a99;
+	                                    border-bottom: 8px solid transparent;"></div>
+                            <div style="padding: 8px;">{!line.SBQQ__Quantity__c}</div>
+                        </td>
+                        <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 8%;font-size: 12px;">{!line.SBQQ__SubscriptionTerm__c}</td>
+                        <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;">{!line.SBQQ__ListPrice__c}</td>
+                        <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;">{!line.SBQQ__NetTotal__c}</td>
+                    </tr>
+                </apex:repeat>
+
+                <tr>
+                    <td style="font-family:Helvetica,sans-serif;border: 1px solid #dddddd;text-align: left;padding: 8px;width: 55%;font-size: 12px;font-weight: bold;">TOTAL:</td>
+                    <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 8%;font-size: 12px;"></td>
+                    <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 8%;font-size: 12px;"></td>
+                    <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;"></td>
+                    <td style="border: 1px solid #dddddd;text-align: right;padding: 8px;width: 16%;font-size: 12px;">£450.00</td>
+                </tr>
+
+            </table>
+            <br/>
+        </apex:repeat>
+
+        <div style="page-break-after:always;"/>
+
+        OPTIONAL LINE ITEMS
+
+        <div style="page-break-after:always;"/>
+
+        ADDITIONAL INFOMRATION
+
+
+
+        <div style="page-break-after:always;"/>
+
+        <div>TERMS AND CONDITIONS</div>
+    </div>
+    </body>
+    </html>
+</apex:page>

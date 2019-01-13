@@ -1,0 +1,120 @@
+<apex:page standardController="Opportunity" extensions="InvoiceScheduleExtension" lightningStylesheets="true" showHeader="false">
+   <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" lang="en">
+      <head>
+         <meta charset="utf-8" />
+         <meta http-equiv="x-ua-compatible" content="ie=edge" />
+         <meta name="viewport" content="width=device-width, initial-scale=1" />
+         <apex:slds />
+      </head>
+      <body>
+            <style>
+                tr { height: 20px; }
+                tr:nth-child(even) { background-color: rgb(243,243,243); }          
+            </style>
+        
+            <apex:form > 
+                <apex:pageBlock title="Scheduled Invoices" rendered="{!cSchedules.size > 0}">
+                    <table width="100%" >
+                        <tr >
+                            <th ></th>
+                            <th width="75px"> Name</th>
+                            <th > Amount</th>
+                            <th width="60px"> Custom</th>
+                            <th > Purchase Order </th>
+                            <th width="75px"> Send Date </th>
+                            <th width="40px"> Sent </th>
+                            <th width="75px"> Payment Date </th>
+                            <th width="40px"> Paid </th>
+                            <th > Schedule No. </th>
+                            <th > Invoice No. </th>
+                            <th > Inv Amount </th>
+                            <th > Credit Note No. </th>
+                            <th > Credit Amount </th>
+                        </tr>
+                        <apex:repeat value="{!cSchedules}" var="cs">
+                            <apex:outputPanel rendered="{!NOT(cs.selected)}" >
+                                <tr >
+                                    <td><apex:commandLink value="Edit" action="{!allowEdit}" rendered="{!AND(NOT(editMode),NOT(cs.is.Invoice_Sent__c))}" style="color: rgb(1,91,167);">
+                                                <apex:param name="selectedId" value="{!cs.is.Id}" />
+                                        </apex:commandLink>                                                     
+                                    </td>
+                                    <td><apex:outputText value="{!cs.is.Name}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Amount__c}" /></td>
+                                    <td><apex:outputField value="{!cs.is.Custom_Value__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Purchase_Order__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Send_Date__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Sent__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Payment_Date__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Paid__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Id__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Number__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Amount__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Credit_Note_Number__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Credit_Note__c}"/></td>
+                                </tr>
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!cs.selected}">
+                                <tr>
+                                    <td><apex:commandLink value="Update" action="{!doEdit}" style="color: rgb(1,91,167);">
+                                            <apex:param name="editId" value="{!cs.is.Id}" />
+                                        </apex:commandLink>
+                                        &nbsp;                                                     
+                                        <apex:commandLink value="Cancel" action="{!doCancel}" style="color: rgb(1,91,167);" >
+                                            <apex:param name="editId" value="{!cs.is.Id}" />
+                                        </apex:commandLink>
+                                    </td>   
+                                    <td><apex:outputText value="{!cs.is.Name}"/></td>
+                                    <td><apex:inputField value="{!cs.is.Amount__c}" id="Amount"/></td>        
+                                    <td><apex:inputField value="{!cs.is.Custom_Value__c}" id="Checkbox" onchange="updateAmount('{!$Component.Amount}','{!$Component.Checkbox}')"/></td>
+                                    <td><apex:inputField value="{!cs.is.Purchase_Order__c}"/></td>
+                                    <td><apex:inputField value="{!cs.is.Send_Date__c}" /></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Sent__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Payment_Date__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Paid__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Id__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Invoice_Number__c}"/></td>
+                                    <td><apex:outputField value="{!cs.is.Credit_Note_Number__c}"/></td> 
+                                </tr>        
+                            </apex:outputPanel>            
+                        </apex:repeat>
+                    </table>            
+                </apex:pageBlock>                
+            </apex:form>
+            
+            <apex:pageBlock title="Expenses" rendered="{!expenses.size > 0}">
+                <table width="100%">
+                    <tr>
+                        <th >Name</th>
+                        <th >Amount</th>
+                        <th >Description</th>
+                        <th >Date</th>
+                        <th >Paid</th>
+                        <th >Supplier</th>
+                        <th >Supplier Reference</th>
+                    </tr>
+                    <apex:repeat value="{!expenses}" var="ex">
+                        <tr >
+                            <td><apex:outputField value="{!ex.Name}"/></td>
+                            <td><apex:outputField value="{!ex.Amount__c}"/></td>
+                            <td><apex:outputField value="{!ex.Description__c}"/></td>
+                            <td><apex:outputField value="{!ex.Due_Date__c}"/></td>
+                            <td><apex:outputField value="{!ex.Paid__c}"/></td>
+                            <td><apex:outputField value="{!ex.Supplier__c}"/></td>  
+                            <td><apex:outputField value="{!ex.Supplier_Ref__c}"/></td>      
+                        </tr>
+                    </apex:repeat>
+                </table>                   
+            </apex:pageBlock> 
+            <script>
+                function updateAmount(inputField,checkbox) {
+                    if (document.getElementById(checkbox).checked == false) {
+                        if (confirm("Do you want to redistribute the remaining amount to be invoiced evenly?")) {
+                            document.getElementById(inputField).value = {!defaultValue};
+                        } 
+                    }            
+                }
+            </script>  
+    </body>
+      
+   </html>            
+</apex:page>

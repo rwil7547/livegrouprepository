@@ -1,0 +1,274 @@
+<apex:page controller="calderPipelineController" showHeader="true" lightningStylesheets="true" doctype="html-5.0">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"/>
+   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+   <style>
+      /* Chat containers */
+      .container {
+      border: 1px solid #dedede;
+      background-color: #f1f1f1;
+      border-radius: 5px;
+      padding: 5px;
+      margin: 8px ;
+      }
+      /* Darker chat container */
+      .darker {
+      border-color: #ccc;
+      background-color: white;
+      }
+      ::-webkit-scrollbar { 
+      display: none; 
+      }
+      .comments {
+      overflow-y: scroll;
+      max-height:58vh;
+      position-bottom:0;
+      }
+      .colTwo {
+      position: sticky; top: 5px;
+      }
+      div {
+      vertical-align: middle;
+      }
+      .grid-container {
+      display: grid;
+      grid-template-columns: auto auto auto auto auto ;
+      grid-gap: 10px;
+      padding: 10px;
+      }
+      .grid-container > div {
+      padding: 20px 0;
+      }
+      .item1 {
+      width: 62vw;
+      }
+      .item2 {
+      position: sticky; top: 5px;
+      width: 34vw;
+      max-width: 430px;
+      }
+      .fa[data-count]{
+      position:relative;
+      }
+      .fa[data-count]:after{
+      position: absolute;
+      right: -0.75em;
+      top: -.75em;
+      content: attr(data-count);
+      padding: .5em;
+      border-radius: 10em;
+      line-height: .9em;
+      color: white;
+      background: rgba(255,0,0,.75);
+      text-align: center;
+      min-width: 2em;
+      font: bold .4em sans-serif;
+      }
+      body{ background-color:#B0C4DF;  }
+   </style>
+   <apex:form >
+      <apex:sectionHeader title="Opportunities" subtitle="Calder Project Tracker" id="banner"/>
+      <apex:pageMessages ></apex:pageMessages>
+      <div class="grid-container">
+         <div class="item1">
+            <div id="tabs" class="colOne">
+               <apex:tabPanel switchType="client" selectedTab="current" id="dataTabPanel" style="none">
+                  <apex:tab label="Current Jobs" name="Current Jobs" id="current" >
+                     <apex:repeat value="{!currentMonthGroupings}" var="month" >
+                        <apex:pageBlock title="{!month}"  >
+                           <apex:outputPanel styleClass="sectionClass" >
+                              <apex:pageBlockSection title="" html-style="font-size:10px;" collapsible="true" columns="1" id="blocks" >
+                                 <!--<script >twistSection(document.getElementById('img_{!$Component.blocks}'));</script>-->
+                                 <apex:pageBlockTable value="{!currentOppMap[month]}" var="opp" onrowClick="callSelect(this.lastChild.innerHTML)" >
+                                    <apex:column value="{!oppMap[opp].Owner.Name}" headerValue="Owner"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].StageName}" headerValue="Stage"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Filtered_Job_Number__c}" headerValue="No."
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Name}" headerValue="Name"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Venue__c}"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Event_start__c}" headerValue="Start"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Event_end__c}" headerValue="End"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Account.Name}" headerValue="Client"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Calder_GPS_Ref__c}" headerValue="CCS Number"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <i class="fa fa-comments-o" style="font-size:24px"></i>
+                                    <apex:column >
+                                       <apex:outputPanel layout="inline" rendered="{!DATEVALUE(oppMap[opp].createdDate) > (TODAY()-120)  && oppMap[opp].Calder_Comments__c == null}">
+                                          <span><i class="material-icons" style="font-size:30px;color:green">fiber_new</i></span>
+                                       </apex:outputPanel>
+                                       <apex:outputPanel layout="inline" rendered="{!oppMap[opp].Calder_Comments__c != null}">
+                                          <i class="fa fa-comments-o" data-count="{!oppMap[opp].Calder_Comments__r.size}" style="font-size:24px"></i> 
+                                       </apex:outputPanel>
+                                    </apex:column>
+                                    <apex:column style="display:none;">{!opp}</apex:column>
+                                 </apex:pageBlockTable>
+                              </apex:pageBlockSection>
+                           </apex:outputPanel>
+                        </apex:pageBlock>
+                     </apex:repeat>
+                  </apex:tab>
+                  <apex:tab label="Previous Jobs" name="Previous Jobs" id="previous">
+                     <apex:repeat value="{!previousMonthGroupings}" var="month" >
+                        <apex:pageBlock title="{!month}" >
+                           <apex:outputPanel styleClass="sectionClass" >
+                              <apex:pageBlockSection title="" html-style="font-size:10px;" collapsible="true" columns="1" id="blocks">
+                                 <!--<script >twistSection(document.getElementById('img_{!$Component.blocks}'));</script>-->
+                                 <apex:pageBlockTable value="{!previousOppMap[month]}" var="opp" onrowClick="callSelect(this.lastChild.innerHTML)">
+                                    <apex:column value="{!oppMap[opp].Owner.Name}" headerValue="Owner"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].StageName}" headerValue="Stage"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Filtered_Job_Number__c}" headerValue="No."
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Name}" headerValue="Name"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Venue__c}"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Event_start__c}" headerValue="Start"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Event_end__c}" headerValue="End"
+                                    style="{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Account.Name}" headerValue="Client"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column value="{!oppMap[opp].Calder_GPS_Ref__c}" headerValue="CCS Number"
+                                    style="width:30%; {!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}"  />
+                                    <apex:column >
+                                       <apex:outputPanel layout="inline" rendered="{!DATEVALUE(oppMap[opp].createdDate) > (TODAY()-20)  && oppMap[opp].Calder_Comments__r.size > 0}">
+                                          <span><i class="material-icons" style="font-size:30px;color:green">fiber_new</i></span>                                        
+                                       </apex:outputPanel>
+                                       <apex:outputPanel layout="inline" rendered="{!oppMap[opp].Calder_Comments__c != null}">
+                                          <i class="fa fa-comments-o" data-count="{!oppMap[opp].Calder_Comments__r.size}" style="font-size:24px"></i> 
+                                       </apex:outputPanel>
+                                    </apex:column>
+                                    <apex:column style="display:none;">{!opp}</apex:column>
+                                 </apex:pageBlockTable>
+                              </apex:pageBlockSection>
+                           </apex:outputPanel>
+                        </apex:pageBlock>
+                     </apex:repeat>
+                  </apex:tab>
+               </apex:tabPanel>
+            </div>
+         </div>
+         <div class="item2">
+            <apex:repeat value="{!oppMap}" var="opp">
+               <div class="colTwo" id="{!oppMap[opp].Id}" style="display:none;{!IF(oppMap[opp].StageName != 'Closed Won', "font-style: italic; color:#B0B0B0; ","")}">
+               <apex:tabPanel switchType="client" selectedTab="current" id="dataTabPanel" style="none">
+                  <apex:tab label="Summary" >
+                     <apex:pageBlock title="{!oppMap[opp].Name}" id="selectedPanel">
+                        <apex:pageBlockButtons location="top">
+                           <apex:commandLink value="Update" styleClass="btn" action="{!saveOpportunity}" style="font-style: normal">
+                              <apex:param name="opportunityId"  value="{!oppMap[opp].Id}" assignTo="{!selectedOppId}"/>
+                           </apex:commandLink>
+                        </apex:pageBlockButtons>
+                        <apex:pageBlockSection columns="1"  title="" html-style="font-size:11px;" collapsible="false">
+                           <apex:outputText value="{!oppMap[opp].Account.Name}" style="width:880px;font-size:11px;" label="Client" />
+                           <apex:outputText label="Dates" style="width:80px;font-size:11px;">
+                              <apex:outputText value="{0,date,dd' 'MMM' 'yyyy}" rendered="{!oppMap[opp].Event_start__c == oppMap[opp].Event_end__c}">
+                                 <apex:param value="{!oppMap[opp].Event_start__c}" />
+                              </apex:outputText>
+                              <apex:outputText value="{0,date,dd' 'MMM' '}" rendered="{!oppMap[opp].Event_start__c != oppMap[opp].Event_end__c}">
+                                 <apex:param value="{!oppMap[opp].Event_start__c}" />
+                              </apex:outputText>
+                              <apex:outputText value=" - {0,date,dd' 'MMM' 'yyyy}" rendered="{!oppMap[opp].Event_start__c != oppMap[opp].Event_end__c}">
+                                 <apex:param value="{!oppMap[opp].Event_end__c}" />
+                              </apex:outputText>
+                           </apex:outputText>
+                           <apex:outputText style="width:80px;font-size:11px;" label="Amount">
+                              <apex:outputText value="{0, number, £###,###,##0.00}" >
+                                 <apex:param value="{!oppMap[opp].Amount}" />
+                              </apex:outputText>
+                              &nbsp;&nbsp; 
+                              <apex:outputLink rendered="{!oppMap[opp].R00N700000029COgEAM.size > 0}" style="width:80px;font-size:11px;" 
+                                 value="/servlet/servlet.FileDownload?file={!oppMap[opp].R00N700000029COgEAM[0].SBQQ__DocumentId__c}" 
+                                 target="_self"><i class="fa fa-file-pdf-o" style="font-size:16px"></i></apex:outputLink>
+                              <apex:commandLink rendered="{!oppMap[opp].R00N700000029COgEAM.size = 0 && oppMap[opp].Document_Requested__c = false}" 
+                                 value="Request document" styleClass="btn" action="{!requestDocument}">
+                                 <apex:param name="opportunityId"  value="{!oppMap[opp].Id}" assignTo="{!selectedOppId}"/>
+                              </apex:commandLink>
+                              <apex:outputText rendered="{!oppMap[opp].R00N700000029COgEAM.size = 0 && oppMap[opp].Document_Requested__c = true}">(Document requested)</apex:outputText>
+                           </apex:outputText>
+                        </apex:pageBlockSection>
+                        <apex:pageBlockSection columns="1" title="" collapsible="false">
+                           <apex:outputText value="{!oppMap[opp].QuoteContact__c}" style="width:100%;font-size:11px;"  label="Contact" />
+                           <apex:outputText value="{!oppMap[opp].QuoteContactPhone__c}" style="width:80px;font-size:11px;"  label="Phone" />
+                           <apex:outputText value="{!oppMap[opp].QuoteContactEmail__c}" style="width:80px;font-size:11px;" label="Email" />
+                        </apex:pageBlockSection>
+                        <apex:pageBlockSection columns="1" title="" collapsible="false">
+                           <apex:outputField value="{!oppMap[opp].Calder_GPS_Ref__c}" label="CCS No." style="width:80px;font-size:11px;">
+                              <apex:inlineEditSupport event="ondblclick" 
+                                 changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>
+                           </apex:outputField>
+                           <apex:outputField value="{!oppMap[opp].Other_Information__c}" label="Other Info">
+                              <apex:inlineEditSupport event="ondblclick" 
+                                 changedStyleClass="myBoldClass" resetFunction="resetInlineEdit"/>
+                           </apex:outputField>
+                           <apex:outputText label="Invoice No." style="width:80px;font-size:11px;"  >
+                              <apex:repeat value="{!oppMap[opp].Invoice_Schedules__r}" var="schedule">
+                                 <span>{!schedule.Invoice_Number__c} &nbsp;</span>
+                              </apex:repeat>
+                           </apex:outputText>
+                        </apex:pageBlockSection>
+                     </apex:pageBlock>
+                  </apex:tab>
+                  <apex:tab label="Comments" >
+                     <apex:pageBlock >
+                        <div class="comments">
+                           <apex:repeat value="{!oppMap[opp].Calder_Comments__r}" var="comment">
+                              <apex:outputPanel rendered="{!comment.CreatedBy.Name == 'Tracy Iley'}">
+                                 <div class="container" >
+                                    <p style="font-weight: bold; font-size: 10px; margin : 2px;">{!comment.CreatedBy.Name}</p>
+                                    <p style="margin : 2px; font-size: 14px;">{!comment.Comment__c}</p>
+                                    <p style="font-size: 10px; margin : 2px; align:right">{!comment.CreatedDate}</p>
+                                 </div>
+                              </apex:outputPanel>
+                              <apex:outputPanel rendered="{!comment.CreatedBy.Name != 'Tracy Iley'}">
+                                 <div class="container darker" align="right" >
+                                    <p style="font-weight: bold; font-size: 10px; margin : 2px;">{!comment.CreatedBy.Name}</p>
+                                    <p style="margin : 2px; font-size: 14px;">{!comment.Comment__c}</p>
+                                    <p style="font-size: 10px; margin : 2px; align:right">{!comment.CreatedDate}</p>
+                                 </div>
+                              </apex:outputPanel>
+                           </apex:repeat>
+                        </div>
+                        <div >
+                           <apex:pageBlockSection columns="1">
+                              <apex:inputField label="" value="{!newCommentMap[oppMap[opp].Id].Comment__c}" style="width : 90%;"/>
+                              <apex:commandLink value="Post" styleClass="btn" action="{!saveComment}" style="font-style: normal">
+                                 <apex:param name="opportunityId"  value="{!oppMap[opp].Id}" assignTo="{!selectedOppId}"/>
+                              </apex:commandLink>
+                           </apex:pageBlockSection>
+                        </div>
+                     </apex:pageBlock>
+                  </apex:tab>
+               </apex:tabPanel>
+         </div>
+         </apex:repeat>      
+      </div>
+      </div> 
+   </apex:form>
+   <script type="text/javascript">
+      var oppId = '{!selectedOppId}';
+         
+      if (oppId) {
+          document.getElementById(oppId).style.display = 'block';
+      } 
+         
+      function callSelect(event){        
+          var cards = document.getElementsByClassName('colTwo');
+        
+          for (var index = 0; index < cards.length; index++){
+                  cards[index].style.display = 'none';
+          }      
+                  
+          var card = document.getElementById(event).style.display = 'block';
+      }
+                  
+   </script>
+</apex:page>

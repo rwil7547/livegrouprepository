@@ -1,0 +1,2767 @@
+<apex:page lightningStylesheets="true" controller="ProjectTrackerRemoter">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
+    <meta name="viewport" content="initial-scale=1.0"/>
+    <meta charset="utf-8"/>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxCBD0w_st_EITVO0Lww0fRtx8fTIH2Eg&callback=null"/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body{
+            background-image: url("{!$Site.BaseUrl}/_slds/images/themes/lightning_blue/lightning_blue_background.png");
+            background-size: 100%;
+            background-repeat: no-repeat;
+            background-position: top;
+            background-color:#B0C4DF;
+            background-attachment: fixed;
+        }
+        #weekdays {
+            width:91vw;
+            height:30px;
+            display: grid;
+            grid-template-columns: 13vw 13vw 13vw 13vw 13vw 13vw 13vw ;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 16px;
+            margin-bottom: auto;
+            position: sticky;
+            text-align: center;
+            font-weight: bold;
+            background-color: white;
+            padding-top: 4px;
+            border-color: #C0C0C0;
+        }
+        #backdrop {
+            width:91vw;
+            height:87vh;
+            background-color:#C0C0C0;
+            display: grid;
+            grid-template-columns: 13vw 13vw 13vw 13vw 13vw 13vw 13vw ;
+            grid-auto-rows: max-content;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: auto;
+            overflow-y: scroll;
+            overflow-x: visible;
+        }
+        .day {
+            border: 0.2px solid #c6c4c4;
+            padding: 0.2vw;
+            height: auto;
+            min-height: 150px;
+            overflow: visible;
+            position: relative;
+            color: #7b7b7b;
+        }
+        .odd {
+            background-color: #f0f0f0;
+        }
+        .even {
+            background-color: white;
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        .event {
+            border-radius: 7px;
+            border: 1px solid #c1c0bd;
+            padding: 2px;
+            cursor: pointer;
+            color: black;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            position: absolute;
+            height: 25px;
+        }
+        .eventName {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .eventOpportunity:hover {
+            height: auto;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            font-size: 15px;
+            padding: 20px;
+            z-index: 10000;
+            min-width: 38.6vw;
+            position: absolute;
+            opacity: 1;
+        }
+        .eventOpportunity:hover .probabilityText {
+            display: block !important;
+        }
+        .eventOpportunity:hover .eventName {
+            white-space: initial;
+            max-width: 25vw;
+        }
+        .farRight:hover {
+            margin-left: 52vw !important;
+        }
+        .ConfirmedOpp {
+            background-image:  linear-gradient(#14ba9d, #14ba9d, #14ba9d);
+            color: white;
+            font-weight: bold;
+        }
+        .ConfirmedRoadshow {
+            background-image:  linear-gradient(#5e8afa, #5e8afa, #5e8afa);
+            color: white;
+            font-weight: bold;
+        }
+        .NoCrew {
+            background-image:  linear-gradient(#acc1be, #acc1be, #acc1be);
+            color: white;
+            font-weight: bold;
+        }
+        .Holiday {
+            background-image:  linear-gradient(rgb(234,211,211), rgb(234,211,211), rgb(234,211,211));
+            color: white;
+            opacity: 0.6;
+            font-weight: bold;
+        }
+        .Prospect {
+            background-image:  linear-gradient(#ddea79, #ddea79, #ddea79);
+            font-weight: bold;
+        }
+        .Medium {
+            opacity: 0.6;
+        }
+        .Unlikely {
+            opacity: 0.4;
+        }
+        .VeryUnlikely {
+            opacity: 0.15;
+        }
+        #details {
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            display: none;
+            position: fixed;
+            background-color:white;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin-left: 5vw;
+            margin-bottom: 5vh;
+            margin-top: 5vh;
+            width: 90vw;
+            height: 90vh;
+            min-height: 450px;
+            z-index:2001;
+            border-radius: 7px;
+            border: 1px solid #c1c0bd;
+            overflow-y: hidden;
+        }
+        #detailsPanel {
+            display: grid;
+            grid-template-columns: 67.5vw 22.5vw;
+            height: 100%;
+            max-height: 100%;
+            overflow-y: hidden;
+        }
+        #dimmer, #newCrewDimmer {
+            position:fixed;
+            display: none;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin: auto;
+            height: 100vh;
+            width: 100vw;
+            background-color:white;
+            opacity: 0.7;
+            z-index:2000;
+        }
+        #newCrewDimmer {
+            z-index: 3000;
+        }
+        .photo {
+            position: absolute;
+            border-radius: 50%;
+            height: 44px;
+            margin-top: 5px;
+            margin-left: 5px;
+            margin-right: auto;
+            margin-bottom: auto;
+            z-index:10;
+        }
+        .imageIcon {
+            position: absolute;
+            background-color: #C0C0C0;
+            color: white;
+            font-weight: bold;
+            font-size: 25px;
+            border-radius: 50%;
+            height: 44px;
+            width: 44px;
+            margin-top: 5px;
+            margin-left: 5px;
+            margin-right: auto;
+            margin-bottom: auto;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .photoMini {
+            border-radius: 50%;
+            height: 40px;
+            margin-right: 3px;
+            z-index:10;
+        }
+        .imageIconMini {
+            background-color: #C0C0C0;
+            color: white;
+            font-weight: bold;
+            font-size: 22px;
+            border-radius: 50%;
+            height: 40px;
+            width: 40px;
+            margin-right: 3px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .quoteLineIconMini {
+            color: white;
+            font-weight: bold;
+            font-size: 40px;
+            border-radius: 50%;
+            height: 40px;
+            width: 40px;
+            margin-right: 3px;
+            text-align: center;
+            vertical-align: middle;
+            opacity: 0.3;
+        }
+        .kitImage {
+            position: absolute;
+            font-weight: bold;
+            font-size: 25px;
+            height: 44px;
+            width: 44px;
+            margin-top: 8px;
+            margin-left: 5px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .quoteLineIcon {
+            position: absolute;
+            font-weight: bold;
+            font-size: 44px;
+            border-radius: 50%;
+            height: 44px;
+            width: 44px;
+            margin-top: 8px;
+            margin-left: 5px;
+            margin-right: auto;
+            text-align: center;
+            vertical-align: middle;
+        }
+        #staffBlock, #kitBlock {
+            display: none;
+            position: fixed;
+            background-color:white;
+            left: 49.5vw;
+            bottom: 0;
+            top: 0;
+            margin-bottom: 05vh;
+            margin-top: 05vh;
+            width: 22.5vw;
+            min-height: 450px;
+            z-index: 2003;
+            border-radius: 7px;
+            border: 1px solid #c1c0bd;
+            overflow-x: hidden;
+            transition: opacity 1s;
+            opacity: 0;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        }
+        #staff, #crewContainer, #kit, #equipmentContainer {
+            position: relative;
+            height: 1vh;
+            min-height: calc(100% - 85px);
+            width: 100%;
+            overflow-y: scroll;
+            padding: 2px;
+        }
+        #crewHover, #kitHover {
+            position: fixed;
+            height: calc(90vh - 85px);
+            min-height: calc(450px - 78px);
+            width: 22.5vw;
+            background-color: white;
+            opacity: 0;
+            padding: 2px;
+            z-index: 6000;
+        }
+        #crewHoverPlus, #kitHoverPlus{
+            position: fixed !important;
+            margin-top: 18vh;
+            margin-left: 5.5vw;
+            display: none;
+            z-index: 5000;
+            opacity: 0.5;
+            font-size: 10vw;
+            color: grey;
+        }
+        .staffMember, .equipmentItem {
+            position: relative;
+            border: 0.5px solid grey;
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 60px auto;
+            cursor: pointer;
+            height: 60px;
+            width: 99%;
+            overflow-y: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            z-index: 3000;
+            opacity: 1;
+            transition: all 0.5s ease-in-out;
+        }
+        .staffMemberNew {
+            position: relative;
+            border: 0.5px solid grey;
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 60px calc(50% - 30px) calc(50% - 30px);
+            cursor: pointer;
+            height: auto;
+            min-height: 60px;
+            width: 99%;
+            z-index: 3000;
+            opacity: 1;
+            transition: all 0.5s ease-in-out;
+        }
+        .quoteLine {
+            border: 0.5px solid grey;
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 60px auto;
+            height: auto;
+            overflow-y: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            z-index: 3000;
+            opacity: 0.4;
+            color: grey;
+            padding-bottom: 8px;
+            /*margin-right: 2px;*/
+        }
+        .lineDescription {
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+            white-space: initial;
+        }
+        #crewKit {
+            width: 100%;
+            height: 100%;
+            padding-top: 2px;
+            border-top-right-radius: 7px;
+            border-bottom-right-radius: 7px;
+            border-left: 0.5px solid #c1c0bd;
+            display: block;
+            overflow-x: scroll;
+        }
+
+        /* CREW OPTIONS PANEL */
+        #crewOptionsPanel, #equipmentOptionsPanel {
+            position: absolute;
+            bottom: 0;
+            height: 50px;
+            font-size: 34px;
+            width:22.5vw;
+            padding-left: 5px;
+            padding-right: 5px;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+        .fa-toggle-on, .fa-toggle-off, #crewLinesIcon,
+        #quoteLinesIcon, #showCrewOptions, #showEquipmentOptions {
+            margin-bottom: 4px;
+            margin-left: 3%;
+            margin-right: 3%;
+            opacity: 0.3;
+            cursor: pointer;
+            font-size:44px;
+        }
+        .fa-toggle-on {
+            color: green;
+        }
+        .fa-toggle-off, #quoteLinesIcon, #showCrewOptions, #showEquipmentOptions  {
+            color: grey;
+        }
+        #crewLinesIcon {
+            color: blue;
+        }
+        #showCrewOptions:hover, #showEquipmentOptions:hover,
+        #quoteLinesIcon:hover,
+        #crewLinesIcon:hover, .fa-toggle-on:hover, .fa-toggle-off:hover {
+            opacity: 0.7;
+        }
+        #banner {
+            position: relative;
+            width: 100%;
+            height: 118px;
+            padding: 10px;
+            border-top-left-radius: 7px;
+        }
+        h1,h2,h3,h4 {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #detailTabs, #availableCrew {
+            top :0;
+            right: 0;
+            left: 0;
+            height: 32px;
+            display: grid;
+            grid-template-columns: auto auto;
+        }
+        .tab {
+            text-align: center;
+            font-size: 14px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            border-color: #ededed;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .hiddenTab {
+            background-color: #ededed;
+            color: #a3a3a3;
+        }
+        .label {
+            font-size: 12px;
+            color: #a3a3a3;
+            padding: 0px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .value {
+            font-size: 16px;
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .dropTarget{
+            z-index: 4000;
+        }
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            border-radius: 7px;
+            color: #fff;
+            text-align: center;
+            padding: 16px;
+            position: fixed;
+            z-index: 8000000;
+            left: 48vw;
+            top: 30px;
+            font-size: 17px;
+        }
+        #toast.success {
+            background-color: #32CD32;
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        #toast.error {
+            background-color: red;
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @-webkit-keyframes fadein {
+            from {top: 0; opacity: 0;}
+            to {top: 30px; opacity: 1;}
+        }
+        @keyframes fadein {
+            from {top: 0; opacity: 0;}
+            to {top: 30px; opacity: 1;}
+        }
+        @-webkit-keyframes fadeout {
+            from {top: 30px; opacity: 1;}
+            to {top: 0; opacity: 0;}
+        }
+        @keyframes fadeout {
+            from {top: 30px; opacity: 1;}
+            to {top: 0; opacity: 0;}
+        }
+        #searchIcon, #kitSearchIcon {
+            position: absolute;
+            top: 7px;
+            right: 10px;
+            color: grey;
+            opacity: 0.5;
+            font-size:20px;
+        }
+        #noStaff, #noKit {
+            position: aboslute;
+            margin-top: 25vh;
+            left: auto;
+            right: auto;
+            text-align: center;
+        }
+        #noStaffButton, #newCrewButton {
+            background-color: #efefef;
+            border-radius: 7px;
+            border: 0.5px solid #dbdbdb;
+            padding: 5px;
+            margin-left: 30%;
+            margin-right: 30%;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+        #noStaffButton:hover, #newCrewButton:hover {
+            background-color: #dbdbdb;
+        }
+        #noStaffButton:active, #newCrewButton:active {
+            background-color: #efefef;
+        }
+        .removeStaff, .removeKit {
+            position: absolute;
+            top: 13px;
+            right: 10px;
+            color: grey;
+            opacity: 0;
+            font-size:32px;
+            cursor: pointer;
+        }
+        .removeStaff:hover, .removeKit:hover {
+            opacity: 0.3;
+        }
+        .removeProject {
+            position: absolute;
+            top: 13px;
+            right: 10px;
+            color: white;
+            opacity: 0;
+            font-size:32px;
+            cursor: pointer;
+        }
+        .removeProject:hover {
+            opacity: 0.3;
+        }
+        #crewMessage, #kitMessage {
+            text-align: center;
+            padding-top: 23vh;
+            padding-left: 15px;
+            padding-right: 15px;
+            color: grey;
+            font-size: 16px;
+        }
+        #accountManager, #projectManager {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #detailsContainer {
+            height: calc(100% - 118px);
+            max-height: calc(100% - 118px);
+            display:grid;
+            grid-template-columns: 33.33% 33.33% 33.33%;
+            overflow-y: hidden;
+        }
+        .infoClass {
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+            border: white;
+            height: 99%;
+            max-height: 99%;
+            border-radius: 5px;
+            width: 97%;
+            margin-left: 1%;
+            margin-bottom: 2px;
+            overflow-x: hidden;
+        }
+        legend {
+            font-size: 14px;
+            padding: 4px;
+        }
+        .flex-container {
+            width: calc(21.5vw - 12px);
+        }
+        .flex-container > div {
+            border-bottom: 1px solid #dddddd;
+            margin: 1px;
+        }
+        .noSpill {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .projectMember {
+            position: relative;
+            display: grid;
+            grid-template-columns: 60px auto;
+            height: 60px;
+            width: 100%;
+            overflow-y: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recIncomplete {
+            position: absolute;
+            margin-top: -200px;
+            margin-right: 7%;
+            color: #FD0E35;
+            font-size: 20px;
+            z-index: 1000000;
+        }
+        #clients {
+            max-height: calc(55vh - 160px);
+            overflow-y:scroll;
+        }
+        .commercialLegend {
+            position: absolute;
+            top: 40px;
+            margin-left: 110px;
+        }
+        .commercialKey {
+            display: grid;
+            grid-template-columns: 15px auto;
+        }
+        .commercialKeyText {
+            text-align: left;
+        }
+        .commercialColor {
+            width: 12px;
+            height: 12px;
+            margin-top: 3px;
+            border-radius: 50%;
+        }
+        div.google-visualization-tooltip {
+            pointer-events: none;
+        }
+        #newCrew {
+            position: fixed;
+            top: 5vh;
+            bottom: 5vh;
+            left: 30vw;
+            right: 30vw;
+            width: 40vw;
+            border-radius: 5px;
+            background-color: white;
+            border: 1px solid #c1c0bd;
+            z-index: 30000;
+            font-size: 14px;
+            text-align: center;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        }
+        #newCrewForm {
+            padding: 10px;
+        }
+        #existingCrew {
+            height: calc(100% - 250px);
+            width: 100%;
+            padding: 2%;
+            overflow-y: scroll;
+        }
+        .existingCrewMessage {
+            text-align: center;
+            color: grey;
+            padding: 5px;
+        }
+        html {
+            -ms-overflow-style: none;
+        }
+        #buttonHold {
+            height: 40px;
+            margin-top: 0;
+            margin-left: 0;
+            position: absolute;
+            width: 90%;
+            background-color: white;
+            opacity: 0.6;
+        }
+        .monthIndicator {
+            position: absolute;
+            margin-right: 0;
+            margin-top: -20px;
+            font-size: 120px;
+            font-weight: bold;
+            width: 90vw;
+            background-color: transparent;
+            color: grey;
+            opacity: 0.17;
+            cursor: default;
+        }
+
+
+        @media only screen and (max-width: 800px) {
+
+            .monthIndicator {
+                font-size: 50px;
+            }
+            .probabilityText {
+                display: none;
+            }
+            .eventOpportunity:hover .eventName {
+                white-space: initial;
+                max-width: 50vw;
+            }
+            .dateText {
+                display: none;
+            }
+
+            #detailsPanel {
+                grid-template-columns: 50% 50%;
+            }
+
+            #detailsContainer{
+                grid-template-columns: 100%;
+            }
+
+            #people, #commercial {
+                display: none;
+            }
+
+            #staffBlock, #kitBlock {
+                left: 1vw;
+                width: 50vw;
+            }
+            .flex-container {
+                width: calc(43vw - 12px);
+            }
+
+        }
+
+    </style>
+
+    <div id="weekdays">
+        <div class="noSpill"> Monday</div>
+        <div class="noSpill"> Tuesday</div>
+        <div class="noSpill"> Wednesday</div>
+        <div class="noSpill"> Thursday</div>
+        <div class="noSpill"> Friday</div>
+        <div class="noSpill"> Saturday</div>
+        <div class="noSpill"> Sunday</div>
+    </div>
+    <div id="backDropPanel">
+        <div id="backdrop">
+        </div>
+        <div id="details">
+            <div id="detailsPanel">
+                <div>
+                    <div id="banner" ></div>
+                    <div id="detailsContainer">
+                        <fieldset id="generalDetails" class="infoClass">
+                            <legend>DETAILS</legend>
+                            <div class="flex-container">
+                                <div >
+                                    <div class="label">Date</div>
+                                    <div class="value" id="eventDates"></div>
+                                    <div class="label">Primary service</div>
+                                    <div class="value" id="eventType"></div>
+                                    <div class="label">Location / Venue</div>
+                                    <div class="value" ><span id="eventLocation"></span><span id="eventVenue"></span></div>
+                                </div>
+                                <div style="height: 150px; width: 100%;">
+                                    <div id="map" style="height: 100%; width: 100%;"></div>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset id="people" class="infoClass">
+                            <legend>PEOPLE</legend>
+                            <div class="flex-container">
+                                <div style="height: 157px;" >
+                                    <div class="label">Opportunity Owner</div>
+                                    <div class="projectMember">
+                                        <div id="amImage">
+                                        </div>
+                                        <div style="position:relative;width:calc(22.5vw - 95px);">
+                                            <div id="amName" style="width:calc(22.5vw - 90px);padding-top:1px;padding-right:4px;padding:0;font-weight: bold;" class="value noSpill"></div>
+                                            <div id="amRole" style="width:calc(22.5vw - 90px);padding:0px;overflow-x:hidden;" class="noSpill"></div>
+                                        </div>
+                                    </div>
+                                    <div class="label">Project manager</div>
+                                    <div class="projectMember">
+                                        <div id="pmImage">
+                                        </div>
+                                        <div style="position:relative;width:calc(22.5vw - 95px);">
+                                            <div id="pmName" style="width:calc(22.5vw - 90px);padding-top:1px;padding-right:4px;padding:0;font-weight: bold;" class="value noSpill"></div>
+                                            <div id="pmRole" style="width:calc(22.5vw - 90px);padding:0px;overflow-x:hidden;" class="noSpill"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="height: calc(100% - 160px);overflow-y: hidden;">
+                                    <div class="label">Clients</div>
+                                    <div id="clients" ></div>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset id="commercial" class="infoClass">
+                            <legend>COMMERCIAL</legend>
+                            <div class="flex-container">
+                                <div style="position: relative;">
+                                    <div class="label">Revenue</div>
+                                    <div class="value" id="revenueAmount"></div>
+                                    <div id="invoices" style="width:100px; display:none;"></div>
+                                    <div class="commercialLegend" id="invoicesLegend" style="display: none;">
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#26DE81;"/><div class="commercialKeyText noSpill">Invoice paid</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#409dcb;"/><div class="commercialKeyText noSpill">Invoice sent</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#EAB483;"/><div class="commercialKeyText noSpill">Remaining</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#ea8685;"/><div class="commercialKeyText noSpill">Excess invoiced</div></div>
+                                    </div>
+                                </div>
+                                <div style="position: relative;">
+                                    <div class="label">Cost of sale</div>
+                                    <div class="value" id="costOfSale"></div>
+                                    <div id="expenses" style="width:100px;display: none;"></div>
+                                    <div class="commercialLegend" id="expensesLegend" style="display: none;">
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#26DE81;"/><div class="commercialKeyText noSpill">Supplier paid</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#409dcb;"/><div class="commercialKeyText noSpill">Bill received</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#EAB483;"/><div class="commercialKeyText noSpill">Remaining</div></div>
+                                        <div class="commercialKey"><div class="commercialColor" style="background-color:#ea8685;"/><div class="commercialKeyText noSpill">Excess spent</div></div>
+                                    </div>
+                                </div>
+                                <div >
+                                    <div class="label">Gross Margin</div>
+                                    <div class="value" id="margin"></div>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+                <div id="crewKit">
+                    <div id="detailTabs">
+                        <div class="tab" id="crew" onclick="changeTab('crew')">CREW</div>
+                        <div class="tab hiddenTab" id="equipment" onclick="changeTab('equipment')">EQUIPMENT</div>
+                    </div>
+                    <div class="droptarget" id="crewContainer" ondragover="allowDrop(event)" ondrop="dropReserve(event)">
+                        <div id="crewHoverPlus"><i class="fas fa-plus-circle"></i></div>
+                        <div id="crewHover" style="display:none;"></div>
+                        <div id="crewMessage" style="display:none;"></div>
+                        <div id="reservedCrew"></div>
+                        <div id="quoteLines" style="display:none;padding-right: 2px;"></div>
+                    </div>
+                    <div id="crewOptionsPanel">
+                        <div id="showCrewOptions" class="fas fa-plus-circle" onclick="toggleCrewOptions()" style="display:none;"></div>
+                        <div id="crewOptions" class="fas fa-toggle-off" onclick="toggleNoCrew()" style="display:none;"></div>
+                        <div id="crewLinesIcon" class="fas fa-users" onclick="showCrewLines()" style="display:none;"></div>
+                        <div id="quoteLinesIcon" class="fas fa-file-pdf" style="display:none;" onclick="showQuoteLines()"></div>
+                    </div>
+                    <div class="droptarget" id="equipmentContainer" style="display:none;" ondragover="allowDrop(event)" ondrop="dropReserveKit(event)">
+                        <div id="kitHoverPlus" class="fas fa-plus-circle" style="display:none;"></div>
+                        <div id="kitHover" style="display:none;"></div>
+                        <div id="kitMessage" style="display:none;"></div>
+                    </div>
+                    <div id="equipmentOptionsPanel" style="display:none;">
+                        <div id="showEquipmentOptions" class="fas fa-plus-circle" onclick="toggleEquipmentOptions()" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="staffBlock">
+        <input type="text" placeholder="Search.." style="width:98%;margin-top:2px;margin-left:2px;margin-right:2px;" id="searchInput" onkeyup="searchCrew()" />
+        <i id="searchIcon" class="fas fa-search"></i>
+        <div id="noStaff" style="display:none;">
+            <div id="noStaffMessage">No staff available :(</div>
+            <div id="noStaffButton" onclick="createStaff()">ADD NEW</div>
+        </div>
+        <div id="staff"></div>
+    </div>
+    <div id="kitBlock">
+        <input type="text" placeholder="Search.." style="width:98%;margin-top:2px;margin-left:2px;margin-right:2px;" id="searchKitInput" onkeyup="searchKit()" />
+        <i id="kitSearchIcon" class="fas fa-search"></i>
+        <div id="noKit" style="display:none;">
+            <div id="noKitMessage">No kit available :(</div>
+        </div>
+        <div id="kit"></div>
+    </div>
+
+    <div id="newCrew" style="display:none;">
+        <div style="padding:10px;">NEW CREW MEMBER</div>
+        <div id="newCrewForm">
+            <div>
+                <label for="firstName">First Name:</label>
+                <input type="text" placeholder="enter first name..." id="firstName" onkeyup="searchNewCrew()" required="required"/>
+            </div>
+            <br/>
+            <div>
+                <label for="lastName">Last Name:</label>
+                <input type="text" placeholder="enter last name..." id="lastName" onkeyup="searchNewCrew()" required="required"/>
+            </div>
+            <br/>
+            <div id="buttonHold"></div>
+            <div id="newCrewButton" onclick="createNewCrew()">CREATE</div>
+        </div>
+        <div style="padding:10px;">Is the person you are adding one of the below?</div>
+        <div id="existingCrew"></div>
+    </div>
+    <div id="dimmer" onclick="hideAll()"></div>
+    <div id="newCrewDimmer" onclick="hideNewCrew()"></div>
+    <div id="toast"></div>
+
+    <script>
+        var calendar     = document.getElementById('backdrop');
+        var today        = new Date();
+        var start        = new Date();
+        start.setDate(today.getDate() - 365);
+        var end          = new Date();
+        end.setDate(today.getDate() + 365);
+        var anchor       = new Date();
+        anchor.setDate(anchor.getDate() + 14);
+        var takenMap     = new Map();
+        var block        = 1;
+        var detailsClone = document.getElementById('details').cloneNode(true);
+        var monthText    = '';
+
+        window.addEventListener('load', function(e) {
+
+            var startDay = (start.getDay() === 0) ? 7 : start.getDay();
+
+            while (block < startDay) {
+                calendar.innerHTML += '<div ></div>';
+                block++;
+            }
+
+            var loop = new Date(start);
+            var zIndex = 1000;
+            var colorClass = 'odd';
+
+            while (loop <= end) {
+
+                var day            = loop.getDate();
+                var dayId          = makeId(loop);
+                var monthIndicator = '';
+
+                if (day === 1) {
+                    if (loop.getMonth() % 2 === 0) {
+                        colorClass = 'even';
+                    } else {
+                        colorClass = 'odd';
+                    }
+
+                    var monthNumber = loop.getMonth();
+
+                    switch (monthNumber) {
+
+                        case 0:
+                            monthText = "January";
+                            break;
+                        case 1:
+                            monthText = "February";
+                            break;
+                        case 2:
+                            monthText = "March";
+                            break;
+                        case 3:
+                            monthText = "April";
+                            break;
+                        case 4:
+                            monthText = "May";
+                            break;
+                        case 5:
+                            monthText = "June";
+                            break;
+                        case 6:
+                            monthText = "July";
+                            break;
+                        case 7:
+                            monthText = "August";
+                            break;
+                        case 8:
+                            monthText = "September";
+                            break;
+                        case 9:
+                            monthText = "October";
+                            break;
+                        case 10:
+                            monthText = "November";
+                            break;
+                        case 11:
+                            monthText = "December";
+                    }
+
+                    day += ' ' + monthText + ' ' + loop.getFullYear();
+
+                }
+
+                if (loop.getDay() === 1 && day < 9){
+                    monthIndicator = '<div class="monthIndicator noSpill">' + monthText + ' ' + loop.getFullYear() + '</div>';
+                }
+
+                var dayEntry = '<div class="day ' + colorClass + '" ' +
+                    ' id="' + dayId + '"' + ' style=" z-index:' + zIndex + '">' + day + monthIndicator + '</div>';
+
+                calendar.innerHTML += dayEntry;
+
+                if (loop.toString().substr(0, 15) === today.toString().substr(0, 15)) {
+                    var todayDiv = document.getElementById(dayId);
+                    todayDiv.style.backgroundColor = '#dbedfc';
+                }
+
+                if (loop.toString().substr(0, 15) === anchor.toString().substr(0, 15)) {
+                    var scrollView = document.getElementById(dayId);
+                    scrollView.scrollIntoView({behavior: "smooth", block: "center", inline: "center"});
+                }
+
+                var newDate = loop.setDate(loop.getDate() + 1);
+                loop = new Date(newDate);
+                zIndex--;
+            }
+
+            getOpportunities();
+            getRoadshows();
+            getHolidays();
+        }, true);
+
+
+        function getOpportunities() {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getOpps}',
+                start,
+                end,
+                handleOpportunities
+            );
+        }
+
+        function handleOpportunities(result, event) {
+
+            for (var x = 0; x < result.length; x++) {
+
+                var startDate   = new Date(result[x].Project_Start__c);
+                var start       = (startDate.getDay() == 0) ? 7 : startDate.getDay();
+                var endDate     = new Date(result[x].Project_End__c);
+                var end         = (endDate.getDay() == 0) ? 7 : endDate.getDay();
+                var trueLength  = daysBetween(startDate, endDate);
+                var length      = trueLength;
+                var startOfWeek = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() - start + 1);
+                var name        = result[x].Account.Abbreviation__c + ' - ' + result[x].Name;
+                var type        = '';
+                var recAlert    = '';
+
+                if (result[x].StageName !== 'Closed Won') {
+                    type = 'Prospect';
+                    if (result[x].Probability < 80) {
+                        type += ' Medium';
+                    } else if (result[x].Probability < 50) {
+                        type += ' Unlikely';
+                    } else if (result[x].Probability < 20) {
+                        type += ' VeryUnlikely';
+                    }
+                } else {
+                    if (result[x].NoCrew__c) {
+                        type = 'NoCrew';
+                    } else {
+                        type = 'ConfirmedOpp';
+                    }
+                    if (endDate < today && result[x].Quote_Status__c !== 'Reconciliation - completed'){
+                        recAlert = '<i class="fas fa-exclamation-triangle recIncomplete"></i>';
+                    }
+                }
+
+                if ((start + trueLength - 1) > 7) {
+
+                    var chunkDates  = new Array();
+                    end             = 7;
+                    length          = (end - start) + 1;
+                    var lastDayOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 13);
+
+                    while (lastDayOfWeek < endDate) {
+                        chunkDates.push(lastDayOfWeek);
+                        lastDayOfWeek = new Date(lastDayOfWeek.getFullYear(), lastDayOfWeek.getMonth(), lastDayOfWeek.getDate() + 7);
+                    }
+
+                    chunkDates.push(endDate);
+
+                    for (var y = 0; y < chunkDates.length; y++) {
+                        chunkAllocate(null, chunkDates[y], name, result[x].Id, type, 'Opportunity', 'eventOpportunity', recAlert);
+                    }
+
+                    endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + (length - 1));
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Opportunity', 'eventOpportunity', recAlert);
+                } else {
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Opportunity', 'eventOpportunity', recAlert);
+                }
+            }
+        }
+
+        function getRoadshows() {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getRoadShows}',
+                start,
+                end,
+                handleRoadshows
+            );
+        }
+
+        function handleRoadshows(result, event) {
+
+            for (var x = 0; x < result.length; x++) {
+
+                var startDate    = new Date(result[x].Project_Start__c);
+                var start        = (startDate.getDay() === 0) ? 7 : startDate.getDay();
+                var endDate      = new Date(result[x].Project_End__c);
+                var end          = (endDate.getDay() === 0) ? 7 : endDate.getDay();
+                var trueLength   = daysBetween(startDate, endDate);
+                var length       = trueLength;
+                var startOfWeek  = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() - start + 1);
+                var name         = result[x].Parent_Opportunity__r.Account.Abbreviation__c + ' - ' + result[x].Name;
+                var primary      = (result[x].Primary_Service__c === 'Event App') ? 'App' : result[x].Primary_Service__c.substring(0, 3);
+                var type         = '';
+                var recAlert     = '';
+
+                if (result[x].Stage__c !== 'Closed Won') {
+                    type = 'Prospect';
+                    if (result[x].Parent_Opportunity__r.Probability < 80) {
+                        type += ' Medium';
+                    } else if (result[x].Parent_Opportunity__r.Probability < 50) {
+                        type += ' Unlikely';
+                    } else if (result[x].Parent_Opportunity__r.Probability < 20) {
+                        type += ' VeryUnlikely';
+                    }
+                } else {
+                    if (result[x].NoCrew__c) {
+                        type = 'NoCrew';
+                    } else {
+                        type = 'ConfirmedRoadshow';
+                    }
+                    if (endDate < today && result[x].Quote_Status__c !== 'Reconciliation - completed'){
+                        recAlert = '<i class="fas fa-exclamation-triangle recIncomplete"></i>';
+                    }
+                }
+
+                if ((start + trueLength - 1) > 7) {
+
+                    var chunkDates = new Array();
+                    end = 7;
+                    length = (end - start) + 1;
+                    var lastDayOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 13);
+                    while (lastDayOfWeek < endDate) {
+                        chunkDates.push(lastDayOfWeek);
+                        lastDayOfWeek = new Date(lastDayOfWeek.getFullYear(), lastDayOfWeek.getMonth(), lastDayOfWeek.getDate() + 7);
+                    }
+                    chunkDates.push(endDate);
+                    for (var y = 0; y < chunkDates.length; y++) {
+                        chunkAllocate(null, chunkDates[y], name, result[x].Id, type, 'Roadshow', 'eventOpportunity');
+                    }
+                    endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + (length - 1));
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Roadshow', 'eventOpportunity', recAlert);
+                } else {
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Roadshow', 'eventOpportunity', recAlert);
+                }
+            }
+        }
+
+        function getHolidays() {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getHolidays}',
+                start,
+                end,
+                handleHolidays
+            );
+        }
+
+        function handleHolidays(result, event) {
+
+            for (var x = 0; x < result.length; x++) {
+
+                var startDate   = new Date(result[x].Start__c);
+                var start       = (startDate.getDay() === 0) ? 7 : startDate.getDay();
+                var endDate     = new Date(result[x].End__c);
+                var end         = (endDate.getDay() === 0) ? 7 : endDate.getDay();
+                var trueLength  = daysBetween(startDate, endDate);
+                var startOfWeek = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() - start + 1);
+                var name        = result[x].Name__c + ' holiday';
+                var type        = 'Holiday';
+
+                if ((start + trueLength - 1) > 7) {
+
+                    var chunkDates = new Array();
+                    end = 7;
+                    length = (end - start) + 1;
+                    var lastDayOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 13);
+
+                    while (lastDayOfWeek < endDate) {
+                        chunkDates.push(lastDayOfWeek);
+                        lastDayOfWeek = new Date(lastDayOfWeek.getFullYear(), lastDayOfWeek.getMonth(), lastDayOfWeek.getDate() + 7);
+                    }
+
+                    chunkDates.push(endDate);
+
+                    for (var y = 0; y < chunkDates.length; y++) {
+                        chunkAllocate(null, chunkDates[y], name, result[x].Id, type, 'Holiday', 'eventHoliday');
+                    }
+
+                    endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + (length - 1));
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Holiday', 'eventHoliday');
+                } else {
+                    chunkAllocate(startDate, endDate, name, result[x].Id, type, 'Holiday', 'eventHoliday');
+                }
+            }
+        }
+
+        function chunkAllocate(startDate, endDate, name, Id, type, sObjectType, classType, recAlert) {
+
+            var start = 1;
+            if (startDate != null) {
+                start = (startDate.getDay() === 0) ? 7 : startDate.getDay();
+            }
+
+            var end         = (endDate.getDay() === 0) ? 7 : endDate.getDay();
+            var startOfWeek = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - end + 1);
+            var length      = (startDate != null) ? daysBetween(startDate, endDate) : daysBetween(startOfWeek, endDate);
+            var weekId      = makeId(startOfWeek);
+            var patch       = ('1').repeat(length);
+            var index       = 0;
+            var day         = document.getElementById(weekId);
+            var left        = 13 * (start - 1);
+            var cssLeft     = left + 'vw';
+            var width       = (13 * length) - 0.4;
+            var cssWdith    = width + 'vw';
+            var complete    = false;
+            var farRight    = (left >= 65 && classType !== 'eventHoliday') ? 'farRight' : '';
+
+            if (day){
+                while (!complete) {
+                    var rowId = weekId + index.toString();
+                    var height = 26 * index;
+                    var cssHeight = height + 'px';
+
+                    if (takenMap.has(rowId)) {
+                        var rowString = takenMap.get(rowId);
+                        var current = rowString.substr(start - 1, length);
+                        var match = ('0').repeat(length);
+
+                        if (current == match) {
+                            var first   = rowString.substr(0, start - 1);
+                            var last    = rowString.substring(end);
+                            var cover   = first + patch + last;
+                            complete    = true;
+                            takenMap.set(rowId, cover);
+                        } else {
+                            index   = index + 1;
+                        }
+                    } else {
+                        var first   = ('0').repeat(start - 1);
+                        var last    = ('0').repeat(7 - end);
+                        var cover   = first + patch + last;
+                        complete    = true;
+                        takenMap.set(rowId, cover);
+                        day.style.height = height + 50 + 'px';
+                        complete    = true;
+                    }
+                }
+
+                day.innerHTML += '<div class="event ' + classType + ' ' + type + ' ' + Id + ' ' + farRight + '\"' +
+                    'id="' + Id + '" style="margin-top:' + cssHeight +
+                    ';margin-left:' + cssLeft + ';width:' + cssWdith + '"' + ' onmouseenter="showMiniDetails(\'' +
+                    Id + '\', \'' + sObjectType + '\')"' +
+                    ' onclick="showDetails(\'' + Id + '\', \'' + sObjectType + '\')\"  >' +
+                    '<div class="eventName">' + name + '</div>' + recAlert + '</div>';
+            }
+        }
+
+        function makeId(date1) {
+            var date = new Date(date1);
+            var Id = 'day' + date.getDate() + 'month' + date.getMonth() + 'year' + date.getYear();
+            return Id;
+        }
+
+        function daysBetween(date1, date2) {
+            var one_day = 1000 * 60 * 60 * 24;
+            var date1_ms = date1.getTime();
+            var date2_ms = date2.getTime();
+            var difference_ms = date2_ms - date1_ms;
+            return Math.round(difference_ms / one_day) + 1;
+        }
+
+        var currentJob;
+        var currentType;
+        var currentEmployee;
+        var currentKitItem;
+        var hasReservations = false;
+        var confirmed = false;
+        var hasQuoteLines = false;
+
+        function showDetails(Id, type) {
+            if (type !== 'Holiday') {
+                document.getElementById('details').style.display = 'block';
+                document.getElementById('dimmer').style.display = 'block';
+                currentJob  = Id;
+                currentType = type;
+                if (type === 'Opportunity') {
+                    getOppDetail(Id);
+                } else if (type === 'Roadshow') {
+                    getRoadshowDetail(Id);
+                }
+            }
+        }
+
+        function toggleCrewOptions() {
+            var setting = document.getElementById('showCrewOptions');
+
+            if (setting.classList.contains('fa-plus-circle')) {
+                document.getElementById('staffBlock').style.display = 'block';
+                document.getElementById('staffBlock').style.opacity = 1;
+                setting.classList.remove('fa-plus-circle');
+                setting.classList.add('fa-minus-circle');
+            } else {
+                document.getElementById('staffBlock').style.display = 'none';
+                document.getElementById('staffBlock').style.opacity = 0;
+                setting.classList.add('fa-plus-circle');
+                setting.classList.remove('fa-minus-circle');
+            }
+        }
+
+        function toggleEquipmentOptions() {
+            var setting = document.getElementById('showEquipmentOptions');
+
+            if (setting.classList.contains('fa-plus-circle')) {
+                document.getElementById('kitBlock').style.display = 'block';
+                document.getElementById('kitBlock').style.opacity = '1';
+                setting.classList.remove('fa-plus-circle');
+                setting.classList.add('fa-minus-circle');
+            } else {
+                document.getElementById('kitBlock').style.display = 'none';
+                document.getElementById('kitBlock').style.opacity = '0';
+                setting.classList.add('fa-plus-circle');
+                setting.classList.remove('fa-minus-circle');
+            }
+        }
+
+        function hideAll() {
+
+            document.getElementById('dimmer').style.display     = 'none';
+            document.getElementById('details').style.display    = 'none';
+            document.getElementById('details').innerHTML        = detailsClone.innerHTML;
+
+            document.getElementById('staffBlock').style.display = 'none';
+            document.getElementById('staffBlock').style.opacity = '0';
+            document.getElementById('staffBlock').innerHTML =
+                '<input type="text" placeholder="Search.." style="width:98%;margin-top:2px;margin-left:2px;margin-right:2px;" id="searchInput" onkeyup="searchCrew()" />' +
+                '<i id="searchIcon" class="fas fa-search"></i>' +
+                '<div id="noStaff" style="display:none;">' +
+                '    <div id="noStaffMessage">No staff available :(</div>' +
+                '    <div id="noStaffButton" onclick="createStaff()">ADD NEW</div>' +
+                '</div>' +
+                '<div id="staff"></div>';
+
+            document.getElementById('kitBlock').style.display = 'none';
+            document.getElementById('kitBlock').style.opacity = '0';
+            document.getElementById('kitBlock').innerHTML =
+                '<input type="text" placeholder="Search.." style="width:98%;margin-top:2px;margin-left:2px;margin-right:2px;" id="searchKitInput" onkeyup="searchKit()" />' +
+                '<i id="kitSearchIcon" class="fas fa-search"></i>' +
+                '<div id="noKit" style="display:none;">' +
+                '    <div id="noKitMessage">No kit available :(</div>' +
+                '</div>' +
+                '<div id="kit"></div>';
+
+            var mini = document.getElementsByClassName(currentJob);
+            for (var x = 0; x < mini.length; x++){
+                mini[x].classList.remove('updated');
+            }
+
+            var miniDetails = document.getElementsByClassName('miniDetails' + currentJob);
+            while(miniDetails.length > 0) {
+                miniDetails[0].remove();
+            }
+
+            currentJob      = null;
+            currentType     = null;
+            currentEmployee = null;
+            currentKitItem  = null;
+            hasReservations = false;
+            confirmed       = false;
+            hasQuoteLines   = false;
+        }
+
+        function getOppDetail(Id) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getOppDetail}',
+                Id,
+                handleOppDetail
+            );
+        }
+
+        function handleOppDetail(result, event) {
+
+            if (result) {
+                var dateLiteral = new Date(result.Project_Start__c);
+                var dateText    = dateLiteral.toString().substr(0, 15);
+                var endLiteral  = new Date(result.Project_End__c);
+
+                if (result.Project_Start__c !== result.Project_End__c) {
+                    endLiteral = new Date(result.Project_End__c);
+                    dateText = dateText.substr(0, 10) + ' - ' + endLiteral.toString().substr(0, 15);
+                }
+
+                var type = '';
+                var typeInfo = '';
+
+                if (result.StageName !== 'Closed Won') {
+                    type = 'Prospect';
+                    typeInfo = result.Probability + '%';
+                } else if (result.NoCrew__c) {
+                    type = 'NoCrew';
+                    typeInfo = '<i class="fas fa-user-alt-slash" style="margin-bottom:15px;"></i>';
+                } else {
+                    type = 'ConfirmedOpp';
+                }
+
+                var dateInfo = '';
+                var oneDay = 24 * 60 * 60 * 1000;
+
+                if (today >= dateLiteral && today <= endLiteral) {
+                    dateInfo = 'Project happening now';
+                } else if (today < dateLiteral) {
+                    var daysToGo = Math.round(Math.abs((dateLiteral.getTime() - today.getTime()) / (oneDay))) + 1;
+                    dateInfo = 'starts in ' + daysToGo + ' days';
+                } else if (today > endLiteral) {
+                    var daysToGo = Math.round(Math.abs((endLiteral.getTime() - today.getTime()) / (oneDay))) - 1;
+                    dateInfo = 'ended ' + daysToGo + ' days ago';
+                }
+
+                var banner = document.getElementById('banner');
+                banner.className = type;
+                banner.innerHTML += '<h3>' + result.Filtered_Account_Name__c + '</h3>' +
+                    '<h2 style="font-size:20px;max-width:50vw;" class="noSpill">' + result.Name + '</h2>' +
+                    '<h3 style="font-size:30px">' + result.Filtered_Job_Number__c + '</h3>' +
+                    '<div class="removeProject" onclick="removeProject()">' +
+                    '<i class="fas fa-times-circle"></i>' +
+                    '</div>' +
+                    '<div class="probabilityText" style="position:absolute;bottom:15px;right:5px;opacity:0.17;font-size:35px;">' + typeInfo + '</div>' +
+                    '<div class="dateText" style="position:absolute;bottom:5px;right:5px;opacity:0.3;font-size:18px;">' + dateInfo + '</div>';
+
+                document.getElementById('eventDates').innerHTML     = dateText;
+                document.getElementById('eventType').innerHTML      = (result.Primary_Service__c) ? result.Primary_Service__c : '&nbsp;';
+                document.getElementById('eventLocation').innerHTML  = (result.Location__c) ? result.Location__c + ' / ' : '&nbsp;';
+                document.getElementById('eventVenue').innerHTML     = (result.Venue__c) ? result.Venue__c : '&nbsp;';
+
+                var amImage = (result.Owner.ImageLink__c == null) ?
+                    '<div class="imageIcon" style="margin-top:5px;padding-top: 3px;">' +
+                    result.Owner.FirstName.substr(0, 1) + '' + result.Owner.LastName.substr(0, 1) + '</div>' :
+                    '<img class="photo" src="' + result.Owner.ImageLink__c + '"/>';
+                document.getElementById('amImage').innerHTML     = amImage;
+                document.getElementById('amName').innerHTML      = result.Owner.FirstName + ' ' + result.Owner.LastName;
+                document.getElementById('amRole').innerHTML      = result.Owner.Title;
+
+                if (result.Project_Manager__c){
+                    var pmImage = (result.Project_Manager__r.ImageLink__c == null) ?
+                        '<div class="imageIcon" style="margin-top:5px;padding-top: 3px;">' +
+                        result.Project_Manager__r.FirstName.substr(0, 1) + '' +
+                        result.Project_Manager__r.LastName.substr(0, 1) + '</div>' :
+                        '<img class="photo" src="' + result.Project_Manager__r.ImageLink__c + '"/>';
+                    document.getElementById('pmImage').innerHTML     = pmImage;
+                    document.getElementById('pmName').innerHTML      = result.Project_Manager__r.FirstName + ' ' + result.Project_Manager__r.LastName;
+                    document.getElementById('pmRole').innerHTML      = result.Project_Manager__r.Title;
+                }
+
+                if (result.OpportunityContactRoles) {
+                    var contacts   = result.OpportunityContactRoles;
+                    var contactDiv = document.getElementById('clients');
+
+                    for (var x = 0; x < contacts.length; x++){
+                        var title = (contacts[x].Contact.Title) ? contacts[x].Contact.Title : '';
+                        contactDiv.innerHTML +=
+                            '<div class="projectMember">' +
+                            '    <div><i class="fas fa-user-circle quoteLineIcon" style="opacity:0.3;margin-top: 3px;"></i></div>' +
+                            '    <div style="position:relative;width:calc(22.5vw - 95px);">' +
+                            '        <div style="width:calc(22.5vw-90px);padding-top:1px;padding-right:4px;padding:0;font-weight: bold;" class="value noSpill">' +
+                            contacts[x].Contact.FirstName + ' ' + contacts[x].Contact.LastName + '</div>' +
+                            '        <div style="width:calc(22.5vw-90px);padding:0px;overflow-x:hidden;" class="noSpill">' + title + '</div>' +
+                            '    </div>' +
+                            '</div>';
+                    }
+                }
+
+                document.getElementById('revenueAmount').innerHTML = '£' + (result.Amount_Calder__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                document.getElementById('costOfSale').innerHTML    = '£' + (result.Filtered_Cost_of_Sale__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                document.getElementById('margin').innerHTML        = '£' + (result.Gross_profit_2__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') + ' (' + result.Gross_Margin__c + '%)';
+
+                if (result.StageName === 'Closed Won'){
+                    document.getElementById('invoices').style.display       = 'block';
+                    document.getElementById('invoicesLegend').style.display = 'block';
+                    document.getElementById('expenses').style.display       = 'block';
+                    document.getElementById('expensesLegend').style.display = 'block';
+                    var invRemaining    = (result.Amount_Remaining__c < 0) ? 0 : result.Amount_Remaining__c;
+                    var invExcess       = (result.Amount_Remaining__c < 0) ? result.Amount_Remaining__c * -1 : 0;
+                    drawRevenue(result.Amount_Paid__c, result.Amount_Invoiced2__c - result.Amount_Paid__c, invRemaining, invExcess);
+                    var cosRemaining    = (result.Filtered_Cost_of_Sale__c - result.Quickbooks_COS__c < 0) ? 0 : result.Filtered_Cost_of_Sale__c - result.Quickbooks_COS__c;
+                    var cosExcess       = (result.Filtered_Cost_of_Sale__c - result.Quickbooks_COS__c < 0) ? (result.Filtered_Cost_of_Sale__c - result.Quickbooks_COS__c) * -1 : 0;
+                    drawExpenses(result.Quickbooks_COS_Paid__c, result.Quickbooks_COS__c - result.Quickbooks_COS_Paid__c, cosRemaining, cosExcess);
+                    console.log('should be showing an excess of ' + cosExcess);
+
+                }
+
+                var staffDiv = document.getElementById('reservedCrew');
+                var kitDiv = document.getElementById('kitHover').parentNode;
+
+                if (result.StageName !== 'Closed Won') {
+                    confirmed = false;
+                    document.getElementById('crewMessage').style.display    = 'block';
+                    document.getElementById('crewMessage').innerHTML        = 'Crew can\'t be allocated to this job until it\'s confirmed.';
+                    document.getElementById('kitMessage').style.display     = 'block';
+                    document.getElementById('kitMessage').innerHTML         = 'Equipment can\'t be allocated to this job until it\'s confirmed.';
+                    document.getElementById('showEquipmentOptions').style.display = 'none';
+                } else {
+                    confirmed = true;
+                    document.getElementById('showCrewOptions').style.display    = 'block';
+                    document.getElementById('crewOptions').style.display        = 'block';
+                    document.getElementById('crewOptions').classList.remove('fa-toggle-off');
+                    document.getElementById('crewOptions').classList.add('fa-toggle-on');
+                    if (result.NoCrew__c) {
+                        document.getElementById('crewMessage').style.display    = 'block';
+                        document.getElementById('crewMessage').innerHTML        = 'This job has been set to no crew required. ' +
+                            'To enable crew allocation toggle the switch below.';
+                        document.getElementById('showCrewOptions').style.display = 'none';
+                        document.getElementById('crewOptions').classList.add('fa-toggle-off');
+                        document.getElementById('crewOptions').classList.remove('fa-toggle-on');
+                    } else {
+                        document.getElementById('crewLinesIcon').style.display   = 'block';
+                        if (result.CrewBookings__r) {
+                            var bookings = result.CrewBookings__r;
+                            document.getElementById('crew').innerHTML += ' (' + bookings.length + ')';
+                            for (var x = 0; x < bookings.length; x++) {
+
+                                var image = (bookings[x].Employee__r.ImageLink__c == null) ?
+                                    '<span class=\"imageIcon\"><div style=\"margin-top:5px;\">' + bookings[x].Employee__r.FirstName__c.substr(0, 1) +
+                                    '' + bookings[x].Employee__r.LastName__c.substr(0, 1) + '</div></span>' :
+                                    '<img class=\"photo\" src=\"' + bookings[x].Employee__r.ImageLink__c + '\"/>';
+                                staffDiv.innerHTML += '<div id="' + bookings[x].Id + '" class="staffMember staffReserved">' +
+                                    '<div>' + image + '</div>' +
+                                    '<div style="position:relative;width:calc(22.5vw - 65px);">' +
+                                    '<div style="width:calc(22.5vw-60px);font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                    bookings[x].Employee__r.FirstName__c + ' ' + bookings[x].Employee__r.LastName__c +
+                                    '</div>' +
+                                    '<div style="width:calc(22.5vw-60px);padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                    bookings[x].Employee__r.Position__c +
+                                    '</div>' +
+                                    '<div class="removeStaff" onclick="removeStaff(\'' + bookings[x].Id + '\')">' +
+                                    '<i class="fas fa-times-circle"></i>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                        }
+                        getEmployees(result.Id, 'Opportunity');
+                    }
+                    if (result.Reservations__r) {
+                        hasReservations = true;
+                        var reservations = result.Reservations__r;
+                        document.getElementById('equipment').innerHTML += ' (' + reservations.length + ')';
+                        for (var x = 0; x < reservations.length; x++) {
+
+                            kitDiv.innerHTML += '<div id=\"' + reservations[x].Id + '\" class=\"equipmentItem equipmentReserved\" >' +
+                                '<div>' + '<img src=\"' + reservations[x].Icon__c + '" class=\"kitImage\">' + '</div>' +
+                                '<div><div style=\"display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:calc(22.5vw - 65px);\">' +
+                                '<span id=\"kitName' + reservations[x].Id + '\" style=\"font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                reservations[x].Name__c +
+                                '</span>' +
+                                '<span id=\"kitType' + reservations[x].Id + '\" style=\"padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                reservations[x].Type__c + ' (' +  reservations[x].Reference__c + ')</div>' +
+                                '<div class=\"removeKit\" onclick=\"removeKit(\'' + reservations[x].Id + '\')\">' +
+                                '<i class=\"fas fa-times-circle\"></i>' +
+                                '</div>' +
+                                '</div>';
+                        }
+                    }
+                    getEquipment(result.Id, 'Opportunity');
+                }
+
+                if (result.SBQQ__PrimaryQuote__c) {
+                    Visualforce.remoting.timeout = 120000;
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.ProjectTrackerRemoter.getOppQuoteLines}',
+                        result.Id,
+                        handleOppQuoteLines
+                    );
+                }
+                initMap(result.Location__c, result.Venue__c);
+            }
+        }
+
+        function handleOppQuoteLines(result, event) {
+
+            var quoteLines = document.getElementById('quoteLines');
+
+            if (result.length === 0) {
+                if (!confirmed) {
+                    document.getElementById('crewMessage').style.display = 'block';
+                    document.getElementById('crewMessage').innerHTML += '<br/><br/> Based on the current active quote no onsite crew are required for this job.';
+                } else if (!hasReservations) {
+                    quoteLines.style.display = 'block';
+                }
+            } else {
+                hasQuoteLines = true;
+                document.getElementById('quoteLinesIcon').style.display = 'block';
+                for (var x = 0; x < result.length; x++) {
+                    var quantity = (result[x].SBQQ__Quantity__c) ? result[x].SBQQ__Quantity__c : 1;
+
+                    for (var y = 0; y < quantity; y++) {
+
+                        quoteLines.innerHTML += '<div class="quoteLine" >' +
+                            '<div><i class="fas fa-user-circle quoteLineIcon" style="opacity:0.3;"></i></div>' +
+                            '<div>' +
+                            '<div class="lineDescription" style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:calc(22.5vw - 65px);">' +
+                            '<span class="lineDescription"  style=\"font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;">' +
+                            result[x].SBQQ__Product__r.Name +
+                            '</span>' +
+                            '<span  class="lineDescription"  style="padding-top:0px;padding-right:4px;">' +
+                            result[x].SBQQ__Description__c +
+                            '</span>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+                    }
+                }
+            }
+        }
+
+        function getRoadshowDetail(Id) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getRoadshowDetail}',
+                Id,
+                handleRoadshowDetail
+            );
+        }
+
+        function handleRoadshowDetail(result, event) {
+            if (result) {
+                var dateLiteral = new Date(result.Project_Start__c);
+                var dateText    = dateLiteral.toString().substr(0, 15);
+                var endLiteral  = new Date(result.Project_End__c);
+
+                if (result.Project_Start__c !== result.Project_End__c) {
+                    endLiteral = new Date(result.Project_End__c);
+                    dateText = dateText.substr(0, 10) + ' - ' + endLiteral.toString().substr(0, 15);
+                }
+
+                var type = '';
+                var typeInfo = '';
+
+                if (result.Stage__c !== 'Closed Won') {
+                    type = 'Prospect';
+                    typeInfo = result.Probability + '%';
+                } else if (result.NoCrew__c) {
+                    type = 'NoCrew';
+                    typeInfo = '<i class="fas fa-user-alt-slash" style="margin-bottom:15px;"></i>';
+                } else {
+                    type = 'ConfirmedRoadshow';
+                    typeInfo = '<i class="fas fa-shuttle-van" style="margin-bottom:16px;"></i>';
+                }
+
+                var dateInfo = '';
+                var oneDay = 24 * 60 * 60 * 1000;
+
+                if (today >= dateLiteral && today <= endLiteral) {
+                    dateInfo = 'Project happening now';
+                } else if (today < dateLiteral) {
+                    var daysToGo = Math.round(Math.abs((dateLiteral.getTime() - today.getTime()) / (oneDay))) + 1;
+                    dateInfo = 'starts in ' + daysToGo + ' days';
+                } else if (today > endLiteral) {
+                    var daysToGo = Math.round(Math.abs((endLiteral.getTime() - today.getTime()) / (oneDay))) - 1;
+                    dateInfo = 'ended ' + daysToGo + ' days ago';
+                }
+
+                var banner = document.getElementById('banner');
+                banner.className = type;
+                banner.innerHTML += '<h3>' + result.Parent_Opportunity__r.Account.Name + '</h3>' +
+                    '<h2 style="font-size:20px;max-width:50vw;" class="noSpill">' + result.Name + '</h2>' +
+                    '<h3 style="font-size:30px">' + result.Job_Number__c + '</h3>' +
+                    '<div class="removeProject" onclick="removeProject()">' +
+                    '<i class="fas fa-times-circle"></i>' +
+                    '</div>' +
+                    '<div class="probabilityText" style="position:absolute;bottom:15px;right:5px;opacity:0.17;font-size:35px;">' + typeInfo + '</div>' +
+                    '<div style="position:absolute;bottom:5px;right:5px;opacity:0.3;font-size:18px;">' + dateInfo + '</div>';
+
+                document.getElementById('eventDates').innerHTML     = dateText;
+                document.getElementById('eventType').innerHTML      = (result.Primary_Service__c) ? result.Primary_Service__c : '&nbsp;';
+                document.getElementById('eventLocation').innerHTML  = (result.Location__c) ? result.Location__c  + ' / ' : '&nbsp;';
+                document.getElementById('eventVenue').innerHTML     = (result.Venue__c) ? result.Venue__c : '&nbsp;';
+
+                var amImage = (result.Parent_Opportunity__r.Owner.ImageLink__c == null) ?
+                    '<div class="imageIcon" style="margin-top:5px;padding-top: 3px;">' +
+                    result.Parent_Opportunity__r.Owner.FirstName.substr(0, 1) + '' +
+                    result.Parent_Opportunity__r.Owner.LastName.substr(0, 1) + '</div>' :
+                    '<img class="photo" src="' + result.Parent_Opportunity__r.Owner.ImageLink__c + '"/>';
+                document.getElementById('amImage').innerHTML     = amImage;
+                document.getElementById('amName').innerHTML      = result.Parent_Opportunity__r.Owner.FirstName +
+                    ' ' + result.Parent_Opportunity__r.Owner.LastName;
+                document.getElementById('amRole').innerHTML      = result.Parent_Opportunity__r.Owner.Title;
+
+                if (result.Parent_Opportunity__r.Project_Manager__c){
+                    var pmImage = (result.Parent_Opportunity__r.Project_Manager__r.ImageLink__c == null) ?
+                        '<div class="imageIcon" style="margin-top:5px;padding-top: 3px;">' +
+                        result.Parent_Opportunity__r.Project_Manager__r.FirstName.substr(0, 1) + '' +
+                        result.Parent_Opportunity__r.Project_Manager__r.LastName.substr(0, 1) + '</div>' :
+                        '<img class="photo" src="' + result.Parent_Opportunity__r.Project_Manager__r.ImageLink__c + '"/>';
+                    document.getElementById('pmImage').innerHTML     = pmImage;
+                    document.getElementById('pmName').innerHTML      = result.Parent_Opportunity__r.Project_Manager__r.FirstName +
+                        ' ' + result.Parent_Opportunity__r.Project_Manager__r.LastName;
+                    document.getElementById('pmRole').innerHTML      = result.Parent_Opportunity__r.Project_Manager__r.Title;
+                }
+
+                document.getElementById('revenueAmount').innerHTML = '£' + (result.Parent_Opportunity__r.Amount_Calder__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                document.getElementById('costOfSale').innerHTML    = '£' + (result.Parent_Opportunity__r.Filtered_Cost_of_Sale__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                document.getElementById('margin').innerHTML        = '£' + (result.Parent_Opportunity__r.Gross_profit_2__c).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,') +
+                    ' (' + result.Parent_Opportunity__r.Gross_Margin__c + '%)';
+
+                if (result.Stage__c === 'Closed Won'){
+                    document.getElementById('invoices').style.display       = 'block';
+                    document.getElementById('invoicesLegend').style.display = 'block';
+                    document.getElementById('expenses').style.display       = 'block';
+                    document.getElementById('expensesLegend').style.display = 'block';
+                    var invRemaining    = (result.Parent_Opportunity__r.Amount_Remaining__c < 0) ?
+                        0 : result.Parent_Opportunity__r.Amount_Remaining__c;
+                    var invExcess       = (result.Parent_Opportunity__r.Amount_Remaining__c < 0) ?
+                        result.Parent_Opportunity__r.Amount_Remaining__c * -1 : 0;
+                    drawRevenue(result.Parent_Opportunity__r.Amount_Paid__c,
+                        result.Parent_Opportunity__r.Amount_Invoiced2__c - result.Parent_Opportunity__r.Amount_Paid__c,
+                        invRemaining, invExcess);
+                    var cosRemaining    = (result.Parent_Opportunity__r.Filtered_Cost_of_Sale__c - result.Parent_Opportunity__r.Quickbooks_COS__c < 0) ?
+                        0 : result.Parent_Opportunity__r.Filtered_Cost_of_Sale__c - result.Parent_Opportunity__r.Quickbooks_COS__c;
+                    var cosExcess       = (result.Parent_Opportunity__r.Filtered_Cost_of_Sale__c - result.Parent_Opportunity__r.Quickbooks_COS__c < 0) ?
+                        (result.Parent_Opportunity__r.Filtered_Cost_of_Sale__c - result.Parent_Opportunity__r.Quickbooks_COS__c) * -1 : 0;
+                    drawExpenses(result.Parent_Opportunity__r.Quickbooks_COS_Paid__c,
+                        result.Parent_Opportunity__r.Quickbooks_COS__c - result.Quickbooks_COS_Paid__c,
+                        cosRemaining, cosExcess);
+                }
+
+                var staffDiv    = document.getElementById('reservedCrew');
+                var kitDiv      = document.getElementById('kitHover').parentNode;
+
+                if (result.Stage__c !== 'Closed Won') {
+                    confirmed = false;
+                    document.getElementById('crewMessage').style.display    = 'block';
+                    document.getElementById('crewMessage').innerHTML        = 'Crew can\'t be allocated to this job until it\'s confirmed.';
+                    document.getElementById('kitMessage').style.display     = 'block';
+                    document.getElementById('kitMessage').innerHTML         = 'Equipment can\'t be allocated to this job until it\'s confirmed.';
+                    document.getElementById('showEquipmentOptions').style.display = 'none';
+                } else {
+                    confirmed = true;
+                    document.getElementById('showCrewOptions').style.display = 'block';
+                    document.getElementById('crewOptions').style.display     = 'block';
+                    document.getElementById('crewOptions').classList.remove('fa-toggle-off');
+                    document.getElementById('crewOptions').classList.add('fa-toggle-on');
+                    if (result.NoCrew__c) {
+                        document.getElementById('crewMessage').style.display    = 'block';
+                        document.getElementById('crewMessage').innerHTML        = 'This job has been set to no crew required. ' +
+                            'To enable crew allocation toggle the switch below.';
+                        document.getElementById('showCrewOptions').style.display = 'none';
+                        document.getElementById('crewOptions').classList.add('fa-toggle-off');
+                        document.getElementById('crewOptions').classList.remove('fa-toggle-on');
+                    } else {
+                        document.getElementById('crewLinesIcon').style.display   = 'block';
+                        if (result.CrewBookings__r) {
+                            var bookings = result.CrewBookings__r;
+                            document.getElementById('crew').innerHTML += ' (' + bookings.length + ')';
+                            for (var x = 0; x < bookings.length; x++) {
+
+                                var image = (bookings[x].Employee__r.ImageLink__c == null) ?
+                                    '<span class=\"imageIcon\"><div style=\"margin-top:5px;\">' + bookings[x].Employee__r.FirstName__c.substr(0, 1) +
+                                    '' + bookings[x].Employee__r.LastName__c.substr(0, 1) + '</div></span>' :
+                                    '<img class=\"photo\" src=\"' + bookings[x].Employee__r.ImageLink__c + '\"/>';
+                                staffDiv.innerHTML += '<div id="' + bookings[x].Id + '" class="staffMember staffReserved">' +
+                                    '<div>' + image + '</div>' +
+                                    '<div style="position:relative;width:calc(22.5vw - 65px);">' +
+                                    '<div style="width:calc(22.5vw-60px);font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                    bookings[x].Employee__r.FirstName__c + ' ' + bookings[x].Employee__r.LastName__c +
+                                    '</div>' +
+                                    '<div style="width:calc(22.5vw-60px);padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                    bookings[x].Employee__r.Position__c +
+                                    '</div>' +
+                                    '<div class="removeStaff" onclick="removeStaff(\'' + bookings[x].Id + '\')">' +
+                                    '<i class="fas fa-times-circle"></i>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                        }
+                        getEmployees(result.Id, 'Roadshow');
+                    }
+                    if (result.Reservations__r) {
+                        hasReservations = true;
+                        var reservations = result.Reservations__r;
+                        document.getElementById('equipment').innerHTML += ' (' + reservations.length + ')';
+                        for (var x = 0; x < reservations.length; x++) {
+
+                            kitDiv.innerHTML += '<div id=\"' + reservations[x].Id + '\" class=\"equipmentItem equipmentReserved\" >' +
+                                '<div>' + '<img src=\"' + reservations[x].Icon__c + '" class=\"kitImage\">' + '</div>' +
+                                '<div><div style=\"display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:calc(22.5vw - 65px);\">' +
+                                '<span id=\"kitName' + reservations[x].Id + '\" style=\"font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                reservations[x].Name__c +
+                                '</span>' +
+                                '<span id=\"kitType' + reservations[x].Id + '\" style=\"padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
+                                reservations[x].Type__c + '</span></div>' +
+                                '</div>' +
+                                '<div class=\"removeKit\" onclick=\"removeKit(\'' + reservations[x].Id + '\')\">' +
+                                '<i class=\"fas fa-times-circle\"></i>' +
+                                '</div>' +
+                                '</div>';
+                        }
+                    }
+                    getEquipment(result.Id, 'Roadshow');
+                }
+
+                initMap(result.Location__c, result.Venue__c);
+
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.ProjectTrackerRemoter.getParentOppContactRoles}',
+                    result.Parent_Opportunity__c,
+                    function (result, event){
+                        if (result.OpportunityContactRoles) {
+                            var contacts   = result.OpportunityContactRoles;
+                            var contactDiv = document.getElementById('clients');
+
+                            for (var x = 0; x < contacts.length; x++){
+                                var title = (contacts[x].Contact.Title) ? contacts[x].Contact.Title : '';
+                                contactDiv.innerHTML +=
+                                    '<div class="projectMember">' +
+                                    '    <div><i class="fas fa-user-circle quoteLineIcon" style="opacity:0.3;margin-top: 3px;"></i></div>' +
+                                    '    <div style="position:relative;width:calc(22.5vw - 95px);">' +
+                                    '        <div style="width:calc(22.5vw-90px);padding-top:1px;padding-right:4px;padding:0;font-weight: bold;" class="value noSpill">' +
+                                    contacts[x].Contact.FirstName + ' ' + contacts[x].Contact.LastName + '</div>' +
+                                    '        <div style="width:calc(22.5vw-90px);padding:0px;overflow-x:hidden;" class="noSpill">' + title + '</div>' +
+                                    '    </div>' +
+                                    '</div>';
+                            }
+                        }
+                    }
+                );
+            }
+        }
+
+        function getEmployees(Id, type) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getEmployees}',
+                Id,
+                type,
+                handleEmployees
+            );
+        }
+
+        function handleEmployees(result, event) {
+
+            var staffDiv = document.getElementById('staff');
+
+            if (result.length > 0) {
+                for (var x = 0; x < result.length; x++) {
+                    var image = (result[x].ImageLink__c == null) ?
+                        '<span class=\"imageIcon\"><div style=\"margin-top:5px;\">' + result[x].FirstName__c.substr(0, 1) +
+                        '' + result[x].LastName__c.substr(0, 1) + '</div></span>' :
+                        '<img class=\"photo\" src=\"' + result[x].ImageLink__c + '\"/>';
+
+                    staffDiv.innerHTML += '<div id="' + result[x].Id + '" class="staffMember" draggable="true" ' +
+                        'ondragstart="dragStart(event)" ondragend="dragEnd(event)">' +
+                        '<div>' + image + '</div>' +
+                        '<div><div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:calc(22.5vw - 65px);">' +
+                        '<span id="crewName' + result[x].Id + '" style=\"font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;">' +
+                        result[x].FirstName__c + ' ' + result[x].LastName__c +
+                        '</span>' +
+                        '<span style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;">' + result[x].Position__c + '</span></div>' +
+                        '</div>' +
+                        '</div>';
+                }
+            } else {
+                document.getElementById('noStaff').style.display = 'block';
+            }
+        }
+
+        function getEquipment(Id, type) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getEquipment}',
+                Id,
+                type,
+                handleEquipment
+            );
+        }
+
+        function handleEquipment(result, event) {
+
+            var kitDiv = document.getElementById('kit');
+
+            if (result.length > 0) {
+                for (var x = 0; x < result.length; x++) {
+                    kitDiv.innerHTML += '<div id="' + result[x].Id + '" class="equipmentItem" draggable="true" ' +
+                        'ondragstart="dragKitStart(event)" ondragend="dragKitEnd(event)">' +
+                        '<div>' + '<img src="' + result[x].Icon__c + '" class="kitImage">' + '</div>' +
+                        '<div><div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:calc(22.5vw - 65px);">' +
+                        '<span id="kitName' + result[x].Id + '" style="font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;">' +
+                        result[x].Name__c +
+                        '</span>' +
+                        '<span id="kitType' + result[x].Id + '" style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;">' +
+                        result[x].Type__c + ' (' + result[x].Name + ')</span></div>' +
+                        '</div>' +
+                        '</div>';
+                }
+            } else {
+                document.getElementById('noKit').style.display = 'block';
+            }
+        }
+
+        /* DRAG AND DROP */
+        var dragging = false;
+        var over     = false;
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function dragStart(event) {
+            var crewHover = document.getElementById('crewHover');
+            crewHover.style.zIndex = '6000';
+            crewHover.style.display = 'block';
+            dragging = true;
+
+            if (event.target.className === 'photo') {
+                event.dataTransfer.setData("text", event.target.parentNode.parentNode.id);
+            } else {
+                event.dataTransfer.setData("text", event.target.id);
+            }
+        }
+
+        function dragEnd(event) {
+            var crewHover = document.getElementById('crewHover');
+            crewHover.style.zIndex = '0';
+            crewHover.style.display = 'none';
+            dragging = false;
+        }
+
+        function dropReserve(event) {
+            event.preventDefault();
+            var data = event.dataTransfer.getData("text");
+            var source = document.getElementById(data);
+
+            if (event.target.id === "crewHover") {
+                event.target.style.opacity = "0";
+                document.getElementById('crewHoverPlus').style.display = 'none';
+                currentEmployee = source.id;
+                Visualforce.remoting.timeout = 120000;
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.ProjectTrackerRemoter.allocateCrew}',
+                    source.id,
+                    currentJob,
+                    currentType,
+                    handleDropReserve
+                );
+            }
+        }
+
+        function handleDropReserve(result, event) {
+            if (result != null) {
+
+                var crewCover   = document.getElementById('crewContainer');
+                var employee    = document.getElementById(currentEmployee);
+                crewCover.appendChild(employee);
+                employee.classList.add('staffReserved');
+
+                employee.innerHTML +=
+                    '<div class="removeStaff" onclick="removeStaff(\'' + result + '\')">' +
+                    '<i class="fas fa-times-circle"></i>' +
+                    '</div>';
+
+                var crewSize = document.getElementsByClassName('staffReserved');
+                document.getElementById('crew').innerHTML = 'CREW (' + crewSize.length + ')';
+
+                var size = 0;
+                var availableCrew = document.getElementsByClassName('staffMember');
+
+                for (var x = 0; x < availableCrew.length; x++) {
+                    if (!availableCrew[x].classList.contains('staffReserved')) {
+                        size += 1;
+                    }
+                }
+
+                if (size === 0) {
+                    document.getElementById('noStaff').style.display = 'block';
+                }
+
+                employee.id = result;
+                showToast('success', 'Crew booking saved!');
+                showCrewLines();
+            } else {
+                showToast('error', 'There was an error saving this record :(');
+            }
+        }
+
+        function dragKitStart(event) {
+            var kitHover = document.getElementById('kitHover');
+            kitHover.style.zIndex = '6000';
+            kitHover.style.display = 'block';
+            dragging = true;
+            event.dataTransfer.setData("text", event.target.id)
+        }
+
+        function dragKitEnd(event) {
+            var kitHover = document.getElementById('kitHover');
+            kitHover.style.zIndex = '0';
+            kitHover.style.display = 'none';
+            dragging = false;
+        }
+
+        function dropReserveKit(event) {
+            event.preventDefault();
+            var data = event.dataTransfer.getData("text");
+            var source = document.getElementById(data);
+
+            if (event.target.id === "kitHover") {
+                event.target.style.opacity = "0";
+                document.getElementById('kitHoverPlus').style.display = 'none';
+                currentKitItem = source.id;
+                Visualforce.remoting.timeout = 120000;
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.ProjectTrackerRemoter.allocateKit}',
+                    source.id,
+                    currentJob,
+                    currentType,
+                    handleDropReserveKit
+                );
+            }
+        }
+
+        function handleDropReserveKit(result, event) {
+            if (result != null) {
+
+                var kitCover = document.getElementById('equipmentContainer');
+                var kit = document.getElementById(currentKitItem);
+                kitCover.appendChild(kit);
+                kit.classList.add('equipmentReserved');
+
+                kit.innerHTML +=
+                    '<div class="removeKit" onclick="removeKit(\'' + result + '\')">' +
+                    '<i class="fas fa-times-circle"></i>' +
+                    '</div>';
+
+                var kitSize = document.getElementsByClassName('equipmentReserved');
+                document.getElementById('equipment').innerHTML = 'EQUIPMENT (' + kitSize.length + ')';
+
+                var size = 0;
+                var availableKit = document.getElementsByClassName('equipmentItem');
+
+                for (var x = 0; x < availableKit.length; x++) {
+                    if (!availableKit[x].classList.contains('equipmentReserved')) {
+                        size += 1;
+                    }
+                }
+
+                if (size === 0) {
+                    document.getElementById('noKit').style.display = 'block';
+                }
+
+                kit.id = result;
+                showToast('success', 'Equipment booking saved!');
+            } else {
+                showToast('error', 'There was an error saving this record :(');
+            }
+        }
+
+
+        document.addEventListener("dragenter", function(event) {
+            if (event.target.id === "crewHover") {
+                event.target.style.opacity = "0.5";
+                document.getElementById('crewHoverPlus').style.display = 'block';
+            } else if (event.target.id === "kitHover") {
+                event.target.style.opacity = "0.5";
+                document.getElementById('kitHoverPlus').style.display = 'block';
+            }
+        });
+
+        document.addEventListener("dragleave", function(event) {
+            if (event.target.id === "crewHover") {
+                event.target.style.opacity = "0";
+                document.getElementById('crewHoverPlus').style.display = 'none';
+            } else if (event.target.id === "kitHover") {
+                event.target.style.opacity = "0";
+                document.getElementById('kitHoverPlus').style.display = 'none';
+            }
+        });
+
+        function changeTab(tabName) {
+
+            var crew                = document.getElementById('crew');
+            var crewContainer       = document.getElementById('crewContainer');
+            var crewOptions         = document.getElementById('crewOptionsPanel');
+            var equipment           = document.getElementById('equipment');
+            var equipmentContainer  = document.getElementById('equipmentContainer');
+            var equipmentOptions    = document.getElementById('equipmentOptionsPanel');
+            var equipmentOptionsButton = document.getElementById('showEquipmentOptions');
+            var kit                 = document.getElementById('kitBlock');
+
+            if (tabName === 'crew') {
+                crew.classList.remove('hiddenTab');
+                crewContainer.style.display = 'block';
+                crewOptions.style.display = 'flex';
+                equipment.classList.add('hiddenTab');
+                equipmentContainer.style.display = 'none';
+                equipmentOptions.style.display = 'none';
+                equipmentOptionsButton.style.display = 'none';
+                kit.style.display = 'none';
+                kit.style.opacity = '0';
+                equipmentOptionsButton.classList.add('fa-plus-circle');
+                equipmentOptionsButton.classList.remove('fa-minus-circle');
+            } else if (tabName === 'equipment') {
+                equipment.classList.remove('hiddenTab');
+                equipmentContainer.style.display = 'block';
+                equipmentOptions.style.display = 'block';
+                crew.classList.add('hiddenTab');
+                crewContainer.style.display = 'none';
+                crewOptions.style.display = 'none';
+                document.getElementById('staffBlock').style.display = 'none';
+                document.getElementById('staffBlock').style.opacity = '0';
+                document.getElementById('showCrewOptions').classList.add('fa-plus-circle');
+                document.getElementById('showCrewOptions').classList.remove('fa-minus-circle');
+                if (confirmed) {
+                    document.getElementById('showEquipmentOptions').style.display = 'block';
+                }
+            }
+        }
+
+        function searchCrew() {
+
+            var input   = document.getElementById('searchInput').value.toUpperCase();
+            var staff   = document.getElementsByClassName('staffMember');
+            var size    = 0;
+
+            for (var x = 0; x < staff.length; x++) {
+                if (!staff[x].classList.contains('staffReserved')) {
+                    var name = document.getElementById('crewName' + staff[x].id).innerHTML.toUpperCase();
+                    if (name.search(input) === -1) {
+                        staff[x].style.display = 'none';
+                    } else {
+                        staff[x].style.display = 'grid';
+                        size += 1;
+                    }
+                }
+            }
+
+            if (size === 0) {
+                document.getElementById('noStaff').style.display = 'block';
+                document.getElementById('noStaffMessage').innerHTML = 'Can\'t find who you\'re looking for?';
+            } else {
+                document.getElementById('noStaff').style.display = 'none';
+            }
+        }
+
+        function searchKit() {
+
+            var kitInput = document.getElementById('searchKitInput').value.toUpperCase();
+            var equipment = document.getElementsByClassName('equipmentItem');
+            var size = 0;
+
+            for (var x = 0; x < equipment.length; x++) {
+                if (!equipment[x].classList.contains('equipmentReserved')) {
+                    var name = document.getElementById('kitName' + equipment[x].id).innerHTML.toUpperCase();
+                    var type = document.getElementById('kitType' + equipment[x].id).innerHTML.toUpperCase();
+                    if (name.search(kitInput) == -1 && type.search(kitInput) == -1) {
+                        equipment[x].style.display = 'none';
+                    } else {
+                        equipment[x].style.display = 'grid';
+                        size += 1;
+                    }
+                }
+            }
+
+            if (size === 0) {
+                document.getElementById('noKit').style.display = 'block';
+                document.getElementById('noKitMessage').innerHTML = 'No results found :(';
+            } else {
+                document.getElementById('noKit').style.display = 'none';
+            }
+        }
+
+        function removeStaff(Id) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.removeCrewBooking}',
+                Id,
+                handleRemoveStaff
+            );
+        }
+
+        function handleRemoveStaff(result, event) {
+            if (result !== 'error') {
+                showToast('success', 'Crew booking removed!');
+                document.getElementById(result).style.opacity = '0';
+                document.getElementById(result).remove();
+                var crewSize = document.getElementsByClassName('staffReserved');
+                if (crewSize.length > 0) {
+                    document.getElementById('crew').innerHTML = 'CREW (' + crewSize.length + ')';
+                } else {
+                    document.getElementById('crew').innerHTML = 'CREW';
+                }
+                document.getElementById('staff').innerHTML = '';
+                document.getElementById('noStaff').style.display = 'none';
+                getEmployees(currentJob, currentType);
+            } else {
+                showToast('error', 'There was an error removing this record :(');
+            }
+        }
+
+        function removeKit(Id) {
+            Visualforce.remoting.timeout = 120000;
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.removeReservation}',
+                Id,
+                handleRemoveKit
+            );
+        }
+
+        function handleRemoveKit(result, event) {
+            if (result !== 'error') {
+                document.getElementById(result).style.opacity = '0';
+                document.getElementById(result).remove();
+                var kitSize = document.getElementsByClassName('equipmentReserved');
+                if (kitSize.length > 0) {
+                    document.getElementById('equipment').innerHTML = 'EQUIPMENT (' + kitSize.length + ')';
+                } else {
+                    document.getElementById('equipment').innerHTML = 'EQUIPMENT';
+                }
+                document.getElementById('kit').innerHTML = '';
+                document.getElementById('noKit').style.display = 'none';
+                getEquipment(currentJob, currentType);
+                showToast('success', 'Equipment reservation removed!');
+            } else {
+                showToast('error', 'There was an error removing this record :(');
+            }
+        }
+
+        function removeProject() {
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.removeProject}',
+                currentJob,
+                currentType,
+                function (result, event) {
+                    if (result) {
+                        showToast('success', 'Project removed!');
+                        var events = document.getElementsByClassName(currentJob);
+                        for (var x = 0; x < events.length; x++) {
+                            events[x].style.display = 'none';
+                        }
+                        hideAll();
+                    } else {
+                        showToast('error', 'There was an error removing this record :(');
+                    }
+                }
+            );
+        }
+
+        function toggleNoCrew() {
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.toggleNoCrew}',
+                currentJob,
+                currentType,
+                function (result, event) {
+                    if (result) {
+                        showToast('success', 'Project successfully updated!');
+                        var toggle  = document.getElementById('crewOptions');
+                        var options = document.getElementById('showCrewOptions');
+                        var events  = document.getElementsByClassName(currentJob);
+
+                        if (toggle.classList.contains('fa-toggle-on')) {
+                            toggle.classList.remove('fa-toggle-on');
+                            toggle.classList.add('fa-toggle-off');
+                            options.style.display = 'none';
+                            document.getElementById('staffBlock').style.display = 'none';
+                            document.getElementById('staffBlock').style.opacity = '0';
+                            document.getElementById('crewContainer').innerHTML =
+                                '<div id="crewHover" style="display:none;"></div>' +
+                                '<div id="crewHoverPlus">' +
+                                '<i class="fas fa-plus-circle"></i>' +
+                                '</div>' +
+                                '<div id="crewMessage" style="display:block;">This job has been set to no crew required. ' +
+                                'To enable crew allocation toggle the switch below.</div>';
+                            document.getElementById('crew').innerHTML = 'CREW';
+                            var setting = document.getElementById('showCrewOptions');
+                            setting.classList.add('fa-plus-circle');
+                            setting.classList.remove('fa-minus-circle');
+
+                            document.getElementById('banner').classList.add('NoCrew');
+                            for (var x = 0; x < events.length; x++) {
+                                events[x].classList.add('NoCrew');
+                            }
+                            document.getElementById('crewLinesIcon').style.display   = 'none';
+                        } else {
+                            toggle.classList.add('fa-toggle-on');
+                            toggle.classList.remove('fa-toggle-off');
+                            options.style.display = 'block';
+                            document.getElementById('crewMessage').style.display = 'none';
+                            document.getElementById('crewLinesIcon').style.display   = 'block';
+                            document.getElementById('banner').classList.remove('NoCrew');
+                            for (var x = 0; x < events.length; x++) {
+                                events[x].classList.remove('NoCrew');
+                            }
+                            if (confirmed) {
+                                if (currentType === 'Opportunity'){
+                                    document.getElementById('banner').classList.add('ConfirmedOpp');
+                                    for (var x = 0; x < events.length; x++) {
+                                        events[x].classList.add('ConfirmedOpp');
+                                    }
+                                    if (hasQuoteLines) {
+                                        document.getElementById('quoteLinesIcon').style.display = 'block';
+                                    }
+                                } else if (currentType === 'Roadshow'){
+                                    document.getElementById('banner').classList.add('ConfirmedRoadshow');
+                                    for (var x = 0; x < events.length; x++) {
+                                        events[x].classList.add('ConfirmedRoadshow');
+                                    }
+                                }
+                            } else {
+                                document.getElementById('banner').classList.add('Prospect');
+                                for (var x = 0; x < events.length; x++) {
+                                    events[x].classList.add('Prospect');
+                                }
+                            }
+                        }
+                        document.getElementById('staffBlock').innerHTML =
+                            '<input type="text" placeholder="Search.." style="width:98%;margin-top:2px;margin-left:2px;margin-right:2px;" ' +
+                            'id="searchInput" onkeyup="searchCrew()" />' +
+                            '<i id="searchIcon" class="fas fa-search"></i>' +
+                            '<div id="noStaff" style="display:none;">' +
+                            '    <div id="noStaffMessage">No staff available :(</div>' +
+                            '    <div id="noStaffButton">ADD NEW</div>' +
+                            '</div>' +
+                            '<div id="staff"></div>';
+                        getEmployees(currentJob, currentType);
+                    } else {
+                        showToast('error', 'There was an error updating this record :(');
+                    }
+                }
+            );
+        }
+
+        function showMiniDetails(Id, type) {
+            var event = document.getElementById(Id);
+
+            if (!event.classList.contains('updated')) {
+                event.classList.add('updated');
+                if (type === 'Opportunity') {
+                    Visualforce.remoting.timeout = 120000;
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.ProjectTrackerRemoter.getOppMiniDetail}',
+                        Id,
+                        handleMiniDetail
+                    );
+                } else if (type === 'Roadshow') {
+                    Visualforce.remoting.timeout = 120000;
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.ProjectTrackerRemoter.getRoadshowMiniDetail}',
+                        Id,
+                        handleMiniDetail
+                    );
+                }
+            }
+        }
+
+        function handleMiniDetail(result, event) {
+
+            var eventBlocks = document.getElementsByClassName(result.Id);
+            var crew = result.CrewBookings__r;
+            var crewLength = 0;
+
+            var Id = result.Id;
+            var jobNumber = (result.Filtered_Job_Number__c) ? result.Filtered_Job_Number__c : result.Job_Number__c;
+            var info = '<div style=\"font-size:30px;\">' + jobNumber + '</div>';
+            var dateInfo = '<div style=\"position:absolute;bottom:0px;right: 5px;opacity:0.5;\">' + result.Project_Start__c + '</div>';
+            var startLiteral = new Date(result.Project_Start__c);
+            var endLiteral = new Date(result.Project_End__c);
+            var oneDay = 24 * 60 * 60 * 1000;
+            var stage = (result.StageName) ? result.StageName : result.Stage__c;
+            var prob = (result.Probability) ? result.Probability : result.Parent_Opportunity__r.Probability;
+            var typeInfo;
+
+            if (stage !== 'Closed Won') {
+                typeInfo = prob + '%';
+            } else if (result.NoCrew__c) {
+                typeInfo = '<i class="fas fa-user-alt-slash" style="margin-bottom:15px;"></i>';
+            } else if (result.Parent_Opportunity__c != null) {
+                typeInfo = '<i class="fas fa-shuttle-van" style="margin-bottom:16px;"></i>';
+            } else {
+                typeInfo = '';
+            }
+
+            if (today >= startLiteral && today <= endLiteral) {
+                dateInfo = 'Project happening now';
+            } else if (today < startLiteral) {
+                var daysToGo = Math.round(Math.abs((startLiteral.getTime() - today.getTime()) / (oneDay))) + 1;
+                dateInfo = 'starts in ' + daysToGo + ' days';
+            } else if (today > endLiteral) {
+                var daysToGo = Math.round(Math.abs((endLiteral.getTime() - today.getTime()) / (oneDay))) -1;
+                dateInfo = 'ended ' + daysToGo + ' days ago';
+            }
+
+            var crewDivs = '';
+
+            if (crew) {
+                crewLength = crew.length;
+                for (var y = 0; y < crew.length; y++) {
+                    crewDivs += (crew[y].Employee__r.ImageLink__c == null) ?
+                        '<span class="imageIconMini"><div style="margin-top:5px;">' + crew[y].Employee__r.Initials__c + '</div></span>' :
+                        '<img class="photoMini" src="' + crew[y].Employee__r.ImageLink__c + '"/>';
+                }
+            }
+
+            for (var x = 0; x < eventBlocks.length; x++) {
+
+                eventBlocks[x].innerHTML +=
+                    '<div class="miniDetails' + result.Id + '" style="position:relative;">' +
+                    '<div style="width:25vw;">' + info + '<div>' +
+                    '<div class="probabilityText" style="position:absolute;bottom:15px;right:5px;opacity:0.17;font-size:45px;display:none;">' +  typeInfo + '</div >' +
+                    '<div class="dateText" style="position:absolute;bottom:0px;right: 5px;opacity:0.3;">' + dateInfo + '</div>' +
+                    '<div style="display:flex;flex-wrap: wrap;" class="miniIcons'  + result.Id + '">' + crewDivs + '</div>' +
+                    '</div>';
+                eventBlocks[x].classList.add('updated');
+            }
+
+            if (!eventBlocks[0].classList.contains('ConfirmedRoadshow')){
+                Visualforce.remoting.timeout = 120000;
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.ProjectTrackerRemoter.getOppMiniQuoteLines}',
+                    result.Id,
+                    function(result,event){
+                        if (result.length > crewLength){
+                            var eventDivs = document.getElementsByClassName('miniIcons' + Id);
+                            for (var z = 0; z < eventDivs.length; z++){
+                                for (var y = crewLength; y < result.length; y++){
+                                    eventDivs[z].innerHTML += '<span class="fas fa-user-circle quoteLineIconMini">';
+                                }
+                            }
+                        }
+                    }
+                );
+            }
+        }
+
+        function showToast(status, message) {
+            var toast = document.getElementById('toast');
+            toast.innerHTML = message;
+            toast.className = status;
+            setTimeout(function() {
+                toast.className = toast.className.replace(status, "");
+            }, 3000);
+        }
+
+        function showQuoteLines() {
+            if (document.getElementById('quoteLines').style.display !== 'block') {
+                document.getElementById('quoteLines').style.display     = 'block';
+                document.getElementById('reservedCrew').style.display   = 'none';
+                document.getElementById('quoteLinesIcon').style.color   = 'red';
+                document.getElementById('crewLinesIcon').style.color    = 'grey';
+                var reserved = document.getElementsByClassName('staffReserved');
+                for (el of reserved){
+                    el.style.display = 'none';
+                };
+            }
+        }
+
+        function showCrewLines() {
+            if (document.getElementById('reservedCrew').style.display !== 'block') {
+                document.getElementById('reservedCrew').style.display   = 'block';
+                document.getElementById('quoteLines').style.display     = 'none';
+                document.getElementById('quoteLinesIcon').style.color   = 'grey';
+                document.getElementById('crewLinesIcon').style.color    = 'blue';
+                var reserved = document.getElementsByClassName('staffReserved');
+                for (el of reserved){
+                    el.style.display = 'grid';
+                };
+            }
+        }
+
+        google.charts.load("current", {packages:["corechart"]});
+        function drawRevenue(paid, invoiced, remaining, excess) {
+            var data = google.visualization.arrayToDataTable([
+                ['Status', 'Amount'],
+                ['Invoiced paid', paid],
+                ['Invoice sent', invoiced],
+                ['Remaining', remaining],
+                ['Excess invoiced', excess]
+            ]);
+
+            var options = {
+                height: 80,
+                pieHole: 0.5,
+                fontName: 'Salesforce Sans',
+                fontSize: '14',
+                pieSliceText: 'none',
+                legend : {
+                    position: 'none'
+                },
+                chartArea: {
+                    left: 25,
+                    height: '100%'
+                },
+                tooltip : {
+                    ignoreBounds: false,
+                    isHtml : true,
+                    text : 'value'
+                },
+                slices : {
+                    0: { color: '#26de81' },
+                    1: { color: '#409dcb' },
+                    2: { color: '#EAB483'},
+                    3: { color: '#ea8685'}
+                }
+            };
+
+            var chart = new google.visualization.PieChart(document.getElementById('invoices'));
+            chart.draw(data, options);
+        }
+
+        google.charts.load("current", {packages:["corechart"]});
+        function drawExpenses(paid, billed, remaining, excess) {
+            var data = google.visualization.arrayToDataTable([
+                ['Status', 'Amount'],
+                ['Supplier paid', paid],
+                ['Bill received', billed],
+                ['Remaining', remaining],
+                ['Excess spend', excess]
+            ]);
+
+            var options = {
+                height: 80,
+                pieHole: 0.5,
+                fontName: 'Salesforce Sans',
+                fontSize: '14',
+                pieSliceText: 'none',
+                legend : {
+                    position: 'none'
+                },
+                chartArea: {
+                    left: 25,
+                    height: '100%'
+                },
+                tooltip : {
+                    ignoreBounds: false,
+                    isHtml : true,
+                    text : 'value',
+                    format: '£#,###'
+                },
+                slices : {
+                    0: { color: '#26de81' },
+                    1: { color: '#409dcb' },
+                    2: { color: '#EAB483'},
+                    3: { color: '#ea8685'}
+                }
+            };
+
+            var chart = new google.visualization.PieChart(document.getElementById('expenses'));
+            chart.draw(data, options);
+        }
+
+        /*/ GOOGLE MAPS */
+        function initMap(venue, location) {
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 8,
+                center: {}
+            });
+
+            var geocoder = new google.maps.Geocoder();
+            geocodeAddress(geocoder, map, venue, location);
+        }
+
+        function geocodeAddress(geocoder, resultsMap, venue, location) {
+
+            if (location == null || location == '' || location == 'TBC' || location == 'tbc') {
+                location = 'UK';
+            }
+
+            var address;
+            if (venue) {
+                address = venue + ' ' + location;
+            } else {
+                address = location;
+            }
+
+            geocoder.geocode({
+                'address': address,
+                'region' :  'uk'
+
+            }, function(results, status) {
+                if (status === 'OK') {
+                    resultsMap.setCenter(results[0].geometry.location);
+                    var marker = new google.maps.Marker({
+                        map: resultsMap,
+                        position: results[0].geometry.location
+                    });
+                }
+            });
+        }
+
+        function createStaff(){
+            document.getElementById('newCrewDimmer').style.display  = 'block';
+            document.getElementById('newCrew').style.display        = 'block';
+
+            var exisingCrew = document.getElementById('existingCrew');
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getAllBookedCrew}',
+                currentJob,
+                currentType,
+                function(result,event){
+                    if (result.length > 0){
+                        for (var x = 0; x < result.length; x++) {
+                            var image = (result[x].Employee__r.ImageLink__c == null) ?
+                                '<span class="imageIcon"><div style="margin-top:5px;">' + result[x].Employee__r.FirstName__c.substr(0, 1) +
+                                '' + result[x].Employee__r.LastName__c.substr(0, 1) + '</div></span>' :
+                                '<img class="photo" src="' + result[x].Employee__r.ImageLink__c + '"/>';
+
+                            exisingCrew.innerHTML += '<div id="' + result[x].Employee__r.Id + '" class="staffMemberNew" style="text-align: left;">' +
+                                '<div>' + image + '</div>' +
+                                '<div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:100%;">' +
+                                '<span id="crewName' + result[x].Employee__r.Id + '" style="font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                result[x].Employee__r.FirstName__c + ' ' + result[x].Employee__r.LastName__c +
+                                '</span>' +
+                                '<span style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' + result[x].Employee__r.Position__c + '</span></div>' +
+                                '<div class="existingCrewMessage">Reserved for ' + result[x].Opportunity__r.Name + '</div>' +
+                                '</div>';
+                        }
+                    }
+                }
+            );
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getAllHolidaysCrew}',
+                currentJob,
+                currentType,
+                function(result,event){
+                    if (result.length > 0){
+                        for (var x = 0; x < result.length; x++) {
+                            var image = (result[x].Employee__r.ImageLink__c == null) ?
+                                '<span class="imageIcon"><div style="margin-top:5px;">' + result[x].Employee__r.FirstName__c.substr(0, 1) +
+                                '' + result[x].Employee__r.LastName__c.substr(0, 1) + '</div></span>' :
+                                '<img class="photo" src="' + result[x].Employee__r.ImageLink__c + '"/>';
+
+                            exisingCrew.innerHTML += '<div id="' + result[x].Employee__r.Id + '" class="staffMemberNew" style="text-align: left;">' +
+                                '<div>' + image + '</div>' +
+                                '<div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:100%;">' +
+                                '<span id="crewName' + result[x].Employee__r.Id + '" style="font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                result[x].Employee__r.FirstName__c + ' ' + result[x].Employee__r.LastName__c +
+                                '</span>' +
+                                '<span style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' + result[x].Employee__r.Position__c + '</span></div>' +
+                                '<div class="existingCrewMessage">On annual leave</div>' +
+                                '</div>';
+                        }
+                    }
+                }
+            );
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getNoOnsiteEmployees}',
+                function(result,event){
+                    if (result.length > 0){
+                        for (var x = 0; x < result.length; x++) {
+                            var image = (result[x].ImageLink__c == null) ?
+                                '<span class="imageIcon"><div style="margin-top:5px;">' + result[x].FirstName__c.substr(0, 1) +
+                                '' + result[x].LastName__c.substr(0, 1) + '</div></span>' :
+                                '<img class="photo" src="' + result[x].ImageLink__c + '"/>';
+
+                            exisingCrew.innerHTML += '<div id="' + result[x].Id + '" class="staffMemberNew" style="text-align: left;">' +
+                                '<div>' + image + '</div>' +
+                                '<div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:100%;">' +
+                                '<span id="crewName' + result[x].Id + '" style="font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                result[x].FirstName__c + ' ' + result[x].LastName__c +
+                                '</span>' +
+                                '<span style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' + result[x].Position__c + '</span></div>' +
+                                '<div class="existingCrewMessage">Currently not set as an onsite staff member</div>' +
+                                '</div>';
+                        }
+                    }
+                }
+            );
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.getInactiveEmployees}',
+                function(result,event){
+                    if (result.length > 0) {
+                        for (var x = 0; x < result.length; x++) {
+                            var image = (result[x].ImageLink__c == null) ?
+                                '<span class="imageIcon"><div style="margin-top:5px;">' + result[x].FirstName__c.substr(0, 1) +
+                                '' + result[x].LastName__c.substr(0, 1) + '</div></span>' :
+                                '<img class="photo" src="' + result[x].ImageLink__c + '"/>';
+
+                            exisingCrew.innerHTML += '<div id="' + result[x].Id + '" class="staffMemberNew" style="text-align: left;">' +
+                                '<div>' + image + '</div>' +
+                                '<div style="display:flex;flex-direction:column;overflow-x:hidden;position:relative;width:100%;">' +
+                                '<span id="crewName' + result[x].Id + '" style="font-size:15px;font-weight:bold;padding-top:5px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                                result[x].FirstName__c + ' ' + result[x].LastName__c +
+                                '</span>' +
+                                '<span style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow:ellipsis;white-space:nowrap;">' + result[x].Position__c + '</span></div>' +
+                                '<div class="existingCrewMessage">Currently set as inactive</div>' +
+                                '</div>';
+                        }
+                    }
+                }
+            );
+
+        }
+
+        function searchNewCrew() {
+
+            var firstName   = (document.getElementById('firstName').value) ?
+                document.getElementById('firstName').value.toUpperCase() : '';
+            var lastName    = (document.getElementById('lastName').value) ?
+                document.getElementById('lastName').value.toUpperCase() : '';
+
+            if (firstName !== '' && lastName !== ''){
+                document.getElementById('buttonHold').style.display = 'none';
+            } else {
+                document.getElementById('buttonHold').style.display = 'block';
+            }
+
+            var staff       = document.getElementsByClassName('staffMemberNew');
+
+            for (var x = 0; x < staff.length; x++) {
+                var name = document.getElementById('crewName' + staff[x].id).innerHTML.toUpperCase();
+                if (name.search(firstName) === -1 || name.search(lastName) === -1) {
+                    staff[x].style.display = 'none';
+                } else {
+                    staff[x].style.display = 'grid';
+                }
+            }
+        }
+
+        function hideNewCrew() {
+
+            document.getElementById('newCrewDimmer').style.display  = 'none';
+            document.getElementById('newCrew').style.display        = 'none';
+            document.getElementById('existingCrew').innerHTML       = '';
+            document.getElementById('firstName').value              = null;
+            document.getElementById('lastName').value               = null;
+        }
+
+        function createNewCrew() {
+
+            var firstName   = document.getElementById('firstName').value.charAt(0).toUpperCase() +
+                document.getElementById('firstName').value.slice(1);
+            var lastName   = document.getElementById('lastName').value.charAt(0).toUpperCase() +
+                document.getElementById('lastName').value.slice(1);
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.ProjectTrackerRemoter.createNewCrew}',
+                firstName,
+                lastName,
+                function(result,event) {
+                    if (result){
+                        showToast('success',  'New crew member added!');
+                        hideNewCrew();
+                        document.getElementById('staff').innerHTML = '';
+                        document.getElementById('noStaff').style.display = 'none';
+                        getEmployees(currentJob, currentType);
+                    } else {
+                        showToast('error', 'There was an error creating the crew member :(');
+                    }
+                }
+            );
+        }
+
+
+    </script>
+</apex:page>

@@ -1,0 +1,66 @@
+<apex:page controller="DashboardControllerCurrentFY">
+    <style>
+
+        .border {
+            border:1px solid gray;
+            border-color: rgb(204,204,204);
+        }
+
+        .banner {
+            text-align: center;
+            font-weight: bold;
+            font: arial;
+            font-size: 12.5px;
+            padding: 6px;
+            background-color: rgb(220, 220, 220); 
+        }
+
+        .content {
+            color: green;
+            font-size: 40px;
+            text-align: center;
+            padding-bottom: 28px;
+        }
+        
+        .image {
+            align: center;
+            padding-top: 15px;
+        }
+        
+        .container {
+            vertical-align: middle;
+        }
+        
+    </style>
+
+    <div class="border">
+        <div class="banner"> Confirmed net profit change last 7 days </div>
+
+        <div align="center" class="image">
+            <img id="arrow"
+                src="{!$Resource.GreenUp}" 
+                alt="Green up arrow" 
+                style="width:45px"
+            />
+        </div>
+             
+        <div class="content" id="contentdiv">
+            <apex:outputtext value="{0, number,£###,###,##0.00}">
+                <apex:param value="{!VALUE(TEXT(NetProfitChange))}"></apex:param>
+            </apex:outputtext>        
+        </div>
+    </div>
+    
+    <script>
+        var decimalValue = {!NetProfitChange};
+        if (decimalValue < 0 ) {
+            var myElement = document.querySelector("#contentdiv");
+            myElement.setAttribute("style","color: red; margin: auto;");
+            document.getElementById("arrow").src="{!$Resource.RedDown}";       
+        } else if (decimalValue == 0) {
+            var myElement = document.querySelector("#contentdiv");
+            myElement.setAttribute("style","color: grey; margin: auto;");
+            document.getElementById("arrow").src="{!$Resource.NoChange}";            
+        }
+    </script> 
+</apex:page>

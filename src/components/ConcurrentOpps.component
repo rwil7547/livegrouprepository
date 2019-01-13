@@ -1,0 +1,38 @@
+<apex:component controller="OppEmailController" access="global">   
+    <apex:attribute name="OppId" type="Id" description="Id of the Opportunity" assignTo="{!opportunityId}"/>
+    {!DataSetup}
+    Hi team,<br/>
+    <br/>
+    We've just confirmed a new opportunity for {!opp.Filtered_Account_Name__c} in {!opp.Event_Month_Text__c}.<br/> 
+    <br/>
+    The event is called {!opp.Name} (job number {!opp.Filtered_Job_Number__c}), and {!Dates}.<br/>
+    <br/>
+    The job is worth &nbsp;<apex:outputtext value="{0, number,£###,###,##0.00}"><apex:param value="{!VALUE(TEXT(opp.Amount_Calder__c))}"></apex:param>
+    </apex:outputtext>, and the primary service is {!opp.Primary_Service__c}.<br/> 
+    <br/>    
+    <div>{!Count}</div>
+    <br/>
+    <apex:variable value="this" var="t" rendered="{!hasValues}">
+    <table border="1" cellspacing="0">
+        <tr>
+            <td><strong>Name</strong></td>
+            <td><strong>Account</strong></td>
+            <td><strong>JN</strong></td>
+            <td><strong>Location</strong></td>
+            <td><strong>Project Manager</strong></td>                                
+        </tr>
+        <apex:repeat value="{!Details}" var="e">
+        <tr>
+            <td>{!e.name}</td>
+            <td>{!e.accountName}</td>
+            <td>{!e.jobNumber}</td>
+            <td>{!e.location}</td>
+            <td>{!e.pmName}</td>              
+        </tr>
+        </apex:repeat>        
+    </table>
+    <br/>
+    </apex:variable>
+    Thank you.<br/>
+    <br/>     
+</apex:component>

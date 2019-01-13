@@ -1,0 +1,3 @@
+<apex:page standardController="Opportunity"> 
+    <apex:iframe height="300" width="300" src="https://registration.livegroup.co.uk/" scrolling="true"/>
+</apex:page>

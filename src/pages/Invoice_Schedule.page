@@ -1,0 +1,8 @@
+<apex:page standardController="Opportunity">
+<apex:detail />
+<apex:pageBlock >
+<apex:pageblocktable value="{!opportunity.Invoice_Schedule__c}" var="c">
+<apex:relatedList subject="{!opportunity}" list="Invoice_Schedule__c" pageSize="20" />
+</apex:pageblocktable>
+</apex:pageBlock>
+</apex:page>
