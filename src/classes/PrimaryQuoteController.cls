@@ -583,6 +583,7 @@ public with sharing class PrimaryQuoteController {
         String accountId = [SELECT Account.Id FROM Opportunity
                             WHERE Id = :oppId].Account.Id;
         Set<String> roleIds = new Set<String>();
+
         for (OpportunityContactRole role : oppContacts){
             roleIds.add(role.ContactId);
         }

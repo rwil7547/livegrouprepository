@@ -5526,26 +5526,32 @@
             var removeEntry = (amountEditable) ?
                 '<div class="paidButton" onclick="markAsPaid(\'' + result.Id + '\',\'' + type + '\',event)">MARK AS PAID</div>' : '';
 
-            document.getElementById(Id).innerHTML +=
-                '<div class="cashFlowEntry ' + result.Source__c + '"' +
-                '   id="' + result.Id + '" draggable="' + draggable + '" ' +
-                '   ondragstart="drag(event,' + result.Id + ',\'' + type + '\')" ' +
-                '   onclick="showDetails(\'' + result.Id + '\',' + amountEditable + ')">' +
-                '   <div>' + result.Description__c + '</div>' +
-                '   <div  style="text-align: right;">' +
-                '       <div id="' + result.Id + 'amount" class="entryAmount">' + '£' +
-                (result.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + editIcon +
-                '       </div>' +
-                amountInput +
-                '   </div>' +
-                '   <div id="' + result.Id + 'details" class="entryDetails noSpill" style="white-space: pre-wrap;">' +
-                '       <div>-------------------</div>' +
-                '   <div style="font-weight: normal" id="' + result.Id + 'date">' +
-                new Date(result.Date__c).toString().substr(0, 10) +
-                '   </div>' +
-                result.Details__c + removeEntry +
-                '   </div>' +
-                '</div>';
+            console.log('trying to find the id ' + Id);
+
+            if (document.getElementById(Id)){
+
+                document.getElementById(Id).innerHTML +=
+                    '<div class="cashFlowEntry ' + result.Source__c + '"' +
+                    '   id="' + result.Id + '" draggable="' + draggable + '" ' +
+                    '   ondragstart="drag(event,' + result.Id + ',\'' + type + '\')" ' +
+                    '   onclick="showDetails(\'' + result.Id + '\',' + amountEditable + ')">' +
+                    '   <div>' + result.Description__c + '</div>' +
+                    '   <div  style="text-align: right;">' +
+                    '       <div id="' + result.Id + 'amount" class="entryAmount">' + '£' +
+                    (result.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + editIcon +
+                    '       </div>' +
+                    amountInput +
+                    '   </div>' +
+                    '   <div id="' + result.Id + 'details" class="entryDetails noSpill" style="white-space: pre-wrap;">' +
+                    '       <div>-------------------</div>' +
+                    '   <div style="font-weight: normal" id="' + result.Id + 'date">' +
+                    new Date(result.Date__c).toString().substr(0, 10) +
+                    '   </div>' +
+                    result.Details__c + removeEntry +
+                    '   </div>' +
+                    '</div>';
+            }
+
         }
 
         function resetBalances(){
