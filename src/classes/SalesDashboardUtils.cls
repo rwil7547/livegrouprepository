@@ -272,32 +272,31 @@ public class SalesDashboardUtils {
                                             ORDER BY FISCAL_MONTH(Event_end__c) ASC];
 
         List<AggregateResult> commissionAggregates =
-                                            [SELECT SUM(Revenue__c) amount,
-                                                    FISCAL_MONTH(Month__c) month
+                                            [SELECT SUM(Revenue__c) amount
                                             FROM Adjustment__c
                                             WHERE Calder__c = TRUE
                                             AND Month__c = THIS_FISCAL_YEAR
-                                            AND Month__c <= LAST_MONTH
-                                            GROUP BY FISCAL_MONTH(Month__c)
-                                            ORDER BY FISCAL_MONTH(Month__c) ASC];
+                                            AND Month__c <= LAST_MONTH];
 
         Decimal runningRevenueTotal     = 0;
         Decimal runningCommissionTotal  = 0;
 
         Map<Integer,Decimal> revenueMap = new Map<Integer,Decimal>();
 
-        for (Integer x = 1; x < 13; x++){
-            revenueMap.put(x,0);
-        }
-
         for (AggregateResult ar : revenueAggregates){
             runningRevenueTotal += (Decimal)ar.get('amount');
-            revenueMap.put((Integer)ar.get('month'),runningRevenueTotal);
+            Integer month = (Integer)ar.get('month');
+
+            while (month < 13){
+                revenueMap.put(month,runningRevenueTotal);
+                month = month + 1;
+            }
         }
 
-        for (AggregateResult ar : commissionAggregates){
-            runningCommissionTotal += (Decimal)ar.get('amount');
+        if (commissionAggregates[0].get('amount') != null){
+            runningCommissionTotal += (Decimal)commissionAggregates[0].get('amount');
         }
+
 
         Map<Date, Adjustment__c> calderAdjustments = new Map<Date, Adjustment__c>();
 
@@ -316,11 +315,11 @@ public class SalesDashboardUtils {
 
         while (startingDate < endingDate){
 
-            System.debug('iterating over date ' + startingDate + ' and value is ' + revenueMap.get(startingDate.month()));
+            Integer financialMonth = (startingDate.month() < 4) ? startingDate.month() + 9 : startingDate.month() - 3;
 
-            if (revenueMap.get(startingDate.month()) > 750000){
+            if (revenueMap.get(financialMonth) > 750000){
 
-                Decimal total = revenueMap.get(startingDate.month()) - 750000;
+                Decimal total = revenueMap.get(financialMonth) - 750000;
                 Decimal commission = total * 0.05;
                 Decimal owing = commission - runningCommissionTotal;
                 runningCommissionTotal += owing;
@@ -333,9 +332,9 @@ public class SalesDashboardUtils {
 
                 calderAdjustments.get(startingDate).Revenue__c = (owing * -1);
 
-            } else if (revenueMap.get(startingDate.month()) > 400000){
+            } else if (revenueMap.get(financialMonth) > 400000){
 
-                Decimal total = revenueMap.get(startingDate.month()) - 400000;
+                Decimal total = revenueMap.get(financialMonth) - 400000;
                 Decimal commission = total * 0.025;
                 Decimal owing = commission - runningCommissionTotal;
                 runningCommissionTotal += owing;
@@ -353,11 +352,7 @@ public class SalesDashboardUtils {
             startingDate = startingDate.addMonths(1);
         }
 
-        for (Date d : calderAdjustments.keySet()){
-            System.debug('month entry is ' + calderAdjustments.get(d));
-        }
-
-        ///upsert calderAdjustments.values();
+        upsert calderAdjustments.values();
 
     }
 

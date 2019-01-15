@@ -43,8 +43,10 @@ public class SalesDashboardTest {
                 opp.Calder_Opportunity__c = true;
                 opp.StageName           = 'Closed Won';
                 opp.Invoice_Schedule__c = 'Single up-front invoice';
-                opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -15);
-                opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -15);
+//                opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -15);
+                opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -5);
+//                opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -15);
+                opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -5);
                 oppsToInsert.add(opp);
             } else if (x < 5){
                 Opportunity opp         = (Opportunity)SmartFactory.createSObject('Opportunity');
@@ -520,6 +522,11 @@ public class SalesDashboardTest {
         System.schedule('TestScheduledOpportunityAdjustment', sch, scheduler);
         Test.stopTest();
 
+    }
+
+    @IsTest
+    public static void testAdjustCalderCommission(){
+        SalesDashboardUtils.adjustCalderCommissions();
     }
 
 }

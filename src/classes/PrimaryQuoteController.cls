@@ -25,7 +25,7 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static SBQQ__Quote__c getRefreshApex(String quoteId){
 
-        return [SELECT Id, SBQQ__NetAmount__c, Gross_Profit__c, Gross_Margin__c
+        return [SELECT Id, SBQQ__NetAmount__c, Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c
                 FROM SBQQ__Quote__c WHERE Id = :quoteId];
 
     }
@@ -110,6 +110,35 @@ public with sharing class PrimaryQuoteController {
     }
 
     @AuraEnabled
+    public static Boolean togglePrimaryApex(String quoteId, String oppId, Boolean isPrimary){
+
+        Boolean success = true;
+
+        List<SBQQ__Quote__c> quotes = [SELECT Id FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
+
+        for (SBQQ__Quote__c quote : quotes){
+            if (quote.Id == quoteId){
+                quote.SBQQ__Primary__c = isPrimary;
+            } else {
+                quote.SBQQ__Primary__c = false;
+            }
+        }
+
+
+        Database.SaveResult[] saveResult = Database.update(quotes, true);
+        for (Database.SaveResult result : saveResult){
+            if (!result.isSuccess()){
+                success = false;
+                break;
+            }
+        }
+
+        return success;
+
+    }
+
+
+    @AuraEnabled
     public static String changeLineApex(SBQQ__QuoteLine__c line, String operation){
 
         String result = 'error';
@@ -121,8 +150,6 @@ public with sharing class PrimaryQuoteController {
                                         FROM SBQQ__QuoteLine__c
                                         WHERE Id = :line.Id
                                         LIMIT 1 FOR UPDATE];
-
-        // jbkjhdf
 
         if (operation == 'save'){
             Database.SaveResult saveResult = Database.update(line);

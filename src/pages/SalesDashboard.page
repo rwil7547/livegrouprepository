@@ -1151,7 +1151,7 @@
             </div>
             <div class="innerReport reportUtil" style="display:none;" id="revenueReport">
                 <div class="reportFields reportGrid" id="revenueReportHeader">
-                    <div class="noSpill"> &nbsp;Owner</div>
+                    <div class="noSpill"> &nbsp;AM/PM</div>
                     <div class="noSpill"> Job No.</div>
                     <div class="noSpill"> Name</div>
                     <div class="noSpill"> Account</div>
@@ -1224,7 +1224,7 @@
             </div>
             <div class="innerReport reportUtil" style="display:none;" id="profitReport">
                 <div class="reportFields gpReportGrid" id="profitReportHeader">
-                    <div class="noSpill"> &nbsp;Owner</div>
+                    <div class="noSpill"> &nbsp;AM/PM</div>
                     <div class="noSpill"> Job No.</div>
                     <div class="noSpill"> Name</div>
                     <div class="noSpill"> Account</div>
@@ -3624,6 +3624,10 @@
                                                             (Math.round(oppRows[element].Amount_Paid__c) === 0) ? '<i class="fas fa-times-circle status negative"></i> ' : '';
                                                 var probability = (stageName !== 'Closed Won') ? oppRows[element].Probability + '%' : '';
                                                 var stageColor = (stageName !== 'Closed Won') ? 'unconfirmed' : '';
+                                                var managers = (oppRows[element].Project_Manager__c) ?
+                                                    oppRows[element].Owner.FirstName.substr(0, 1) + oppRows[element].Owner.LastName.substr(0,1) +
+                                                    '/' + oppRows[element].Project_Manager__r.FirstName.substr(0, 1) + oppRows[element].Project_Manager__r.LastName.substr(0,1) :
+                                                    oppRows[element].Owner.FirstName.substr(0, 1) + oppRows[element].Owner.LastName.substr(0,1);
 
                                                 if (oppRows[element].Adjustments__r) {
                                                     probability = '<div id="Revenue' + oppRows[element].Id + 'alert" class="adjustmentAlert">'
@@ -3635,7 +3639,7 @@
 
                                                 monthEntries += '<div class="reportGrid reportRow ' + stageColor + ' ' + randomId + '" ' +
                                                     'id="Revenue' + oppRows[element].Id + '" ' + adjustmentExposure + '" >' +
-                                                    '<div>&nbsp;&nbsp;' + oppRows[element].Owner.FirstName.substr(0, 1) + '. ' + oppRows[element].Owner.LastName + '</div>' +
+                                                    '<div>&nbsp;&nbsp;' + managers + '</div>' +
                                                     '<div>' + oppRows[element].Filtered_Job_Number__c + '</div>' +
                                                     '<div>' + oppRows[element].Name + '</div>' +
                                                     '<div>' + oppRows[element].Account.Name + '</div>' +
@@ -3954,6 +3958,11 @@
                                                         (new Date(oppRows[element].Event_end__c) < new Date(today.getFullYear(),today.getMonth()-1)) ? '<span class="quoteStatus overdue">OVERDUE</span>' :
                                                             '<span class="quoteStatus pending">PENDING</span>';
 
+                                                var managers = (oppRows[element].Project_Manager__c) ?
+                                                    oppRows[element].Owner.FirstName.substr(0, 1) + oppRows[element].Owner.LastName.substr(0,1) +
+                                                    '/' + oppRows[element].Project_Manager__r.FirstName.substr(0, 1) + oppRows[element].Project_Manager__r.LastName.substr(0,1) :
+                                                    oppRows[element].Owner.FirstName.substr(0, 1) + oppRows[element].Owner.LastName.substr(0,1);
+
                                                 if (oppRows[element].Adjustments__r) {
                                                     probability = '<div id="Profit' + oppRows[element].Id + 'alert" class="adjustmentAlert">'
                                                         + oppRows[element].Adjustments__r.length +
@@ -3964,7 +3973,7 @@
 
                                                 monthEntries += '<div class="gpReportGrid reportRow ' + stageColor + ' ' + randomId + '"' +
                                                     'id="Profit' + oppRows[element].Id + '" ' + adjustmentExposure + '" >' +
-                                                    '<div>&nbsp;&nbsp;' + oppRows[element].Owner.FirstName.substr(0, 1) + '. ' + oppRows[element].Owner.LastName + '</div>' +
+                                                    '<div>&nbsp;&nbsp;' + managers + '</div>' +
                                                     '<div>' + oppRows[element].Filtered_Job_Number__c + '</div>' +
                                                     '<div>' + oppRows[element].Name + '</div>' +
                                                     '<div>' + oppRows[element].Account.Name + '</div>' +
