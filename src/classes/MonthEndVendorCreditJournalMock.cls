@@ -39,7 +39,7 @@ global class MonthEndVendorCreditJournalMock implements HttpCalloutMock {
                 '                "name": "Highways England:18148 Highways UK 2018"'+
                 '              },'+
                 '              "ClassRef": {'+
-                '                "value": "1400000000001111219",'+
+                '                "value": "1111",'+
                 '                "name": "18148 Highways 18"'+
                 '              },'+
                 '              "AccountRef": {'+
@@ -312,7 +312,7 @@ global class MonthEndVendorCreditJournalMock implements HttpCalloutMock {
                 '                "name": "Highways England:18289 Webstore August & September orders & hosting"'+
                 '              },'+
                 '              "ClassRef": {'+
-                '                "value": "1400000000001147921",'+
+                '                "value": "1111",'+
                 '                "name": "18289 Webstore Highways"'+
                 '              },'+
                 '              "AccountRef": {'+
@@ -382,7 +382,7 @@ global class MonthEndVendorCreditJournalMock implements HttpCalloutMock {
                 '                "name": "Highways England:18168 Traffex/Seeing is Believing"'+
                 '              },'+
                 '              "ClassRef": {'+
-                '                "value": "1400000000000981849",'+
+                '                "value": "1111",'+
                 '                "name": "18168 Traffex/Seeing is Believing"'+
                 '              },'+
                 '              "AccountRef": {'+
@@ -453,7 +453,7 @@ global class MonthEndVendorCreditJournalMock implements HttpCalloutMock {
                 '                "name": "Highways England:18168 Traffex/Seeing is Believing"'+
                 '              },'+
                 '              "ClassRef": {'+
-                '                "value": "1400000000000981849",'+
+                '                "value": "1111",'+
                 '                "name": "18168 Traffex/Seeing is Believing"'+
                 '              },'+
                 '              "AccountRef": {'+
@@ -494,7 +494,7 @@ global class MonthEndVendorCreditJournalMock implements HttpCalloutMock {
                 '        },'+
                 '        "TotalAmt": 261.6,'+
                 '        "GlobalTaxCalculation": "TaxExcluded"'+
-                '      },'+
+                '      }'+
                 '    ],'+
                 '    "startPosition": 1,'+
                 '    "maxResults": 41,'+

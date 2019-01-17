@@ -31,7 +31,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '            "DefinitionId": "2",'+
                 '            "Name": "Your Ref",'+
                 '            "Type": "StringType",'+
-                '            "StringValue": "CCS335474/1"'+
+                '            "StringValue": "CCS3354741"'+
                 '          },'+
                 '          {'+
                 '            "DefinitionId": "3",'+
@@ -50,7 +50,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission for invoice 1151\nRe: ESFA\nBooking ref: CCS335474/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission for invoice 1151Re:  ESFA Booking ref: CCS3354741FAO: Tracy Iley",'+
                 '            "Amount": 855.64,'+
                 '            "SalesItemLineDetail": {'+
                 '              "ItemRef": {'+
@@ -94,7 +94,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "18177 House of Commons Event (July)"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "House of Commons Event (July)\nJob no 18177\nEvent 26th June 2018"'+
+                '          "value": "House of Commons Event (July) Job no 18177 Event 26th June 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1343",'+
@@ -156,7 +156,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission re invoice 1136\nRE: NHS\nBooking ref: CCS330978/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission re invoice 1136 RE: NHS Booking ref: CCS330971 FAO: Tracy Iley",'+
                 '            "Amount": 619.5,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -201,7 +201,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "18181 NHS 111 Blue Print Film"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "NHS 111 Blue Print Film\nJob no 18181\nEvent 12th June 2018"'+
+                '          "value": "NHS 111 Blue Print Film Job no 18181 Event 12th June 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1309",'+
@@ -260,7 +260,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Credit re invoice 1097\nPO4204880\nFAO: Hannah Hayes",'+
+                '            "Description": "Credit re invoice 1097 PO4204880 FAO: Hannah Hayes",'+
                 '            "Amount": 1143.95,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -305,7 +305,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "17584 CYBERUK 2018"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "CYBERUK 2018\nJob no 17584\nEvent 10th- 12th April 2018"'+
+                '          "value": "CYBERUK 2018Job no 17584Event 10th- 12th April 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1289",'+
@@ -342,7 +342,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '            "DefinitionId": "2",'+
                 '            "Name": "Your Ref",'+
                 '            "Type": "StringType",'+
-                '            "StringValue": "CCS328825/1"'+
+                '            "StringValue": "CCS328825//1"'+
                 '          },'+
                 '          {'+
                 '            "DefinitionId": "3",'+
@@ -361,7 +361,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission re invoice 1116 \nRE: UKHMF\nBooking ref: CCS328825/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission re invoice 1116 \\nRE: UKHMF\\nBooking ref: CCS328825//1\\nFAO: Tracy Iley",'+
                 '            "Amount": 171.0,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -406,7 +406,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "18172 Storage of Exhibition Stand May to July 2018"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "Storage of Exhibition Stand May to July 2018\nJob no 18172\nEvent 18th May 2018"'+
+                '          "value": "Storage of Exhibition Stand May to July 2018\\nJob no 18172\\nEvent 18th May 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1277",'+
@@ -449,7 +449,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '            "DefinitionId": "2",'+
                 '            "Name": "Your Ref",'+
                 '            "Type": "StringType",'+
-                '            "StringValue": "CCS329454/1"'+
+                '            "StringValue": "CCS329454//1"'+
                 '          },'+
                 '          {'+
                 '            "DefinitionId": "3",'+
@@ -468,7 +468,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission re invoice 1117 \nRE: ESFA\nBooking ref: CCS329454/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission re invoice 1117 \\nRE: ESFA\\nBooking ref: CCS329454/1\\nFAO: Tracy Iley",'+
                 '            "Amount": 2466.56,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -513,7 +513,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "18026 ESFA (NHS Procurement Events)"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "ESFA (NHS Procurement Events)\nJob no 18026\nEvent  1st-10th May 2018"'+
+                '          "value": "ESFA (NHS Procurement Events)\\nJob no 18026\\nEvent  1st-10th May 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1284",'+
@@ -572,7 +572,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission re invoice 1103\nRE Visit Britain\nBooking ref:CCS261837/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission re invoice 1103\\nRE Visit Britain\\nBooking ref:CCS261837/1\\nFAO: Tracy Iley",'+
                 '            "Amount": 22087.74,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -617,7 +617,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "17294 MeetGREAT Event"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "MeetGREAT Event\nJob no 17294\nEvent 16th -20th April 2018"'+
+                '          "value": "MeetGREAT Event\\nJob no 17294\\nEvent 16th -20th April 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1212",'+
@@ -676,7 +676,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          {'+
                 '            "Id": "1",'+
                 '            "LineNum": 1,'+
-                '            "Description": "Commission re invoice 1105\nRE Visit Britain\nBooking ref : CCS323172/1\nFAO: Tracy Iley",'+
+                '            "Description": "Commission re invoice 1105\\nRE Visit Britain\\nBooking ref : CCS323172/1\\nFAO: Tracy Iley",'+
                 '            "Amount": 3009.98,'+
                 '            "DetailType": "SalesItemLineDetail",'+
                 '            "SalesItemLineDetail": {'+
@@ -721,7 +721,7 @@ public class JSONParserQBOCreditMemoFlowTest {
                 '          "name": "18008 Educational Programme at MeetGB 2018"'+
                 '        },'+
                 '        "CustomerMemo": {'+
-                '          "value": "Educational Programme at MeetGB 2018\nJob no 18008\nEvent 19th-20th April 2018"'+
+                '          "value": "Educational Programme at MeetGB 2018\\nJob no 18008\\nEvent 19th-20th April 2018"'+
                 '        },'+
                 '        "BillAddr": {'+
                 '          "Id": "1214",'+

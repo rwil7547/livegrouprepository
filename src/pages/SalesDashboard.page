@@ -1048,6 +1048,24 @@
             .paidButton:active {
                 background-color: grey;
             }
+
+            #quickbooksBudget {
+                position: fixed;
+                height: 50vh;
+                width: 30vw;
+                top: 20vh;
+                bottom: 30vh;
+                left: 35vw;
+                right: 35vw;
+                background-color: white;
+                border-radius: 5px;
+                box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+                border: 1px #bfbfbf solid;
+                padding: 10px;
+                z-index:60;
+
+            }
+
         </style>
     </head>
 
@@ -1269,11 +1287,11 @@
                         </div>
                         <div id="opexForecastSelector" class="keyPointer" onclick="">
                             <div class="keySquare" style="background-color: #64a16f;"></div>
-                            <div class="noSpill keySelectorText">Forecast</div>
+                            <div class="noSpill keySelectorText" id="forecast">Forecast (2018-19 Budget 2)</div>
                         </div>
                         <div id="opexBudgetSelector" class="keyPointer"  onclick="">
                             <div class="keySquare" style="background-color: #84827d;"></div>
-                            <div class="noSpill keySelectorText">Budget</div>
+                            <div class="noSpill keySelectorText" id="budget">Budget (FY18/19 Control Budget)</div>
                         </div>
                     </div>
                     <div class="splitSelector reportUtil" id="opexSplitSelector" >
@@ -1544,6 +1562,14 @@
             <div class="changeRowContainer" id="opexChangeDays"></div>
         </div>
     </div>
+
+    <div id="quickbooksBudget">
+        <div class="typeLabel">QUICKBOOKS SOURCE INFORMATION</div>
+        <div>Forecast:</div>
+        <div>Budget:</div>
+        <div class="reportButton" style="width:50px;position:absolute;margin-bottom:3px;height:10px;">UPDATE</div>
+    </div>
+
 
     <div id="dimmer" class="hide" onclick="hideAll()"></div>
 

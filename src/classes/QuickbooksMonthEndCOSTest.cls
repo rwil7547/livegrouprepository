@@ -79,7 +79,7 @@ public class QuickbooksMonthEndCOSTest {
         opp6.StageName      = 'Closed Won';
         opp6.Name           = 'FUTURE EXPENSED';
         opp6.Amount         = 1000;
-        opp6.QuickbooksClassId__c = '1114';
+        opp6.QuickbooksClassId__c = '1115';
         opp6.Forecast_COS__c = 500;
         opp6.Invoice_Schedule__c = 'Single up-front invoice';
         opp6.Event_start__c = Date.today().toStartOfMonth();
@@ -116,9 +116,9 @@ public class QuickbooksMonthEndCOSTest {
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
                 monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4', billMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' +
-                '22844' + '%27&minorversion=4', accJrnlMock);
+                '23363' + '%27&minorversion=4', accJrnlMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' +
-                '22843' + '%27&minorversion=4', defJrnlMock);
+                '23364' + '%27&minorversion=4', defJrnlMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
                 monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4', creditMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
@@ -131,7 +131,7 @@ public class QuickbooksMonthEndCOSTest {
         Test.setMock(HttpCalloutMock.class, cashMultiMock);
 
         Test.startTest();
-        QuickbooksMonthEndRevenue.calculateRevenueJournal();
+        QuickbooksMonthEndCOS.calculateCOSJournal();
         Test.stopTest();
 
     }

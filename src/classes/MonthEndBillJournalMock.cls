@@ -122,6 +122,10 @@ global class MonthEndBillJournalMock implements HttpCalloutMock {
                 '                "value": "646",' +
                 '                "name": "5000 Cost of sales:Events COS"' +
                 '              },' +
+                '              "ClassRef": {' +
+                '                "value": "1112",' +
+                '                "name": "18038 ESFA "' +
+                '              },' +
                 '              "BillableStatus": "Billable",' +
                 '              "TaxCodeRef": {' +
                 '                "value": "42"' +
@@ -194,6 +198,10 @@ global class MonthEndBillJournalMock implements HttpCalloutMock {
                 '              "AccountRef": {' +
                 '                "value": "646",' +
                 '                "name": "5000 Cost of sales:Events COS"' +
+                '              },' +
+                '              "ClassRef": {' +
+                '                "value": "1112",' +
+                '                "name": "18038 ESFA "' +
                 '              },' +
                 '              "BillableStatus": "Billable",' +
                 '              "TaxCodeRef": {' +
@@ -271,6 +279,10 @@ global class MonthEndBillJournalMock implements HttpCalloutMock {
                 '                "value": "646",' +
                 '                "name": "5000 Cost of sales:Events COS"' +
                 '              },' +
+                '              "ClassRef": {' +
+                '                "value": "1112",' +
+                '                "name": "18038 ESFA "' +
+                '              },' +
                 '              "BillableStatus": "Billable",' +
                 '              "TaxCodeRef": {' +
                 '                "value": "42"' +
@@ -290,6 +302,10 @@ global class MonthEndBillJournalMock implements HttpCalloutMock {
                 '              "AccountRef": {' +
                 '                "value": "646",' +
                 '                "name": "5000 Cost of sales:Events COS"' +
+                '              },' +
+                '              "ClassRef": {' +
+                '                "value": "1112",' +
+                '                "name": "18038 ESFA "' +
                 '              },' +
                 '              "BillableStatus": "Billable",' +
                 '              "TaxCodeRef": {' +

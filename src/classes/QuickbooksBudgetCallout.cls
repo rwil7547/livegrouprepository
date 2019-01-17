@@ -24,7 +24,8 @@ public class QuickbooksBudgetCallout {
         String name = EncodingUtil.urlEncode('2018-19 Budget 2', 'UTF-8');
 
 
-        String query = 'query?query=select%20%2a%20from%20budget%20where%20name%20%3d%20%27' + 2018-19%20Budget%202 + '%27&minorversion=4';
+        String query = 'query?query=select%20%2a%20from%20budget%20where%20name%20%3d%20%27' +
+                name + '%27&minorversion=4';
 
         /// find custom setting, find the name in there , insert that into the string
 
@@ -61,7 +62,8 @@ public class QuickbooksBudgetCallout {
                                 Parent__c = parent,
                                 Month__c = Date.valueOf(detail.BudgetDate),
                                 Budget__c = detail.Amount,
-                                Actual__c = detail.Amount
+                                Actual__c = detail.Amount,
+                                Source__c = parsedResults.QueryResponse.Budget[0].Name
                         );
 
                         System.debug(detail.AccountRef.name);
