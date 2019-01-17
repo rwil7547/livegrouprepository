@@ -328,8 +328,7 @@ public class QuickbooksChangeDataCapture {
         	// declare target Expense__c record lists 
         	List<Expense__c> deleteExpenses			= new List<Expense__c>();
         	List<Expense__c> upsertExpenses 		= new List<Expense__c>();
-        	List<Expense__c> insertExpenses 		= new List<Expense__c>();
-        
+
         	// STEP 2: SOURCE COLLECTIONS  
         	// declare Quickbooks Bill record collections and maps which relate these to 
         	// Salesforce records  
@@ -476,5 +475,168 @@ public class QuickbooksChangeDataCapture {
             	upsert upsertExpenses;
             }  
         }
-	}             	
+	}
+
+
+	// method makes a call to the change data capture service
+	// offered by the Quickbooks API. the method calls for all
+	// created, updated or deleted Bill records.
+	@future(callout=true)
+	public static void getVendorCredits() {
+
+		// obtain callout information and call Quickbooks change data capture web service
+		Http http 				= new http();
+		HttpRequest request 	= buildCallout('vendorCredit');
+		HttpResponse response 	= http.send(request);
+
+		if (response.getStatusCode() == 200) {
+
+			// parse response
+			JSONParserQBVendorCreditCDC parsedResults = JSONParserQBVendorCreditCDC.parse(response.getBody());
+
+			// STEP 1: TARGET COLLECTIONS
+			// declare target Expense__c record lists
+			List<Expense__c> deleteExpenses			= new List<Expense__c>();
+			List<Expense__c> upsertExpenses 		= new List<Expense__c>();
+
+			// STEP 2: SOURCE COLLECTIONS
+			// declare Quickbooks Bill record collections and maps which relate these to
+			// Salesforce records
+			Set<String> deletedBillIds 			 	= new Set<String>();
+			Set<String> activeBillIds			 	= new Set<String>();
+			Set<String> activeLineItemIds 		 	= new Set<String>();
+			Set<String> jobNumbers				 	= new Set<String>();
+			Map<String,Expense__c> existingExpenses = new Map<String,Expense__c>();
+			Map<String,Id> jobNumberOppMap			= new Map<String,Id>();
+
+			Map<String,String> oppClassMap          = getOppClassMap();
+
+			// STEP 3: SOURCE ALLOCATION
+			// assign Quickbooks Bill records to the relevant source collections
+			if (parsedResults.CDCResponse.size() > 0 && parsedResults.CDCResponse[0].QueryResponse.size() > 0
+					&& parsedResults.CDCResponse[0].QueryResponse[0].VendorCredit != null) {
+				for (JSONParserQBVendorCreditCDC.cls_VendorCredit vendorCredit : parsedResults.CDCResponse[0].QueryResponse[0].VendorCredit) {
+					// 1. bill has been deleted
+					if (vendorCredit.Status == 'Deleted') {
+						deletedBillIds.add(vendorCredit.Id);
+					} else {
+						// 2. bill is still active
+						activeBillIds.add(vendorCredit.Id);
+						// 3. bill is associated with an Opportunity
+						for (JSONParserQBVendorCreditCDC.cls_Line line : vendorCredit.Line) {
+
+							if (line.AccountBasedExpenseLineDetail.ClassRef != null){
+								jobNumbers.add(oppClassMap.get(line.AccountBasedExpenseLineDetail.ClassRef.value));
+								String itemId = vendorCredit.Id + '-' + line.Id;
+								activeLineItemIds.add(itemId);
+								// todo: section below needs to be removed
+							} else if (line.AccountBasedExpenseLineDetail != null
+									&& line.AccountBasedExpenseLineDetail.CustomerRef != null
+									&& line.AccountBasedExpenseLineDetail.CustomerRef.name != null
+									&& line.AccountBasedExpenseLineDetail.CustomerRef.name.contains(':')) {
+
+								String extendedName 	= line.AccountBasedExpenseLineDetail.CustomerRef.name.substring(line.AccountBasedExpenseLineDetail.CustomerRef.name.lastIndexOf(':') + 1);
+								String jobNumber 		= extendedName.substring(0,5);
+								jobNumbers.add(jobNumber);
+								String itemId = vendorCredit.Id + '-' + line.Id;
+								activeLineItemIds.add(itemId);
+							}
+						}
+					}
+				}
+			}
+
+			// STEP 4: TARGET ALLOCATION
+			// populate the target Expense__c record lists
+
+			// delete Expense__c records where either the whole bill
+			// has been deleted, the line item has been deleted or the
+			// project has been dereferenced on the line item
+			deleteExpenses = [SELECT Id
+								FROM Expense__c
+								WHERE QuickbooksId__c IN:deletedBillIds
+								OR (QuickbooksId__c IN:activeBillIds
+								AND Name NOT IN: activeLineItemIds)];
+
+			List<Expense__c> expensesToUpdate = [SELECT Id, Name, Quickbooks_Last_Update__c
+												FROM Expense__c
+												WHERE Name IN:activeLineItemIds];
+
+			for (Expense__c ex : expensesToUpdate){
+				existingExpenses.put(ex.Name, ex);
+			}
+
+			List<Opportunity> oppsInReference = [SELECT Id, Filtered_Job_Number__c, QuickbooksClassId__c
+												FROM Opportunity
+												WHERE Filtered_Job_Number__c IN :jobNumbers
+												FOR UPDATE];
+
+			for (Opportunity opp : oppsInReference){
+				jobNumberOppMap.put(opp.Filtered_Job_Number__c, opp.Id);
+				jobNumberOppMap.put(opp.QuickbooksClassId__c, opp.Id);
+			}
+
+			if (parsedResults.CDCResponse[0].QueryResponse[0].VendorCredit != null){
+
+				// for each returned quickbooks invoice, update the corresponding salesforce invoice schedule
+				for (JSONParserQBVendorCreditCDC.cls_VendorCredit vendorCredit : parsedResults.CDCResponse[0].QueryResponse[0].VendorCredit) {
+
+					if (vendorCredit.Line != null && vendorCredit.Line.size() > 0 ) {
+
+						for (JSONParserQBVendorCreditCDC.cls_Line line : vendorCredit.Line) {
+
+							if (line.AccountBasedExpenseLineDetail.ClassRef != null){
+								if (jobNumberOppMap.containsKey(oppClassMap.get(line.AccountBasedExpenseLineDetail.ClassRef.value))){
+
+									Id oppId                = jobNumberOppMap.get(oppClassMap.get(line.AccountBasedExpenseLineDetail.ClassRef.value));
+									String lineItemId 		= vendorCredit.Id + '-' + line.Id;
+
+									if (existingExpenses.containsKey(lineItemId)){
+										if (existingExpenses.get(lineItemId).Quickbooks_Last_Update__c
+												!= vendorCredit.MetaData.LastUpdatedTime){
+											Expense__c ex 			 = new Expense__c();
+											ex.Id = existingExpenses.get(lineItemId).Id;
+											ex.QuickbooksId__c		 = vendorCredit.Id;
+											ex.Name 				 = lineItemId;
+											ex.Amount__c 			 = (line.Amount * -1);
+											ex.Paid__c 				 = true;
+											ex.Due_Date__c 			 = Date.valueOf(vendorCredit.TxnDate);
+											ex.Description__c		 = 'Credit note: ' + line.Description;
+											ex.Opportunity__c 		 = oppId;
+											ex.Supplier__c 			 = vendorCredit.VendorRef.Name;
+											ex.Supplier_Ref__c 		 = vendorCredit.DocNumber;
+											ex.Quickbooks_Last_Update__c = vendorCredit.MetaData.LastUpdatedTime;
+											upsertExpenses.add(ex);
+										}
+									} else {
+										Expense__c ex 			 = new Expense__c();
+										ex.QuickbooksId__c		 = vendorCredit.Id;
+										ex.Name 				 = lineItemId;
+										ex.Amount__c 			 = (line.Amount * -1);
+										ex.Paid__c 				 = true;
+										ex.Due_Date__c 			 = Date.valueOf(vendorCredit.TxnDate);
+										ex.Description__c		 = 'Credit note: ' + line.Description;
+										ex.Opportunity__c 		 = oppId;
+										ex.Supplier__c 			 = vendorCredit.VendorRef.Name;
+										ex.Supplier_Ref__c 		 = vendorCredit.DocNumber;
+										ex.Quickbooks_Last_Update__c = vendorCredit.MetaData.LastUpdatedTime;
+										upsertExpenses.add(ex);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// STEP 5: DML
+			if (deleteExpenses.size() > 0) {
+				delete deleteExpenses;
+			}
+			if (upsertExpenses.size() > 0) {
+				upsert upsertExpenses;
+			}
+		}
+	}
+
 }

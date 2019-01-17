@@ -1239,4 +1239,33 @@ global class SalesDashboardRemoter {
 
         return true;
     }
+
+    @RemoteAction
+    global static Object getQBBudgets(){
+
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name%2c%20Id%20from%20budget&minorversion=4');
+        request.setHeader('Accept', 'application/json');
+        request.setMethod('GET');
+        request.setTimeout(120000);
+        HttpResponse response = http.send(request);
+
+        return JSON.deserializeUntyped(response.getBody());
+    }
+
+    @RemoteAction
+    global static Boolean updateBudgets(){
+
+//        Http http = new Http();
+//        HttpRequest request = new HttpRequest();
+//        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name%2c%20Id%20from%20budget&minorversion=4');
+//        request.setHeader('Accept', 'application/json');
+//        request.setMethod('GET');
+//        request.setTimeout(120000);
+//        HttpResponse response = http.send(request);
+
+        return true;
+    }
+
 }

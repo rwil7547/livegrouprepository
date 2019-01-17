@@ -55,7 +55,8 @@ public class QuickbooksMonthEndCOS {
 
             // 1. BILLS: callout to Quickbooks to retrieve any bill entries siting in the prior month
             String query1 = 'query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
-                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
+                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27%20maxResults%201000&minorversion=4';
+//                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%20maxResults%2010&minorversion=4';
 
             Http http1 = new Http();
             HttpRequest request1 = buildCallout(query1);
@@ -66,15 +67,20 @@ public class QuickbooksMonthEndCOS {
                 Map<String, Object> processedBillLines =
                         processBills(futureIds.keySet(), JSONParserQBOBillFlow.parse(response1.getBody()),amountsOnPNL);
 
+                Object responseObj = JSON.deserializeUntyped(response1.getBody());
+                Map<String,Object> responseMap = (Map<String,Object>)responseObj;
+                Map<String,Object> queryMap = (Map<String,Object>)responseMap.get('QueryResponse');
+                List<Object> bills = (List<Object>)queryMap.get('Bill');
+
+                system.debug('response object is ' + JSON.deserializeUntyped(response1.getBody()));
+                system.debug('size is ' + bills.size());
+
                 monthTotalCOS   += (Decimal) processedBillLines.get('Total');
                 pnlCOSCredit    += (Decimal) processedBillLines.get('Credit');
                 amountsOnPNL    =  (Map<String,Decimal>) processedBillLines.get('amountsOnPNL');
 
                 billLinesToDefer.addAll((List<JSONParserQBOBillFlow.cls_Line>) processedBillLines.get('BillLines'));
             }
-
-
-
 
             // 2. VENDOR CREDIT: callout to Quickbooks to retrieve any vendor credit note entries siting in the prior month
             String query2 = 'query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
@@ -354,16 +360,17 @@ public class QuickbooksMonthEndCOS {
                 for (JSONParserQBOBillFlow.cls_Line line : bill.Line) {
 
 
-//                    if (line.AccountBasedExpenseLineDetail.ClassRef == null){
-//                        system.debug('bill without class ' + line);
-//                    }
 
                     if (line.AccountBasedExpenseLineDetail.AccountRef.value == '646'){
                         // add the line amount to the total
                         billsTotal += line.Amount;
 
-                        System.debug('Bill line ' + line.Amount + ' ' + bill.Id + ' ' + line.AccountBasedExpenseLineDetail.ClassRef.name + ' and class id is ' +
-                                line.AccountBasedExpenseLineDetail.ClassRef.value);
+                        system.debug(line.Description);
+
+                        system.debug('class ref found in map is ' + (amountsOnPNL.containsKey(line.AccountBasedExpenseLineDetail.ClassRef.name)));
+
+//                        System.debug('Bill line ' + line.Amount + ' ' + bill.Id + ' ' + line.AccountBasedExpenseLineDetail.ClassRef.name + ' and class id is ' +
+//                                line.AccountBasedExpenseLineDetail.ClassRef.value);
                         billCount++;
                     }
 
@@ -379,8 +386,8 @@ public class QuickbooksMonthEndCOS {
                             billsLinesToDefer.add(line);
                             pnlCredit += line.Amount;
                         } else {
-                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
-                                amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) + line.Amount);
+//                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
+//                                amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) + line.Amount);
                         }
                     }
                 }
@@ -401,6 +408,9 @@ public class QuickbooksMonthEndCOS {
     private static Map<String, Object> processVendorCredits(Set<String> futureIds, JSONParserQBOVendorCreditFlow parsedResults,
             Map<String,Decimal> amountsOnPNL) {
 
+        Integer creditCount = 0;
+
+
         Decimal billsTotal  = 0;
         Decimal pnlDebit    = 0;
         List<JSONParserQBOVendorCreditFlow.cls_Line> creditLinesToDefer = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
@@ -417,6 +427,8 @@ public class QuickbooksMonthEndCOS {
                         // add the line amount to the total
                         billsTotal -= line.Amount;
 
+                        creditCount++;
+
                         // if the class Id or name can be used to identify that the  vendor credit line is for a future month it needs
                         // to be deferred
                         if (futureIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
@@ -424,8 +436,8 @@ public class QuickbooksMonthEndCOS {
                             creditLinesToDefer.add(line);
                             pnlDebit += line.Amount;
                         } else {
-                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
-                                    amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) - line.Amount);
+//                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
+//                                    amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) - line.Amount);
                         }
                     }
                 }
@@ -437,6 +449,9 @@ public class QuickbooksMonthEndCOS {
         processedResults.put('Debit', pnlDebit);
         processedResults.put('CreditLines', creditLinesToDefer);
         processedResults.put('amountsOnPNL', amountsOnPNL);
+
+        System.debug('total vendorCredits is ' + creditCount + ' and vendor credit total is £' + billsTotal);
+
 
         return processedResults;
     }
@@ -499,8 +514,8 @@ public class QuickbooksMonthEndCOS {
 
                     if (derreferable && journalLine.JournalEntryLineDetail.AccountRef.name == '5000 Cost of sales:Events COS'
                             && !futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5))){
-                        amountsOnPNL.put(journalLine.JournalEntryLineDetail.ClassRef.value,
-                                amountsOnPNL.get(journalLine.JournalEntryLineDetail.ClassRef.value) + journalLine.Amount);
+//                        amountsOnPNL.put(journalLine.JournalEntryLineDetail.ClassRef.value,
+//                                amountsOnPNL.get(journalLine.JournalEntryLineDetail.ClassRef.value) + journalLine.Amount);
                     }
                 }
             }
@@ -538,14 +553,16 @@ public class QuickbooksMonthEndCOS {
                         // if the class Id or name can be used to identify that the bill line is for a future month it needs
                         // to be deferred
                         if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
-                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5))) &&
-                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
-                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))) {
+                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
+//                                &&
+//                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
+//                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))
+                                ) {
                             billLinesToAccrue.add(line);
                             pnlDebit += line.Amount;
 
-                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5),
-                            amountsOnPNL.get((line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5)) + line.Amount));
+//                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5),
+//                            amountsOnPNL.get((line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5)) + line.Amount));
 
                         }
                     }
@@ -581,14 +598,16 @@ public class QuickbooksMonthEndCOS {
                         // if the class Id or name can be used to identify that the bill line is for a future month it needs
                         // to be deferred
                         if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
-                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5))) &&
-                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
-                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))) {
+                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
+//                                &&
+//                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
+//                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))
+                                ) {
                             vendorCreditLinesToAccrue.add(line);
                             pnlCredit += line.Amount;
 
-                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
-                                    amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) - line.Amount);
+//                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
+//                                    amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) - line.Amount);
 
                         }
                     }
@@ -817,6 +836,8 @@ public class QuickbooksMonthEndCOS {
             } else {
                 entries.get(classId + '689' + 'Credit').Amount__c += amount;
             }
+
+            System.debug('creating accrual for ' + className + ' worth ' + amount + ' of ' + 'Credit');
 
 
 //            entries.add(populateEntry(accrualsJournal.Id, periodString, 'Credit', '689',

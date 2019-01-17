@@ -51,61 +51,61 @@ public class QuickbooksMonthEndJournal {
         }
     }
 
-//    public static void postCOSJournals(){
-//
-//        // ensure one and only one journal exists
-//        if ([SELECT Id FROM QBJournal__c WHERE TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
-//            AND QuickbooksId__c = NULL AND Target__c = '5000 Cost of sales'].size() == 2) {
-//
-//            List<QBJournal__c> journals = [
-//                    SELECT Id, DocNumber__c, TxnDate__c, (
-//                            SELECT Id, Description__c, PostingType__c, AccountRefId__c,
-//                                    ClassRefId__c, Amount__c, CallbackId__c
-//                            FROM QBJournalEntries__r)
-//                    FROM QBJournal__c
-//                    WHERE Target__c = '5000 Cost of sales'
-//                    AND TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
-//            ];
-//
-//            Map<HttpResponse, QBJournal__c> responseMap = new Map<HttpResponse, QBJournal__c>();
-//
-//            for (QBJournal__c journal : journals) {
-//
-//                // generate string
-//                String journalString = generateJournalString(journal);
-//
-//                // post to Quickbooks
-//                Http http = new Http();
-//                HttpRequest request = new HttpRequest();
-//                request.setEndpoint('callout:QuickBooksOnline/journalentry?minorversion=4');
-//                request.setMethod('POST');
-//                request.setHeader('Content-Type', 'application/json;charset=UTF-8');
-//                request.setHeader('Accept', 'application/json');
-//                request.setBody(journalString);
-//                HttpResponse response = http.send(request);
-//
-//                // handle response
-//                if (response.getStatusCode() == 200) {
-//
-//                    responseMap.put(response, journal);
-//                } else {
-//                    Integration_Error__c error = new Integration_Error__c();
-//                    error.Class__c = 'QuickbooksMonthEndJournal';
-//                    error.sObject__c = '';
-//                    error.Action__c = 'Attempt to insert new month end journals';
-//                    error.Outcome__c = 'The status code returned was not expected: ' +
-//                            response.getStatusCode() + ' ' + response.getStatus();
-//                    insert error;
-//
-//                    System.debug(response.getBody());
-//                }
-//            }
-//
-//            for (HttpResponse response : responseMap.keySet()){
-//                handleCalloutResponse(response, responseMap.get(response));
-//            }
-//        }
-//    }
+    public static void postCOSJournals(){
+
+        // ensure one and only one journal exists
+        if ([SELECT Id FROM QBJournal__c WHERE TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
+            AND QuickbooksId__c = NULL AND Target__c = '5000 Cost of sales'].size() == 2) {
+
+            List<QBJournal__c> journals = [
+                    SELECT Id, DocNumber__c, TxnDate__c, (
+                            SELECT Id, Description__c, PostingType__c, AccountRefId__c,
+                                    ClassRefId__c, Amount__c, CallbackId__c
+                            FROM QBJournalEntries__r)
+                    FROM QBJournal__c
+                    WHERE Target__c = '5000 Cost of sales'
+                    AND TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
+            ];
+
+            Map<HttpResponse, QBJournal__c> responseMap = new Map<HttpResponse, QBJournal__c>();
+
+            for (QBJournal__c journal : journals) {
+
+                // generate string
+                String journalString = generateJournalString(journal);
+
+                // post to Quickbooks
+                Http http = new Http();
+                HttpRequest request = new HttpRequest();
+                request.setEndpoint('callout:QuickBooksOnline/journalentry?minorversion=4');
+                request.setMethod('POST');
+                request.setHeader('Content-Type', 'application/json;charset=UTF-8');
+                request.setHeader('Accept', 'application/json');
+                request.setBody(journalString);
+                HttpResponse response = http.send(request);
+
+                // handle response
+                if (response.getStatusCode() == 200) {
+
+                    responseMap.put(response, journal);
+                } else {
+                    Integration_Error__c error = new Integration_Error__c();
+                    error.Class__c = 'QuickbooksMonthEndJournal';
+                    error.sObject__c = '';
+                    error.Action__c = 'Attempt to insert new month end journals';
+                    error.Outcome__c = 'The status code returned was not expected: ' +
+                            response.getStatusCode() + ' ' + response.getStatus();
+                    insert error;
+
+                    System.debug(response.getBody());
+                }
+            }
+
+            for (HttpResponse response : responseMap.keySet()){
+                handleCalloutResponse(response, responseMap.get(response));
+            }
+        }
+    }
 
 
     private static String generateJournalString(QBJournal__c journal){

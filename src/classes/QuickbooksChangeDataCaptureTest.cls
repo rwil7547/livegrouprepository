@@ -261,6 +261,109 @@ private class QuickbooksChangeDataCaptureTest {
         System.assertEquals(false,expense2.Paid__c); 
         System.assertEquals(Date.newInstance(2018,05,20),expense2.Due_Date__c); 
 
-    }    
+    }
+
+	@isTest static void testGetVendorCredits() {
+
+		// the method tests for five things
+		// 1. updated vendorCredit line items
+		// 2. new vendorCredit line items
+		// 3. deleted vendorCredit line items
+		// 4. deleted vendorCredits
+		// 5. dereferenced vendorCredit line items
+
+		// insert new Opp and account. The opp is set to closed won to trigger
+		// the creation of an invoice schedule record.
+		insert new Account(Name = 'Test');
+
+		Opportunity opp 	= (Opportunity)SmartFactory.createSOBject('Opportunity');
+		opp.AccountId 		= [SELECT Id FROM Account LIMIT 1].id;
+		opp.StageName 		= 'Closed Won';
+		opp.Amount 			= 1200;
+		opp.Invoice_Schedule__c = 'Three stage invoice';
+		opp.QuickbooksClassId__c = 'testId';
+		opp.Event_Start__c 	= Date.today();
+		opp.Event_End__c 	= Date.today().addDays(1);
+		insert opp;
+
+		// retrieve the job number from the inserted Opportunity
+		String extendedJobNumber = String.valueOf([SELECT Filtered_Job_Number__c FROM Opportunity].Filtered_Job_Number__c);
+		String jobNumber = extendedJobNumber.substring(0,5);
+
+		opp.Clive_job_number__c = Decimal.valueOf(jobNumber);
+		update opp;
+
+		System.debug('the job number of the opp created in the test is ' + jobNumber);
+
+		// create expense records
+		List<Expense__c> expenses = new List<Expense__c>();
+
+		// expense record with value to be updated
+		Expense__c ex1 		= new Expense__c();
+		ex1.Opportunity__c 	= opp.Id;
+		ex1.Amount__c 		= -10;
+		ex1.Paid__c 		= true;
+		ex1.Name 			= '19036-8';
+		ex1.QuickbooksId__c	= '19036';
+		ex1.Due_Date__c		= Date.today();
+		expenses.add(ex1);
+
+		// expense record which has been dereferenced
+		Expense__c ex2 		= new Expense__c();
+		ex2.Opportunity__c 	= opp.Id;
+		ex2.Amount__c 		= -20;
+		ex2.Name 			= '19036-10';
+		ex2.QuickbooksId__c	= '19036';
+		ex2.Due_Date__c		= Date.today();
+		expenses.add(ex2);
+
+		// expense record which references a deleted line item
+		Expense__c ex3 		= new Expense__c();
+		ex3.Opportunity__c 	= opp.Id;
+		ex3.Amount__c 		= -20;
+		ex3.Name 			= '19036-99';
+		ex3.QuickbooksId__c	= '19036';
+		ex3.Due_Date__c		= Date.today();
+		expenses.add(ex3);
+
+		insert expenses;
+
+		// determine range via custom setting
+		insert new CDCRange__c(Name = 'QuickbooksCDC', Days__c = 1);
+
+		Test.startTest();
+		// Set mock callout class
+		Test.setMock(HttpCalloutMock.class, new VendorCreditCDCMock(jobNumber));
+
+		// Call method to test
+		QuickbooksChangeDataCapture.getVendorCredits();
+		Test.stopTest();
+
+		// verify that only two Expense__c records now exist - two should
+		// have been deleted based on the contents of the mock, and one
+		// additional expense should have been created
+		System.assertEquals(2,[SELECT Id FROM Expense__c].size());
+
+		// verify that the Expense__c record which existed prior to the callout
+		// now has updated values
+		Expense__c expense1 = [SELECT Id, Amount__c, Paid__c, Due_Date__c
+								FROM Expense__c
+								WHERE Name = '19036-8'];
+
+		System.assertEquals(-2000,expense1.Amount__c);
+		System.assertEquals(true,expense1.Paid__c);
+		System.assertEquals(Date.newInstance(2018,05,20),expense1.Due_Date__c);
+
+		// verify that a new Expense__c record has been created with the right values
+		Expense__c expense2 = [SELECT Id, Amount__c, Paid__c, Due_Date__c
+								FROM Expense__c
+								WHERE Name = '19036-22'];
+
+		System.assertEquals(-1000,expense2.Amount__c);
+		System.assertEquals(true,expense2.Paid__c);
+		System.assertEquals(Date.newInstance(2018,05,20),expense2.Due_Date__c);
+
+	}
+
 
 }

@@ -331,6 +331,8 @@ public class SalesDashboardUtils {
                 }
 
                 calderAdjustments.get(startingDate).Revenue__c = (owing * -1);
+                calderAdjustments.get(startingDate).Profit__c = (owing * -1);
+                calderAdjustments.get(startingDate).CostOfSale__c = 0;
 
             } else if (revenueMap.get(financialMonth) > 400000){
 
@@ -346,6 +348,8 @@ public class SalesDashboardUtils {
                 }
 
                 calderAdjustments.get(startingDate).Revenue__c = (owing * -1);
+                calderAdjustments.get(startingDate).Profit__c = (owing * -1);
+                calderAdjustments.get(startingDate).CostOfSale__c = 0;
 
             }
 

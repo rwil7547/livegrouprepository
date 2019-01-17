@@ -114,7 +114,7 @@ public class QuickbooksMonthEndCOSTest {
         Map<String, HttpCalloutMock> endpoint2TestResp      = new Map<String,HttpCalloutMock>();
 
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
-                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4', billMock);
+                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27%20maxResults%201000&minorversion=4', billMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' +
                 '23363' + '%27&minorversion=4', accJrnlMock);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' +
@@ -136,5 +136,52 @@ public class QuickbooksMonthEndCOSTest {
 
     }
 
-
+//    @IsTest
+//    public static void testJournalPost(){
+//
+//        QBJournal__c journal = new QBJournal__c(
+//                DocNumber__c = 'Test',
+//                TxnDate__c   = Date.today().toStartOfMonth().addMonths(-1),
+//                Target__c    = '5000 Cost of sales'
+//        );
+//
+//        insert journal;
+//
+//        QBJournalEntry__c entry1 = new QBJournalEntry__c(
+//                QBJournal__c        = journal.Id,
+//                Description__c      = 'Pxx Mgt Accs Defer sales ' +
+//                        System.now().addMonths(-1).format('MMM') + ' ' +
+//                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+//                PostingType__c      = 'Credit',
+//                AccountRefId__c     = '333',
+//                AccountRefName__c   = '',
+//                Amount__c           = 10,
+//                ClassRefId__c       = '333',
+//                ClassRefName__c     = 'Test'
+//        );
+//
+//        insert entry1;
+//
+//        QBJournalEntry__c entry2 = new QBJournalEntry__c(
+//                QBJournal__c        = journal.Id,
+//                Description__c      = 'Pxx Mgt Accs Defer sales ' +
+//                        System.now().addMonths(-1).format('MMM') + ' ' +
+//                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+//                PostingType__c      = 'Debit',
+//                AccountRefId__c     = '333',
+//                AccountRefName__c   = '',
+//                Amount__c           = 10,
+//                ClassRefId__c       = '333',
+//                ClassRefName__c     = 'Test'
+//        );
+//
+//        insert entry2;
+//
+//        Test.setMock(HttpCalloutMock.class, new MonthEndCosJournalMock());
+//
+//        Test.startTest();
+//        QuickbooksMonthEndJournal.postCOSJournals();
+//        Test.stopTest();
+//
+//    }
 }
