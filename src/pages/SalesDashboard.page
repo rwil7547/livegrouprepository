@@ -143,7 +143,7 @@
 
             .blockOptions {
                 display: grid;
-                grid-template-columns: 50% 50%;
+                grid-template-columns: 40% 60%;
                 height: auto;
                 z-index: 50;
                 background-color: white;
@@ -1053,7 +1053,7 @@
                 position: fixed;
                 height: auto;
                 width: 30vw;
-                top: 20vh;
+                top: 10vh;
                 left: 35vw;
                 right: 35vw;
                 background-color: white;
@@ -1073,6 +1073,34 @@
                 border: 0.5px solid #dbdbdb;
                 padding: 5px;
                 cursor: pointer;
+            }
+
+            #qbBudgetPending:after {
+                content: ' .';
+                animation: dots 3s steps(1, end) infinite;
+            }
+            @keyframes dots {
+                0%, 12.5% {
+                    opacity: 0;
+                }
+                25% {
+                    opacity: 1;
+                }
+                37.5% {
+                    text-shadow: .5em 0;
+                }
+                50% {
+                    text-shadow: .5em 0, 1em 0;
+                }
+                62.5% {
+                    text-shadow: .5em 0, 1em 0, 1.5em 0;
+                }
+                75% {
+                    text-shadow: .5em 0, 1em 0, 1.5em 0, 2em 0;
+                }
+                87.5%, 100%{
+                    text-shadow: .5em 0, 1em 0, 1.5em 0, 2em 0, 2.5em;
+                }
             }
 
         </style>
@@ -1289,18 +1317,18 @@
                     </div>
                 </div>
                 <div>
-                    <div class="keySelector" id="opexKeySelector">
+                    <div class="keySelector" id="opexKeySelector" onclick="showBudgetOptions()">
                         <div id="opexConfirmedSelector" class="keyPointer" onclick="">
                             <div class="keySquare" style="background-color: #006600;"></div>
-                            <div class="noSpill keySelectorText">Confirmed</div>
+                            <div class="noSpill keySelectorText" id="closedOpex">Closed</div>
                         </div>
-                        <div id="opexForecastSelector" class="keyPointer" onclick="getBudgetOptions()">
+                        <div id="opexForecastSelector" class="keyPointer" >
                             <div class="keySquare" style="background-color: #64a16f;"></div>
-                            <div class="noSpill keySelectorText" id="forecast">Forecast (2018-19 Budget 2)</div>
+                            <div class="noSpill keySelectorText" id="forecast">Forecast</div>
                         </div>
                         <div id="opexBudgetSelector" class="keyPointer"  onclick="">
                             <div class="keySquare" style="background-color: #84827d;"></div>
-                            <div class="noSpill keySelectorText" id="budget">Budget (FY18/19 Control Budget)</div>
+                            <div class="noSpill keySelectorText" id="budget">Budget</div>
                         </div>
                     </div>
                     <div class="splitSelector reportUtil" id="opexSplitSelector" >
@@ -1575,6 +1603,11 @@
     <div id="quickbooksBudget" class="hide" style="display:none;">
         <div class="typeLabel" style="margin-left: 0; display: block;">QUICKBOOKS SOURCE INFORMATION</div>
         <br/>
+        <div>Select last closed month:</div>
+        <select id="closedMonth" onchange="showUpdateOption()">
+        </select>
+        <br/>
+        <br/>
         <div>Select forecast source:</div>
         <select id="forecastList" onchange="showUpdateOption()">
         </select>
@@ -1585,7 +1618,8 @@
         </select>
         <br/>
         <br/>
-        <button id="qbBudgetButton" style="visibility: hidden;">UPDATE</button>
+        <div><button id="qbBudgetButton" style="display: none;" onclick="updateBudgetForecasts()">UPDATE</button></div>
+        <div id="qbBudgetPending" style="display: none;">Retrieving the latest data from Quickbooks online</div>
         <br/>
     </div>
 
@@ -1628,10 +1662,11 @@
         var cashflowData;
         var cashflowManagerClose;
 
-        var revenueReport   = document.getElementById('revenueReport').cloneNode(true);
-        var profitReport    = document.getElementById('profitReport').cloneNode(true);
-        var opexReport      = document.getElementById('opexReport').cloneNode(true);
-        var cashFlowReport  = document.getElementById('cashFlowReport').cloneNode(true);
+        var revenueReport       = document.getElementById('revenueReport').cloneNode(true);
+        var profitReport        = document.getElementById('profitReport').cloneNode(true);
+        var opexReport          = document.getElementById('opexReport').cloneNode(true);
+        var cashFlowReport      = document.getElementById('cashFlowReport').cloneNode(true);
+        var quickbooksBudget    = document.getElementById('quickbooksBudget').cloneNode(true);
 
         var mainHex     = '#000080';
         var secondHex   = '#3262ce';
@@ -1666,8 +1701,11 @@
             document.getElementById('revenueChange').classList.remove('updated');
             document.getElementById('profitChange').classList.remove('updated');
             document.getElementById('opexChange').classList.remove('updated');
+            document.getElementById('quickbooksBudget').classList.remove('updated');
             document.getElementById('revenueReport').innerHTML      = revenueReport.innerHTML;
             document.getElementById('opexReport').innerHTML         = opexReport.innerHTML;
+            document.getElementById('cashFlowReport').innerHTML     = cashFlowReport.innerHTML;
+            document.getElementById('quickbooksBudget').innerHTML   = quickbooksBudget.innerHTML;
 
             revenueReportLoaded     = false;
             profitReportLoaded      = false;
@@ -1748,6 +1786,7 @@
                         drawOpexBar();
                         drawOpexLine();
                         loadProfit();
+                        getBudgetOptions();
                     }
                 }
             );
@@ -4885,6 +4924,9 @@
                                 var projectMngr = (oppRows[element].Project_Manager__c) ?
                                     oppRows[element].Project_Manager__r.FirstName.substr(0, 1) + '. ' + oppRows[element].Project_Manager__r.LastName : '';
 
+                                var endDate = new Date(oppRows[element].Event_end__c);
+                                endDate.setHours(endDate.getHours() + (endDate.getTimezoneOffset() / 60));
+
                                 reportData.push(
                                     {
                                         AccountManager: oppRows[element].Owner.FirstName.substr(0, 1) + '. ' + oppRows[element].Owner.LastName,
@@ -4892,10 +4934,9 @@
                                         Job: oppRows[element].Filtered_Job_Number__c,
                                         Name: oppRows[element].Name.replace(/,/g, ' '),
                                         Account: oppRows[element].Account.Name.replace(/,/g, ' '),
-                                        StartDate: '' + (new Date(oppRows[element].Event_start__c).getMonth() + 1) + '/' +
-                                        new Date(oppRows[element].Event_start__c).getFullYear(),
-                                        EndDate: '' + (new Date(oppRows[element].Event_end__c).getMonth() + 1) + '/' +
-                                        new Date(oppRows[element].Event_end__c).getFullYear(),
+                                        StartDate: '' + (new Date(oppRows[element].Event_end__c).getMonth() + 1) + '/' +
+                                                        new Date(oppRows[element].Event_end__c).getFullYear(),
+                                        EndDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
                                         Stage: oppRows[element].StageName,
                                         Amount: revenue,
                                         GrossProfit: profit,
@@ -4913,17 +4954,18 @@
 
                                     var adjustments = oppRows[element].Adjustments__r;
                                     for (var x = 0; x < adjustments.length; x++){
+
                                         reportData.push(
                                             {
                                                 AccountManager: '',
                                                 ProjectManager: '',
                                                 Job: '',
-                                                Name: 'STATUTORY ADJUSTMENT',
+                                                Name: oppRows[element].Filtered_Job_Number__c + ' ' + oppRows[element].Name,
                                                 Account: '',
-                                                StartDate: '' + (new Date(adjustments[x].Month__c).getMonth() + 1) + '/' +
-                                                new Date(adjustments[x].Month__c).getFullYear(),
-                                                EndDate: '' + (new Date(adjustments[x].Month__c).getMonth() + 1) + '/' +
-                                                new Date(adjustments[x].Month__c).getFullYear(),
+                                                StartDate: '' + adjustments[x].Month__c.substring(5,7) + '/' +
+                                                adjustments[x].Month__c.substring(0,4),
+                                                EndDate: '' + adjustments[x].Month__c.substring(5,7) + '/' +
+                                                adjustments[x].Month__c.substring(0,4),
                                                 Stage: 'Closed Won',
                                                 Amount: adjustments[x].Revenue__c,
                                                 GrossProfit: adjustments[x].Profit__c,
@@ -4945,30 +4987,33 @@
                             var adjustments = oppRows[element].Adjustments__r;
 
                             for (var x = 0; x < adjustments.length; x++) {
+                                if (adjustments[x].EventMonthYear__c === iteratorElement){
 
-                                reportData.push(
-                                    {
-                                        AccountManager: '',
-                                        ProjectManager: '',
-                                        Job: oppRows[element].Filtered_Job_Number__c,
-                                        Name: oppRows[element].Name.replace(/,/g, ' '),
-                                        Account: oppRows[element].Account.Name.replace(/,/g, ' '),
-                                        StartDate: '' + (new Date(adjustments[x].Month__c).getMonth() + 1) + '/' +
-                                        new Date(adjustments[x].Month__c).getFullYear(),
-                                        EndDate: '' + (new Date(adjustments[x].Month__c).getMonth() + 1) + '/' +
-                                        new Date(adjustments[x].Month__c).getFullYear(),
-                                        Stage: oppRows[element].StageName,
-                                        Amount: adjustments[x].Revenue__c,
-                                        GrossProfit: adjustments[x].Profit__c,
-                                        CostOfSale: adjustments[x].CostOfSale__c,
-                                        Margin: '',
-                                        Invoiced: '',
-                                        Paid: '',
-                                        RecStatus: '',
-                                        COSBilled: '',
-                                        COSPaid: '',
-                                        Probability: oppRows[element].Probability
-                                    });
+                                    var endDate = new Date(adjustments[x].Month__c);
+                                    endDate.setHours(endDate.getHours() + (endDate.getTimezoneOffset() / 60));
+
+                                    reportData.push(
+                                        {
+                                            AccountManager: '',
+                                            ProjectManager: '',
+                                            Job: oppRows[element].Filtered_Job_Number__c,
+                                            Name: oppRows[element].Name.replace(/,/g, ' '),
+                                            Account: oppRows[element].Account.Name.replace(/,/g, ' '),
+                                            StartDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
+                                            EndDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
+                                            Stage: oppRows[element].StageName,
+                                            Amount: adjustments[x].Revenue__c,
+                                            GrossProfit: adjustments[x].Profit__c,
+                                            CostOfSale: adjustments[x].CostOfSale__c,
+                                            Margin: '',
+                                            Invoiced: '',
+                                            Paid: '',
+                                            RecStatus: '',
+                                            COSBilled: '',
+                                            COSPaid: '',
+                                            Probability: oppRows[element].Probability
+                                        });
+                                }
                             }
 
                         }
@@ -5580,7 +5625,7 @@
             var removeEntry = (amountEditable) ?
                 '<div class="paidButton" onclick="markAsPaid(\'' + result.Id + '\',\'' + type + '\',event)">MARK AS PAID</div>' : '';
 
-            console.log('trying to find the id ' + Id);
+            // console.log('trying to find the id ' + Id);
 
             if (document.getElementById(Id)){
 
@@ -5636,127 +5681,155 @@
 
         function getBudgetOptions() {
 
+            if (!document.getElementById('quickbooksBudget').classList.contains('updated')){
+                if (document.getElementById('datePicklist').value === 'CURRENT FY' ||
+                    document.getElementById('datePicklist').value === 'NEXT FY') {
+
+                    var year        = document.getElementById('datePicklist').value;
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.SalesDashboardRemoter.getQBBudgets}',
+                        year,
+                        function (result, event) {
+                            if (event.status) {
+
+                                console.log(result);
+
+                                var forecastList    = document.getElementById('forecastList');
+                                var budgetList      = document.getElementById('budgetList');
+                                var queryResponse   = result['budgets']['QueryResponse'];
+
+                                var budgets = queryResponse['Budget'];
+                                var budgetAlert;
+                                var forecastAlert;
+
+
+
+                                budgets.forEach(function (budget) {
+                                    var datedBudget         = (budget['Name'] === result['budgetSource']) ?
+                                        new Date(result['budgetUpdate']) < new Date(budget['MetaData'].LastUpdatedTime) : false;
+                                    var datedForecast       = (budget['Name'] === result['forecastSource']) ?
+                                        new Date(result['forecastUpdate']) < new Date(budget['MetaData'].LastUpdatedTime) : false;
+
+                                    budgetAlert         = (budget['Name'] === result['budgetSource'] && datedBudget) ? '<i class="fas fa-exclamation-triangle"></i>' : '';
+                                    forecastAlert       = (budget['Name'] === result['forecastSource'] && datedForecast) ? '<i class="fas fa-exclamation-triangle"></i>' : '';
+
+                                    var selectedBudget      = (budget['Name'] === result['budgetSource']) ? 'selected ' : '';
+                                    var selectedForecast    = (budget['Name'] === result['forecastSource']) ? 'selected ' : '';
+
+                                    forecastList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedForecast + '>' + budget['Name'] + forecastAlert + '</div>';
+                                    budgetList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedBudget + '>' + budget['Name'] + budgetAlert +'</div>';
+                                });
+
+                                var monthList = document.getElementById('closedMonth');
+                                var closedMonth = new Date(result['closedMonth']);
+                                closedMonth.setHours(closedMonth.getHours() + (closedMonth.getTimezoneOffset() / 60));
+
+                                if (document.getElementById('datePicklist').value === 'NEXT FY'){
+                                    monthList.innerHTML += '<option>UNAVAILABLE</div>';
+                                    monthList.disabled = true;
+                                } else {
+
+                                    var startingDate = new Date(closedMonth);
+                                    // var startingDate = new Date(today.getFullYear(), 03, 01);
+                                    // if (today.getMonth() < 3){
+                                    //     startingDate = new Date(today.getFullYear() -1, 03, 01);
+                                    // }
+
+                                    while (startingDate < today){
+                                        var selected = (startingDate === closedMonth) ? 'selected' : '';
+                                        // if (startingDate.getMonth() === closedMonth.getMonth()){
+                                        //     selected = 'selected';
+                                        // }
+
+                                        monthList.innerHTML += '<option value="' + startingDate + '" ' + selected + '>' +
+                                            startingDate.toLocaleString('en-us', { month: 'long' }) + ' ' + startingDate.getFullYear() +
+                                            '</option>';
+                                        startingDate.setMonth(startingDate.getMonth() + 1);
+                                    }
+                                }
+
+                                console.log('budget value from apex is ' + result['budgetSource'] +
+                                ' and forecast is ' + result['forecastSource']);
+
+
+                                // document.getElementById('budget').innerHTML = 'Budget (' + result['budgetSource'] + ')';
+                                document.getElementById('budget').innerHTML = result['budgetSource'] + ' ' + budgetAlert;
+                                // document.getElementById('forecast').innerHTML = 'Forecast (' + result['forecastSource'] + ')';                                document.getElementById('budget').innerHTML = 'Budget (' + result['budgetSource'] + ')';
+                                document.getElementById('forecast').innerHTML = result['forecastSource'] + ' ' + forecastAlert;
+
+                                var closeDate = new Date(result['closedMonth']);
+                                closeDate.setHours(closeDate.getHours() + (closeDate.getTimezoneOffset() / 60));
+                                var closeText = closeDate.toDateString();
+                                document.getElementById('closedOpex').innerHTML = 'Closed (' + closeText.substr(4,4) +
+                                    closeText.substring(closeText.length -4, closeText.length) + ')';
+                                document.getElementById('quickbooksBudget').classList.add('updated');
+                            }
+                        }
+                    );
+                } else {
+                    document.getElementById('budget').innerHTML     = 'Budget';
+                    document.getElementById('forecast').innerHTML   = 'Forecast';
+                    document.getElementById('closedOpex').innerHTML = 'Closed';
+                }
+            }
+        }
+
+        function showBudgetOptions() {
+
             if (document.getElementById('datePicklist').value === 'CURRENT FY' ||
-                document.getElementById('datePicklist').value === 'NEXT FY'){
+                document.getElementById('datePicklist').value === 'NEXT FY') {
 
                 document.getElementById('dimmer').style.display = 'block';
                 var budgetBlock = document.getElementById('quickbooksBudget');
                 budgetBlock.style.display = 'block';
-
-                if (!budgetBlock.classList.contains('updated')){
-
-                    Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.SalesDashboardRemoter.getQBBudgets}',
-                        function(result, event){
-                            if (event.status){
-
-                                var forecastList    = document.getElementById('forecastList');
-                                var budgetList      = document.getElementById('budgetList');
-                                var queryResponse   = result['QueryResponse'];
-                                var budgets         = queryResponse['Budget'];
-
-                                budgets.forEach(function(budget){
-                                    forecastList.innerHTML += '<option value=' + budget['Id'] + '>' + budget['Name'] + '</div>';
-                                    budgetList.innerHTML += '<option value=' + budget['Id'] + '>' + budget['Name'] + '</div>';
-                                });
-
-                                budgetBlock.classList.add('updated');
-                            }
-                        }
-                    );
-                }
             }
         }
 
         function showUpdateOption() {
-            if (document.getElementById('qbBudgetButton').style.visibility === 'hidden'){
-                document.getElementById('qbBudgetButton').style.visibility = 'visible';
+            if (document.getElementById('qbBudgetButton').style.display === 'none'){
+                document.getElementById('qbBudgetButton').style.display = 'block';
             }
         }
 
-        // enable horizontal dragscroll
-        (function (root, factory) {
-            if (typeof define === 'function' && define.amd) {
-                define(['exports'], factory);
-            } else if (typeof exports !== 'undefined') {
-                factory(exports);
-            } else {
-                factory((root.dragscroll = {}));
-            }
-        }(this, function (exports) {
-            var _window = window;
-            var _document = document;
-            var mousemove = 'mousemove';
-            var mouseup = 'mouseup';
-            var mousedown = 'mousedown';
-            var EventListener = 'EventListener';
-            var addEventListener = 'add'+EventListener;
-            var removeEventListener = 'remove'+EventListener;
-            var newScrollX, newScrollY;
+        function updateBudgetForecasts(){
 
-            var dragged = [];
-            var reset = function(i, el) {
-                for (i = 0; i < dragged.length;) {
-                    el = dragged[i++];
-                    el = el.container || el;
-                    el[removeEventListener](mousedown, el.md, 0);
-                    _window[removeEventListener](mouseup, el.mu, 0);
-                    _window[removeEventListener](mousemove, el.mm, 0);
+            document.getElementById('qbBudgetButton').style.display     = 'none';
+            document.getElementById('qbBudgetPending').style.display    = 'block';
+            document.getElementById('budgetList').disabled              = 'true';
+            document.getElementById('forecastList').disabled            = 'true';
+            document.getElementById('closedMonth').disabled             = 'true';
+
+            var budgetId    = document.getElementById('budgetList').value;
+            var forecastId  = document.getElementById('forecastList').value;
+            var year        = document.getElementById('datePicklist').value;
+            var monthVal    = new Date(document.getElementById('closedMonth').value);
+            var day         = (monthVal.getDate()) < 10 ? '0' + monthVal.getDate() : monthVal.getDate();
+            var month       = (monthVal.getMonth() < 10) ? '0' + (monthVal.getMonth() + 1) : (monthVal.getMonth() + 1);
+            var closeDate   = monthVal.getFullYear() + '-' + month + '-' + day;
+
+            console.log(closeDate);
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.SalesDashboardRemoter.updateBudgets}',
+                budgetId,
+                forecastId,
+                year,
+                closeDate,
+                function(result, event) {
+                    if (event.status) {
+                        hideAll();
+                        doInit();
+                        document.getElementById('qbBudgetButton').style.display     = 'none';
+                        document.getElementById('qbBudgetPending').style.display    = 'none';
+                        document.getElementById('budgetList').removeAttribute('disabled');
+                        document.getElementById('forecastList').removeAttribute('disabled');
+                    }
                 }
+            );
 
-                // cloning into array since HTMLCollection is updated dynamically
-                dragged = [].slice.call(_document.getElementsByClassName('dragscroll'));
-                for (i = 0; i < dragged.length;) {
-                    (function(el, lastClientX, lastClientY, pushed, scroller, cont){
-                        (cont = el.container || el)[addEventListener](
-                            mousedown,
-                            cont.md = function(e) {
-                                if (!el.hasAttribute('nochilddrag') ||
-                                    _document.elementFromPoint(
-                                        e.pageX, e.pageY
-                                    ) == cont
-                                ) {
-                                    pushed = 1;
-                                    lastClientX = e.clientX;
-                                    lastClientY = e.clientY;
-
-                                    e.preventDefault();
-                                }
-                            }, 0
-                        );
-
-                        _window[addEventListener](
-                            mouseup, cont.mu = function() {pushed = 0;}, 0
-                        );
-
-                        _window[addEventListener](
-                            mousemove,
-                            cont.mm = function(e) {
-                                if (pushed) {
-                                    (scroller = el.scroller||el).scrollLeft -=
-                                        newScrollX = (- lastClientX + (lastClientX=e.clientX));
-                                    scroller.scrollTop -=
-                                        newScrollY = (- lastClientY + (lastClientY=e.clientY));
-                                    if (el == _document.body) {
-                                        (scroller = _document.documentElement).scrollLeft -= newScrollX;
-                                        scroller.scrollTop -= newScrollY;
-                                    }
-                                }
-                            }, 0
-                        );
-                    })(dragged[i++]);
-                }
-            }
+        }
 
 
-            if (_document.readyState == 'complete') {
-                reset();
-            } else {
-                _window[addEventListener]('load', reset, 0);
-            }
-
-            exports.reset = reset;
-        }));
     </script>
 
 </apex:page>

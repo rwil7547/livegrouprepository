@@ -360,4 +360,32 @@ public class SalesDashboardUtils {
 
     }
 
+
+//    OR(
+//        AND(
+//            Committed__c,
+//            NOT(CONTAINS($Profile.Name,"Admin")),
+//            OR(
+//                AND(
+//                    ISCHANGED(StageName),
+//                    OR(
+//                        ISPICKVAL(StageName, 'Closed Won'),
+//                        AND(
+//                            NOT(ISPICKVAL(StageName, 'Closed Won')),
+//                            PRIORVALUE(StageName) = 'Closed Won'
+//                        )
+//                    )
+//                )
+//            )
+//        ),
+//        AND(
+//            NOT(Committed__c),
+//            NOT(CONTAINS($Profile.Name,"Admin")),
+//            ISCHANGED(Event_end__c),
+//            PRIORVALUE(Event_end__c) >
+//            OR(
+//                AND(
+//                PRIORVALUE(Event_end__c
+//    )
+
 }

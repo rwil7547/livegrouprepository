@@ -1241,31 +1241,81 @@ global class SalesDashboardRemoter {
     }
 
     @RemoteAction
-    global static Object getQBBudgets(){
+    global static Map<String,Object> getQBBudgets(String year){
+
+        String fiscalYear = 'CURRENT_FISCAL_YEAR';
+
+        if (year.equalsIgnoreCase('CURRENT FY')){
+            fiscalYear = 'THIS_FISCAL_YEAR';
+        } else if (year.equalsIgnoreCase('NEXT FY')){
+            fiscalYear = 'NEXT_FISCAL_YEAR';
+        }
+
+        Map<String,Object> responseMap = new Map<String,Object>();
 
         Http http = new Http();
         HttpRequest request = new HttpRequest();
-        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name%2c%20Id%20from%20budget&minorversion=4');
+        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata%2c%20Id%20from%20budget&minorversion=4');
         request.setHeader('Accept', 'application/json');
         request.setMethod('GET');
         request.setTimeout(120000);
         HttpResponse response = http.send(request);
 
-        return JSON.deserializeUntyped(response.getBody());
+        if (response.getStatusCode() == 200){
+            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
+        }
+
+        List<QBProfitAndLoss__c> budgetSourceList =
+                                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
+                                'FROM QBProfitAndLoss__c ' +
+                                'WHERE Month__c = ' + fiscalYear  + ' ' +
+                                'AND BudgetSource__c != NULL ' +
+                                'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!budgetSourceList.isEmpty()){
+            responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
+        }
+
+        List<QBProfitAndLoss__c> forecastSourceList =
+                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
+                        'FROM QBProfitAndLoss__c ' +
+                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+                        'AND ForecastSource__c != NULL ' +
+                        'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!forecastSourceList.isEmpty()){
+            responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
+        }
+
+//        List<QBProfitAndLoss__c> closedMonth =
+//                Database.query('SELECT Month__c ' +
+//                        'FROM QBProfitAndLoss__c ' +
+//                        'WHERE Month__c = ' + fiscalYear + ' ' +
+//                        'AND QBUpdated__c = TRUE ' +
+//                        'ORDER BY Month__c DESC LIMIT 1');
+//
+//        if (!closedMonth.isEmpty()){
+//            responseMap.put('closedMonth', closedMonth[0].Month__c);
+////            system.debug('last closed month is ' + closedMonth[0].Month__c);
+//        }
+
+        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
+            if (month.Name == 'QBClosedMonth'){
+                responseMap.put('closedMonth', month.Month__c);
+            }
+        }
+
+        return responseMap;
     }
 
     @RemoteAction
-    global static Boolean updateBudgets(){
+    global static Boolean updateBudgets(String budgetId, String forecastId, String year, String month){
 
-//        Http http = new Http();
-//        HttpRequest request = new HttpRequest();
-//        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name%2c%20Id%20from%20budget&minorversion=4');
-//        request.setHeader('Accept', 'application/json');
-//        request.setMethod('GET');
-//        request.setTimeout(120000);
-//        HttpResponse response = http.send(request);
+        Boolean result = QuickbooksBudgetCallout.updateOpexForecast(budgetId, forecastId, year, Date.valueOf(month));
 
-        return true;
+        return result;
     }
 
 }

@@ -58,11 +58,11 @@ public class QuickbooksProfitAndLossCallout {
 
             String start = calloutDate.year() + '-' + calloutDate.month() + '-' + calloutDate.day();
             Date endDate = calloutDate.addMonths(1).addDays(-1);
-            String endD = endDate.year() + '-' + endDate.month() + '-' + endDate.day();
+            String endD  = endDate.year() + '-' + endDate.month() + '-' + endDate.day();
 
             String query = '/reports/ProfitAndLoss?start_date=' + start + '&end_date=' + endD;
 
-            Http http = new http();
+            Http http = new Http();
             HttpRequest request = buildCallout(query);
             HttpResponse response = http.send(request);
 
