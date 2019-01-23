@@ -1289,18 +1289,6 @@ global class SalesDashboardRemoter {
             responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
         }
 
-//        List<QBProfitAndLoss__c> closedMonth =
-//                Database.query('SELECT Month__c ' +
-//                        'FROM QBProfitAndLoss__c ' +
-//                        'WHERE Month__c = ' + fiscalYear + ' ' +
-//                        'AND QBUpdated__c = TRUE ' +
-//                        'ORDER BY Month__c DESC LIMIT 1');
-//
-//        if (!closedMonth.isEmpty()){
-//            responseMap.put('closedMonth', closedMonth[0].Month__c);
-////            system.debug('last closed month is ' + closedMonth[0].Month__c);
-//        }
-
         for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
             if (month.Name == 'QBClosedMonth'){
                 responseMap.put('closedMonth', month.Month__c);

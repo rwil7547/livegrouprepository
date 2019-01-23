@@ -284,6 +284,8 @@ public class SalesDashboardUtils {
         Map<Integer,Decimal> revenueMap = new Map<Integer,Decimal>();
 
         for (AggregateResult ar : revenueAggregates){
+
+            system.debug('for month ' + (Integer)ar.get('month') + ' the revenue is ' + (Decimal)ar.get('amount'));
             runningRevenueTotal += (Decimal)ar.get('amount');
             Integer month = (Integer)ar.get('month');
 
@@ -294,7 +296,7 @@ public class SalesDashboardUtils {
         }
 
         if (commissionAggregates[0].get('amount') != null){
-            runningCommissionTotal += (Decimal)commissionAggregates[0].get('amount');
+            runningCommissionTotal += ((Decimal)commissionAggregates[0].get('amount') * -1);
         }
 
 
@@ -320,8 +322,13 @@ public class SalesDashboardUtils {
             if (revenueMap.get(financialMonth) > 750000){
 
                 Decimal total = revenueMap.get(financialMonth) - 750000;
-                Decimal commission = total * 0.05;
+                Decimal commission = (total * 0.05) + (350000 * 0.25);
                 Decimal owing = commission - runningCommissionTotal;
+
+                system.debug('when in month ' + financialMonth + ' the commission owing is ' + commission + '' +
+                        ' and the amount subtracted from prior commissions is ' + runningCommissionTotal + ' ' +
+                        ' so the remaining commission to add is ' + owing);
+
                 runningCommissionTotal += owing;
 
                 if (!calderAdjustments.containsKey(startingDate)){
@@ -359,33 +366,5 @@ public class SalesDashboardUtils {
         upsert calderAdjustments.values();
 
     }
-
-
-//    OR(
-//        AND(
-//            Committed__c,
-//            NOT(CONTAINS($Profile.Name,"Admin")),
-//            OR(
-//                AND(
-//                    ISCHANGED(StageName),
-//                    OR(
-//                        ISPICKVAL(StageName, 'Closed Won'),
-//                        AND(
-//                            NOT(ISPICKVAL(StageName, 'Closed Won')),
-//                            PRIORVALUE(StageName) = 'Closed Won'
-//                        )
-//                    )
-//                )
-//            )
-//        ),
-//        AND(
-//            NOT(Committed__c),
-//            NOT(CONTAINS($Profile.Name,"Admin")),
-//            ISCHANGED(Event_end__c),
-//            PRIORVALUE(Event_end__c) >
-//            OR(
-//                AND(
-//                PRIORVALUE(Event_end__c
-//    )
 
 }

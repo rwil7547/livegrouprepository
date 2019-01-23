@@ -5692,17 +5692,12 @@
                         function (result, event) {
                             if (event.status) {
 
-                                console.log(result);
-
                                 var forecastList    = document.getElementById('forecastList');
                                 var budgetList      = document.getElementById('budgetList');
                                 var queryResponse   = result['budgets']['QueryResponse'];
-
-                                var budgets = queryResponse['Budget'];
+                                var budgets         = queryResponse['Budget'];
                                 var budgetAlert;
                                 var forecastAlert;
-
-
 
                                 budgets.forEach(function (budget) {
                                     var datedBudget         = (budget['Name'] === result['budgetSource']) ?
@@ -5724,22 +5719,16 @@
                                 var closedMonth = new Date(result['closedMonth']);
                                 closedMonth.setHours(closedMonth.getHours() + (closedMonth.getTimezoneOffset() / 60));
 
+                                console.log('current value of close month is ' + closedMonth.toString());
+
                                 if (document.getElementById('datePicklist').value === 'NEXT FY'){
                                     monthList.innerHTML += '<option>UNAVAILABLE</div>';
                                     monthList.disabled = true;
                                 } else {
-
                                     var startingDate = new Date(closedMonth);
-                                    // var startingDate = new Date(today.getFullYear(), 03, 01);
-                                    // if (today.getMonth() < 3){
-                                    //     startingDate = new Date(today.getFullYear() -1, 03, 01);
-                                    // }
 
                                     while (startingDate < today){
                                         var selected = (startingDate === closedMonth) ? 'selected' : '';
-                                        // if (startingDate.getMonth() === closedMonth.getMonth()){
-                                        //     selected = 'selected';
-                                        // }
 
                                         monthList.innerHTML += '<option value="' + startingDate + '" ' + selected + '>' +
                                             startingDate.toLocaleString('en-us', { month: 'long' }) + ' ' + startingDate.getFullYear() +
@@ -5750,7 +5739,6 @@
 
                                 console.log('budget value from apex is ' + result['budgetSource'] +
                                 ' and forecast is ' + result['forecastSource']);
-
 
                                 // document.getElementById('budget').innerHTML = 'Budget (' + result['budgetSource'] + ')';
                                 document.getElementById('budget').innerHTML = result['budgetSource'] + ' ' + budgetAlert;
@@ -5806,8 +5794,6 @@
             var day         = (monthVal.getDate()) < 10 ? '0' + monthVal.getDate() : monthVal.getDate();
             var month       = (monthVal.getMonth() < 10) ? '0' + (monthVal.getMonth() + 1) : (monthVal.getMonth() + 1);
             var closeDate   = monthVal.getFullYear() + '-' + month + '-' + day;
-
-            console.log(closeDate);
 
             Visualforce.remoting.Manager.invokeAction(
                 '{!$RemoteAction.SalesDashboardRemoter.updateBudgets}',
