@@ -474,7 +474,6 @@ public class SalesDashboardTest {
         Test.startTest();
         SalesDashboardUtils.getCurrentBalance();
         Test.stopTest();
-
     }
 
 
@@ -527,6 +526,22 @@ public class SalesDashboardTest {
     @IsTest
     public static void testAdjustCalderCommission(){
         SalesDashboardUtils.adjustCalderCommissions();
+    }
+
+    @IsTest
+    public static void testGetBudgetOptions(){
+
+//        Map<String, HttpCalloutMock> endpoint2TestResp = new Map<String,HttpCalloutMock>();
+//        endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
+//                'EndDate%2c%20Id%20from%20budget&minorversion=4', new QBOBudgetMock());
+
+
+
+        Test.setMock(HttpCalloutMock.class, new QBOBudgetMock());
+
+        Test.startTest();
+        SalesDashboardRemoter.getQBBudgets('CURRENT FY');
+        Test.stopTest();
     }
 
 }

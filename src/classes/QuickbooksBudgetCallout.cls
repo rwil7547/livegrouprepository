@@ -16,24 +16,32 @@ public class QuickbooksBudgetCallout {
 
     }
 
-    public static Boolean updateOpexForecast(String budgetId, String forecastId, String year, Date closeMonth) {
+    public static Boolean updateOpexForecast(String budgetId, String forecastId, String year, String closeMonthString) {
 
         String fiscalYear;
         Integer yearsToAdd;
         Date startDate;
+        Date closeMonth;
         Boolean closeMonthChanged = false;
 
         if (year.equalsIgnoreCase('CURRENT FY')){
             fiscalYear = 'THIS_FISCAL_YEAR';
             yearsToAdd = 0;
             startDate  = (Date.today().month() < 4) ?
-                    Date.newInstance(Date.today().year() -1, 04, 01) : Date.newInstance(Date.today().year(), 04, 01);
+                          Date.newInstance(Date.today().year() -1, 04, 01) :
+                          Date.newInstance(Date.today().year(), 04, 01);
+            closeMonth = Date.valueOf(closeMonthString);
             if (closeMonth != QBClosedMonth__c.getInstance('QBClosedMonth').Month__c){
                 closeMonthChanged = true;
             }
         } else if (year.equalsIgnoreCase('NEXT FY')){
             fiscalYear = 'NEXT_FISCAL_YEAR';
-            yearsToAdd = 1;
+            startDate  = (Date.today().month() < 4) ?
+                    Date.newInstance(Date.today().year(), 04, 01) :
+                    Date.newInstance(Date.today().year() + 1, 04, 01);
+            closeMonth = (Date.today().month() < 4) ?
+                    Date.newInstance(Date.today().year(), 04, 01) :
+                    Date.newInstance(Date.today().year() + 1, 04, 01);
         }
 
         Map<String,QBProfitAndLoss__c> entriesMap   = new Map<String,QBProfitAndLoss__c>();
@@ -43,23 +51,14 @@ public class QuickbooksBudgetCallout {
                                             'ForecastSource__c, Month__c, Nominal__c ' +
                                             'FROM QBProfitAndLoss__c ' +
                                             'WHERE Month__c = ' + fiscalYear)){
-            pnlEntry.Budget__c = 0;
-
-            if (closeMonthChanged){
-                pnlEntry.Actual__c      = 0;
-                pnlEntry.QBUpdated__c   = false;
-            } else {
-                if (pnlEntry.Month__c > closeMonth){
-                    pnlEntry.Actual__c      = 0;
-                    pnlEntry.QBUpdated__c   = false;
-                }
-            }
-            entriesMap.put(pnlEntry.Month__c.month() + String.valueOf(pnlEntry.Nominal__c), pnlEntry);
+            entriesToDelete.add(pnlEntry);
         }
 
-        // check if the closed month in QB has been changed
-        if (closeMonthChanged){
+        // query the PNL if the update is for the current financial year
+        if (fiscalYear == 'THIS_FISCAL_YEAR'){
             Date calloutDate = startDate;
+
+            system.debug('start date is ' + startDate + ' and closeMonth is ' + closeMonth);
             while (calloutDate <= closeMonth) {
 
                 String start = calloutDate.year() + '-' + calloutDate.month() + '-' + calloutDate.day();
@@ -125,9 +124,15 @@ public class QuickbooksBudgetCallout {
         if (budgetResponse.getStatusCode() == 200) {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
+
+                Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
+
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
+
+                    // todo: work out years to add
+                    Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
                     String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-                    String identifier   = Date.valueOf(detail.BudgetDate).month() + detail.AccountRef.name;
+                    String identifier   = budgetDate.month() + detail.AccountRef.name;
 
                     if (entriesMap.containsKey(identifier)){
                         entriesMap.get(identifier).Budget__c         = detail.Amount;
@@ -136,11 +141,11 @@ public class QuickbooksBudgetCallout {
                         entriesMap.put(
                             identifier,
                             new  QBProfitAndLoss__c(
-                                Nominal__c = detail.AccountRef.name,
-                                Parent__c = parent,
-                                Month__c = Date.valueOf(detail.BudgetDate),
-                                Budget__c = detail.Amount,
-                                Actual__c = 0,
+                                Nominal__c  = detail.AccountRef.name,
+                                Parent__c   = parent,
+                                Month__c    = budgetDate,
+                                Budget__c   = detail.Amount,
+                                Actual__c   = 0,
                                 BudgetSource__c = parsedResults.QueryResponse.Budget[0].Name
                             )
                         );
@@ -161,10 +166,16 @@ public class QuickbooksBudgetCallout {
         if (forecastResponse.getStatusCode() == 200) {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(forecastResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
+
+                Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
+
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
-                    if (Date.valueOf(detail.BudgetDate).addYears(yearsToAdd) > closeMonth) {
+
+                    Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
+
+                    if (budgetDate >= closeMonth) {
                         String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-                        String identifier = Date.valueOf(detail.BudgetDate).month() + detail.AccountRef.name;
+                        String identifier = budgetDate.month() + detail.AccountRef.name;
 
                         if (entriesMap.containsKey(identifier)) {
                             entriesMap.get(identifier).Actual__c = detail.Amount;
@@ -173,11 +184,11 @@ public class QuickbooksBudgetCallout {
                             entriesMap.put(
                                 identifier,
                                 new QBProfitAndLoss__c(
-                                    Nominal__c = detail.AccountRef.name,
-                                    Parent__c = parent,
-                                    Month__c = Date.valueOf(detail.BudgetDate),
-                                    Budget__c = 0,
-                                    Actual__c = detail.Amount,
+                                    Nominal__c  = detail.AccountRef.name,
+                                    Parent__c   = parent,
+                                    Month__c    = budgetDate,
+                                    Budget__c   = 0,
+                                    Actual__c   = detail.Amount,
                                     ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name
                                 )
                             );
@@ -189,13 +200,7 @@ public class QuickbooksBudgetCallout {
             return false;
         }
 
-        for (QBProfitAndLoss__c pnlEntry : entriesMap.values()){
-            if (pnlEntry.Budget__c == 0 && pnlEntry.Actual__c == 0){
-                entriesToDelete.add(pnlEntry);
-            }
-        }
-
-        upsert entriesMap.values();
+        insert entriesMap.values();
         delete entriesToDelete;
 
         if (closeMonthChanged){
@@ -206,63 +211,4 @@ public class QuickbooksBudgetCallout {
 
         return true;
     }
-
-    @Future(Callout=true)
-    public static void getBudget() {
-
-        String query = 'query?query=select%20%2a%20from%20budget%20where%20name%20%3d%20%272018-19%20Budget%202%27&minorversion=4';
-
-        /// find custom setting, find the name in there , insert that into the string
-
-
-        // obtain callout information and call Quickbooks change data capture web service
-        Http http = new http();
-        HttpRequest request = buildCallout(query);
-        HttpResponse response = http.send(request);
-
-        System.debug(response.getBody());
-
-        List<QBProfitAndLoss__c> toDelete = [SELECT Id FROM QBProfitAndLoss__c
-        WHERE Month__c >= :Date.today().toStartOfMonth()
-        AND Month__c = THIS_FISCAL_YEAR];
-
-        List<QBProfitAndLoss__c> toInsert = new List<QBProfitAndLoss__c>();
-
-        if (response.getStatusCode() == 200) {
-
-            Set<String> nonOpex = new Set<String>{'Events Revenue', 'Other Income', 'Discounts given', 'Discounts/Refunds Given', 'Events COS', 'Amex Charges'};
-
-            JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(response.getBody());
-
-            if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1){
-
-                for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
-
-                    if (Date.valueOf(detail.BudgetDate) >= Date.today().toStartOfMonth()){
-
-                        String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-
-                        QBProfitAndLoss__c pnl = new QBProfitAndLoss__c(
-                                Nominal__c = detail.AccountRef.name,
-                                Parent__c = parent,
-                                Month__c = Date.valueOf(detail.BudgetDate),
-                                Budget__c = detail.Amount,
-                                Actual__c = detail.Amount
-                        );
-
-                        System.debug(detail.AccountRef.name);
-
-                        toInsert.add(pnl);
-
-                    }
-                }
-            }
-
-            delete  toDelete;
-            insert  toInsert;
-
-        }
-
-    }
-
 }

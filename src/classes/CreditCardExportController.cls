@@ -17,6 +17,8 @@ public class CreditCardExportController {
 
         for (Integer i = 1; i < reportRows.size(); i++){
 
+            system.debug(reportRows[i]);
+
             String[] colValues = reportRows[i].split(',');
 
             if (colValues[0] != 'ACC.LAST NAME' && colValues[0] != ''){
@@ -38,11 +40,14 @@ public class CreditCardExportController {
                 String cityString = (colValues[5].length() > 0 && !colValues[5].substring(0,1).isNumeric()) ?
                         colValues[5].escapeEcmaScript().replaceAll('[\\\\/&@?]','') : '';
 
+                String[] dateVals = colValues[7].split('/');
+                Date dateVal = Date.newInstance(Integer.valueOf(dateVals[2]),Integer.valueOf(dateVals[1]),Integer.valueOf(dateVals[0]));
+
                 linesByPerson.get(employeeId).add(
                         new CreditCardLine__c(
                             Amount__c   = Decimal.valueOf(colValues[3]),
                             Merchant__c = merchant + ' ' + currencyString + ' ' + cityString,
-                            TransactionDate__c = Date.parse(colValues[7])
+                            TransactionDate__c = dateVal
                 ));
             }
         }

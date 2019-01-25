@@ -1243,7 +1243,7 @@ global class SalesDashboardRemoter {
     @RemoteAction
     global static Map<String,Object> getQBBudgets(String year){
 
-        String fiscalYear = 'CURRENT_FISCAL_YEAR';
+        String fiscalYear;
 
         if (year.equalsIgnoreCase('CURRENT FY')){
             fiscalYear = 'THIS_FISCAL_YEAR';
@@ -1255,7 +1255,8 @@ global class SalesDashboardRemoter {
 
         Http http = new Http();
         HttpRequest request = new HttpRequest();
-        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata%2c%20Id%20from%20budget&minorversion=4');
+        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
+                'EndDate%2c%20Id%20from%20budget&minorversion=4');
         request.setHeader('Accept', 'application/json');
         request.setMethod('GET');
         request.setTimeout(120000);
@@ -1269,11 +1270,15 @@ global class SalesDashboardRemoter {
                                 Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
                                 'FROM QBProfitAndLoss__c ' +
                                 'WHERE Month__c = ' + fiscalYear  + ' ' +
-                                'AND BudgetSource__c != NULL ' +
                                 'ORDER BY Month__c DESC LIMIT 1');
 
         if (!budgetSourceList.isEmpty()){
-            responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+            if (budgetSourceList[0].BudgetSource__c != null){
+                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+            } else {
+                responseMap.put('budgetSource', 'Unknown Budget');
+            }
+
             responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
         }
 
@@ -1281,11 +1286,14 @@ global class SalesDashboardRemoter {
                 Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
                         'FROM QBProfitAndLoss__c ' +
                         'WHERE Month__c = ' + fiscalYear  + ' ' +
-                        'AND ForecastSource__c != NULL ' +
                         'ORDER BY Month__c DESC LIMIT 1');
 
         if (!forecastSourceList.isEmpty()){
-            responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+            if (forecastSourceList[0].ForecastSource__c != null){
+                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+            } else {
+                responseMap.put('forecastSource', 'Unknown Forecast');
+            }
             responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
         }
 
@@ -1301,8 +1309,7 @@ global class SalesDashboardRemoter {
     @RemoteAction
     global static Boolean updateBudgets(String budgetId, String forecastId, String year, String month){
 
-        Boolean result = QuickbooksBudgetCallout.updateOpexForecast(budgetId, forecastId, year, Date.valueOf(month));
-
+        Boolean result = QuickbooksBudgetCallout.updateOpexForecast(budgetId, forecastId, year, month);
         return result;
     }
 

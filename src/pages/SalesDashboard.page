@@ -1331,7 +1331,7 @@
                             <div class="noSpill keySelectorText" id="budget">Budget</div>
                         </div>
                     </div>
-                    <div class="splitSelector reportUtil" id="opexSplitSelector" >
+                    <div class="splitSelector reportUtil" id="opexSplitSelector" style="display:none;">
                         <div class="keySplit" id="opexSplitButton" onclick="showOpexSplit()">Breakdown</div>
                         <div class="keySelectorSub keySplitCategory" id="opexSplit" style="display:none;">
                             <div><i class="fa fa-times-circle closeKey" onclick="closeOpexSplit()"></i></div>
@@ -5692,43 +5692,58 @@
                         function (result, event) {
                             if (event.status) {
 
+                                console.log(result);
+
                                 var forecastList    = document.getElementById('forecastList');
                                 var budgetList      = document.getElementById('budgetList');
                                 var queryResponse   = result['budgets']['QueryResponse'];
                                 var budgets         = queryResponse['Budget'];
-                                var budgetAlert;
-                                var forecastAlert;
+                                var budgetAlert     = '';
+                                var forecastAlert   = '';
 
                                 budgets.forEach(function (budget) {
-                                    var datedBudget         = (budget['Name'] === result['budgetSource']) ?
-                                        new Date(result['budgetUpdate']) < new Date(budget['MetaData'].LastUpdatedTime) : false;
-                                    var datedForecast       = (budget['Name'] === result['forecastSource']) ?
-                                        new Date(result['forecastUpdate']) < new Date(budget['MetaData'].LastUpdatedTime) : false;
+                                    var startDate   = new Date(budget['StartDate']);
+                                    var endDate     = new Date(budget['EndDate']);
 
-                                    budgetAlert         = (budget['Name'] === result['budgetSource'] && datedBudget) ? '<i class="fas fa-exclamation-triangle"></i>' : '';
-                                    forecastAlert       = (budget['Name'] === result['forecastSource'] && datedForecast) ? '<i class="fas fa-exclamation-triangle"></i>' : '';
+                                    if (budget['BudgetEntryType'] === 'Monthly' && startDate.getMonth() === 3
+                                        && startDate.getDate() === 1 && endDate.getMonth() === 2 && endDate.getDate() === 31){
+                                        if (budget['Name'] === result['budgetSource'] &&
+                                            new Date(budget['MetaData'].LastUpdatedTime) > new Date(result['budgetUpdate'])){
+                                            budgetAlert = '<i style="color:red;" class="fas fa-exclamation-triangle"></i>';
+                                        }
+                                        if (budget['Name'] === result['forecastSource'] &&
+                                            new Date(budget['MetaData'].LastUpdatedTime) > new Date(result['forecastUpdate'])){
+                                            forecastAlert = '<i style="color:red;" class="fas fa-exclamation-triangle"></i>';
+                                        }
 
-                                    var selectedBudget      = (budget['Name'] === result['budgetSource']) ? 'selected ' : '';
-                                    var selectedForecast    = (budget['Name'] === result['forecastSource']) ? 'selected ' : '';
+                                        var selectedBudget      = (budget['Name'] === result['budgetSource']) ? 'selected ' : '';
+                                        var selectedForecast    = (budget['Name'] === result['forecastSource']) ? 'selected ' : '';
 
-                                    forecastList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedForecast + '>' + budget['Name'] + forecastAlert + '</div>';
-                                    budgetList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedBudget + '>' + budget['Name'] + budgetAlert +'</div>';
+                                        forecastList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedForecast + '>' +
+                                            budget['Name'] + forecastAlert + '</option>';
+                                        budgetList.innerHTML += '<option value="' + budget['Id'] + '" ' + selectedBudget + '>' +
+                                            budget['Name'] + budgetAlert +'</option>';
+                                    }
                                 });
 
                                 var monthList = document.getElementById('closedMonth');
-                                var closedMonth = new Date(result['closedMonth']);
-                                closedMonth.setHours(closedMonth.getHours() + (closedMonth.getTimezoneOffset() / 60));
-
-                                console.log('current value of close month is ' + closedMonth.toString());
 
                                 if (document.getElementById('datePicklist').value === 'NEXT FY'){
-                                    monthList.innerHTML += '<option>UNAVAILABLE</div>';
+                                    monthList.innerHTML += '<option value="">UNAVAILABLE</div>';
                                     monthList.disabled = true;
+                                    document.getElementById('closedOpex').innerHTML = 'Closed';
                                 } else {
-                                    var startingDate = new Date(closedMonth);
+                                    var closeDate = new Date(result['closedMonth']);
+                                    closeDate.setHours(closeDate.getHours() + (closeDate.getTimezoneOffset() / 60));
+                                    var closeText = closeDate.toDateString();
+                                    document.getElementById('closedOpex').innerHTML = 'Closed (' + closeText.substr(4,4) +
+                                        closeText.substring(closeText.length -4, closeText.length) + ')';
+
+                                    var startingDate = new Date(closeDate);
+                                    startingDate.setMonth(startingDate.getMonth() - 1);
 
                                     while (startingDate < today){
-                                        var selected = (startingDate === closedMonth) ? 'selected' : '';
+                                        var selected = (startingDate.getMonth() === closeDate.getMonth()) ? 'selected' : '';
 
                                         monthList.innerHTML += '<option value="' + startingDate + '" ' + selected + '>' +
                                             startingDate.toLocaleString('en-us', { month: 'long' }) + ' ' + startingDate.getFullYear() +
@@ -5737,19 +5752,10 @@
                                     }
                                 }
 
-                                console.log('budget value from apex is ' + result['budgetSource'] +
-                                ' and forecast is ' + result['forecastSource']);
-
-                                // document.getElementById('budget').innerHTML = 'Budget (' + result['budgetSource'] + ')';
                                 document.getElementById('budget').innerHTML = result['budgetSource'] + ' ' + budgetAlert;
-                                // document.getElementById('forecast').innerHTML = 'Forecast (' + result['forecastSource'] + ')';                                document.getElementById('budget').innerHTML = 'Budget (' + result['budgetSource'] + ')';
                                 document.getElementById('forecast').innerHTML = result['forecastSource'] + ' ' + forecastAlert;
 
-                                var closeDate = new Date(result['closedMonth']);
-                                closeDate.setHours(closeDate.getHours() + (closeDate.getTimezoneOffset() / 60));
-                                var closeText = closeDate.toDateString();
-                                document.getElementById('closedOpex').innerHTML = 'Closed (' + closeText.substr(4,4) +
-                                    closeText.substring(closeText.length -4, closeText.length) + ')';
+
                                 document.getElementById('quickbooksBudget').classList.add('updated');
                             }
                         }
@@ -5775,7 +5781,7 @@
 
         function showUpdateOption() {
             if (document.getElementById('qbBudgetButton').style.display === 'none'){
-                document.getElementById('qbBudgetButton').style.display = 'block';
+                document.getElementById('qbBudgetButton').style.display = 'inline';
             }
         }
 
@@ -5790,10 +5796,13 @@
             var budgetId    = document.getElementById('budgetList').value;
             var forecastId  = document.getElementById('forecastList').value;
             var year        = document.getElementById('datePicklist').value;
-            var monthVal    = new Date(document.getElementById('closedMonth').value);
-            var day         = (monthVal.getDate()) < 10 ? '0' + monthVal.getDate() : monthVal.getDate();
-            var month       = (monthVal.getMonth() < 10) ? '0' + (monthVal.getMonth() + 1) : (monthVal.getMonth() + 1);
-            var closeDate   = monthVal.getFullYear() + '-' + month + '-' + day;
+            var closeDate   = null;
+            if (document.getElementById('closedMonth').value){
+                var monthVal    = new Date(document.getElementById('closedMonth').value);
+                var day         = (monthVal.getDate()) < 10 ? '0' + monthVal.getDate() : monthVal.getDate();
+                var month       = (monthVal.getMonth() < 10) ? '0' + (monthVal.getMonth() + 1) : (monthVal.getMonth() + 1);
+                closeDate   = monthVal.getFullYear() + '-' + month + '-' + day;
+            }
 
             Visualforce.remoting.Manager.invokeAction(
                 '{!$RemoteAction.SalesDashboardRemoter.updateBudgets}',

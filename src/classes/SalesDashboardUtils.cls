@@ -154,7 +154,7 @@ public class SalesDashboardUtils {
 
     public static void commitOpportunites(){
 
-        List<Opportunity> priorOpportunities = [SELECT Id, Amount_Calder__c, Gross_profit_2__c,
+        List<Opportunity> priorOpportunities = [SELECT Id, Event_end__c, Amount_Calder__c, Gross_profit_2__c,
                                                         Filtered_Cost_of_Sale__c
                                                 FROM Opportunity
                                                 WHERE StageName = 'Closed Won'
@@ -164,9 +164,17 @@ public class SalesDashboardUtils {
 
         for (Opportunity opp : priorOpportunities){
             opp.Committed__c        = true;
-            opp.CommittedRevenue__c = opp.Amount_Calder__c;
-            opp.CommittedProfit__c  = opp.Gross_profit_2__c;
-            opp.CommittedCOS__c     = opp.Filtered_Cost_of_Sale__c;
+            // if the opportunity falls in the prior month
+            if (opp.Event_end__c >= Date.today().addMonths(-1).toStartOfMonth()){
+                opp.CommittedRevenue__c = opp.Amount_Calder__c;
+                opp.CommittedProfit__c  = opp.Gross_profit_2__c;
+                opp.CommittedCOS__c     = opp.Filtered_Cost_of_Sale__c;
+            } else {
+                // if the opportunity is earlier than the prior month
+                opp.CommittedRevenue__c = 0;
+                opp.CommittedProfit__c  = 0;
+                opp.CommittedCOS__c     = 0;
+            }
         }
 
         update priorOpportunities;
@@ -299,7 +307,6 @@ public class SalesDashboardUtils {
             runningCommissionTotal += ((Decimal)commissionAggregates[0].get('amount') * -1);
         }
 
-
         Map<Date, Adjustment__c> calderAdjustments = new Map<Date, Adjustment__c>();
 
         for (Adjustment__c adj : [SELECT Id, Committed__c, Revenue__c, CostOfSale__c, Profit__c, Month__c
@@ -322,12 +329,12 @@ public class SalesDashboardUtils {
             if (revenueMap.get(financialMonth) > 750000){
 
                 Decimal total = revenueMap.get(financialMonth) - 750000;
-                Decimal commission = (total * 0.05) + (350000 * 0.25);
+                Decimal commission = (total * 0.05) + (350000 * 0.025);
                 Decimal owing = commission - runningCommissionTotal;
 
-                system.debug('when in month ' + financialMonth + ' the commission owing is ' + commission + '' +
-                        ' and the amount subtracted from prior commissions is ' + runningCommissionTotal + ' ' +
-                        ' so the remaining commission to add is ' + owing);
+//                system.debug('when in month ' + financialMonth + ' the commission owing is ' + commission + '' +
+//                        ' and the amount subtracted from prior commissions is ' + runningCommissionTotal + ' ' +
+//                        ' so the remaining commission to add is ' + owing);
 
                 runningCommissionTotal += owing;
 
