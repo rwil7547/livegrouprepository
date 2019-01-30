@@ -38,7 +38,7 @@ public class SalesDashboardUtils {
             } else {
 
                 QBBalance__c priorBalance = [SELECT Confirmed__c FROM QBBalance__c
-                ORDER BY Date__c DESC LIMIT 1];
+                                             ORDER BY Date__c DESC LIMIT 1];
 
                 Decimal currentBalance = priorBalance.Confirmed__c;
                 QBBalance__c balance = new QBBalance__c(
@@ -331,10 +331,6 @@ public class SalesDashboardUtils {
                 Decimal total = revenueMap.get(financialMonth) - 750000;
                 Decimal commission = (total * 0.05) + (350000 * 0.025);
                 Decimal owing = commission - runningCommissionTotal;
-
-//                system.debug('when in month ' + financialMonth + ' the commission owing is ' + commission + '' +
-//                        ' and the amount subtracted from prior commissions is ' + runningCommissionTotal + ' ' +
-//                        ' so the remaining commission to add is ' + owing);
 
                 runningCommissionTotal += owing;
 

@@ -4,7 +4,13 @@
 @isTest
 global class JSONParserQBOCurrentAccountMock implements HttpCalloutMock {
 
+    Integer statusCode;
+
     global HTTPResponse respond(HTTPRequest req) {
+
+        if (statusCode == null){
+            statusCode = 200;
+        }
 
         // mock response
         HttpResponse res = new HttpResponse();
@@ -42,8 +48,15 @@ global class JSONParserQBOCurrentAccountMock implements HttpCalloutMock {
                 '  },' +
                 '  "time": "2018-06-20T03:27:56.746-07:00"' +
                 '}');
-        res.setStatusCode(200);
+        res.setStatusCode(statusCode);
         return res;
+    }
+
+    global JSONParserQBOCurrentAccountMock(Integer statusCode){
+        this.statusCode = statusCode;
+    }
+
+    global JSONParserQBOCurrentAccountMock(){
     }
 
 }

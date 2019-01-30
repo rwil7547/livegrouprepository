@@ -4,7 +4,7 @@
 
 public class QuickbooksBudgetCallout {
 
-    public static HttpRequest buildCallout(String query) {
+    private static HttpRequest buildCallout(String query) {
 
         // build callout parameters
         HttpRequest request = new HttpRequest();
@@ -125,11 +125,12 @@ public class QuickbooksBudgetCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
+                system.debug(startDate);
+
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
 
-                    // todo: work out years to add
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
                     String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
                     String identifier   = budgetDate.month() + detail.AccountRef.name;
@@ -173,7 +174,7 @@ public class QuickbooksBudgetCallout {
 
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 
-                    if (budgetDate >= closeMonth) {
+                    if (budgetDate > closeMonth) {
                         String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
                         String identifier = budgetDate.month() + detail.AccountRef.name;
 
@@ -211,4 +212,5 @@ public class QuickbooksBudgetCallout {
 
         return true;
     }
+
 }

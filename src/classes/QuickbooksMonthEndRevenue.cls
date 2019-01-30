@@ -4,10 +4,9 @@
 
 public with sharing class QuickbooksMonthEndRevenue {
 
-//    public static void reverseRevenueJournals(){
+//    public static void reverseRevenueJournals(Date priorMonth){
 //
 //        // get params for queries
-//        Date priorMonth = Date.today().addMonths(-1).toStartOfMonth();
 //        String month    = (priorMonth.month() < 10) ? '0' + String.valueOf(priorMonth.month()) : String.valueOf(priorMonth.month());
 //
 //        // check for accruals journal from prior month
@@ -26,281 +25,281 @@ public with sharing class QuickbooksMonthEndRevenue {
 //                if (!journal.DocNumber.contains('R') && !journal.DocNumber.contains('Reversal')){
 //                    // generate posting string
 //                    generateJournalString(journal);
-//
 //                }
 //            }
 //        }
-//
-//        System.debug(response.getBody());
 //    }
 
-
-    public static void calculateRevenueJournal() {
+    public static void calculateRevenueJournal(Date currentMonth) {
 
         // check that the journals have not already been calculated
-        if ([SELECT Id FROM QBJournal__c WHERE TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
-        AND Target__c = '4000 Revenue'].isEmpty()){
+        if (![SELECT Id FROM QBJournal__c WHERE TxnDate__c = :currentMonth
+            AND Target__c = '4000 Revenue'].isEmpty()) {
 
-            // establish what the end figures need to be
-            Decimal salesforceRevenue   = getTotalSalesforceFigures();
-
-            // delcare values to store total figures
-            Decimal monthTotalRevenue   = 0;
-            Decimal pnlRevenueDebit     = 0;
-            Decimal pnlRevenueCredit    = 0;
-
-            // boolean check that all callouts have been successful
-            Boolean invoiceCallout          = false;
-            Boolean accrualsCallout         = false;
-            Boolean creditMemoCallout       = false;
-            Boolean accrualsCreditCallout   = false;
-            Boolean journalCallout          = false;
-
-            // generate date string params to be used in Quickbooks callout
-            String monthStart   = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
-            String monthEnd     = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
-            String lastDayOfPriorMonth = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
-
-            // establish lists of journals to be created
-            List<JSONParserQBOInvoiceFlow.cls_Invoice> invoicesToDefer              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
-            List<JSONParserQBOInvoiceFlow.cls_Invoice> accrualsToDebit              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
-            List<JSONParserQBOCreditMemoFlow.cls_CreditMemo> creditMemosToDefer     = new List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>();
-            List<JSONParserQBOCreditMemoFlow.cls_CreditMemo> memoAccrualsToDebit    = new List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>();
-            List<JSONParserQBOJournalFlow.cls_Line> journalsToDefer                 = new List<JSONParserQBOJournalFlow.cls_Line>();
-            List<Opportunity> opportunitiesToAccrue                                 = new List<Opportunity>();
-            List<Adjustment__c> adjustmentsToAccrue                                 = new List<Adjustment__c>();
-            List<AggregateResult> commissionsToAccrue                               = new List<AggregateResult>();
-
-            // get set of invoices and job numbers in the future, used to determine if entries
-            // need to be deferred
-            Map<String, List<Object>> futureIds = getIds(true);
-            Map<String, List<Object>> pastIds   = getIds(false);
-
-            // 1. INVOICES: callout to Quickbooks to retrieve any invoice entries siting in the prior month
-            String query1 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
-                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
-
-            Http http1              = new Http();
-            HttpRequest request1    = buildCallout(query1);
-            HttpResponse response1  = http1.send(request1);
-
-            if (response1.getStatusCode() == 200) {
-                invoiceCallout = true;
-                Map<String, Object> processedInvoices =
-                        processInvoices(futureIds.keySet(), JSONParserQBOInvoiceFlow.parse(response1.getBody()));
-
-                monthTotalRevenue   += (Decimal)processedInvoices.get('Total');
-                pnlRevenueDebit     += (Decimal)processedInvoices.get('Debit');
+            delete [SELECT Id FROM QBJournal__c WHERE TxnDate__c = :currentMonth
+                     AND Target__c = '4000 Revenue'];
+        }
 
 
-                invoicesToDefer.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedInvoices.get('Invoices'));
+        // establish what the end figures need to be
+        Decimal salesforceRevenue   = getTotalSalesforceFigures();
 
+        // delcare values to store total figures
+        Decimal monthTotalRevenue   = 0;
+        Decimal pnlRevenueDebit     = 0;
+        Decimal pnlRevenueCredit    = 0;
+
+        // boolean check that all callouts have been successful
+        Boolean invoiceCallout          = false;
+        Boolean accrualsCallout         = false;
+        Boolean creditMemoCallout       = false;
+        Boolean accrualsCreditCallout   = false;
+        Boolean journalCallout          = false;
+
+        // generate date string params to be used in Quickbooks callout
+        String monthStart   = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
+        String monthEnd     = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
+        String lastDayOfPriorMonth = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
+
+        // establish lists of journals to be created
+        List<JSONParserQBOInvoiceFlow.cls_Invoice> invoicesToDefer              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
+        List<JSONParserQBOInvoiceFlow.cls_Invoice> accrualsToDebit              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
+        List<JSONParserQBOCreditMemoFlow.cls_CreditMemo> creditMemosToDefer     = new List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>();
+        List<JSONParserQBOCreditMemoFlow.cls_CreditMemo> memoAccrualsToDebit    = new List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>();
+        List<JSONParserQBOJournalFlow.cls_Line> journalsToDefer                 = new List<JSONParserQBOJournalFlow.cls_Line>();
+        List<Opportunity> opportunitiesToAccrue                                 = new List<Opportunity>();
+        List<Adjustment__c> adjustmentsToAccrue                                 = new List<Adjustment__c>();
+        List<AggregateResult> commissionsToAccrue                               = new List<AggregateResult>();
+
+        // get set of invoices and job numbers in the future, used to determine if entries
+        // need to be deferred
+        Map<String, List<Object>> futureIds = getIds(true);
+        Map<String, List<Object>> pastIds   = getIds(false);
+
+        // 1. INVOICES: callout to Quickbooks to retrieve any invoice entries siting in the prior month
+        String query1 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
+                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
+
+        Http http1              = new Http();
+        HttpRequest request1    = buildCallout(query1);
+        HttpResponse response1  = http1.send(request1);
+
+        if (response1.getStatusCode() == 200) {
+            invoiceCallout = true;
+            Map<String, Object> processedInvoices =
+                    processInvoices(futureIds.keySet(), JSONParserQBOInvoiceFlow.parse(response1.getBody()));
+
+            monthTotalRevenue   += (Decimal)processedInvoices.get('Total');
+            pnlRevenueDebit     += (Decimal)processedInvoices.get('Debit');
+
+
+            invoicesToDefer.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedInvoices.get('Invoices'));
+
+        }
+
+        // 2. CREDIT NOTE: callout to Quickbooks to retrieve any credit note entries siting in the prior month
+        String query2 = 'query?query=select%20%2a%20from%20creditMemo%20where%20TxnDate%20%3e%20%27' +
+                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
+
+        Http http2              = new Http();
+        HttpRequest request2    = buildCallout(query2);
+        HttpResponse response2  = http2.send(request2);
+
+        if (response2.getStatusCode() == 200) {
+            creditMemoCallout = true;
+            Map<String, Object> processedCreditMemos =
+                    processCreditMemos(futureIds.keySet(), JSONParserQBOCreditMemoFlow.parse(response2.getBody()));
+
+            monthTotalRevenue   += (Decimal)processedCreditMemos.get('Total');
+            pnlRevenueCredit    += (Decimal)processedCreditMemos.get('Credit');
+
+            creditMemosToDefer.addAll((List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>) processedCreditMemos.get('CreditMemos'));
+
+        }
+
+        // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
+        // todo: ensure this picks up the journal from the prior month except for in the first execution instance
+        // todo: these ids should be passed over from the reversal method
+        Set<String> journalIds  = new Set<String>{'23133'};
+        Set<String> accrualsIds = new Set<String>();
+
+        for (String journalId : journalIds) {
+
+            String query3 = 'query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' + journalId + '%27&minorversion=4';
+
+            // do callout
+            Http http3              = new http();
+            HttpRequest request3    = buildCallout(query3);
+            HttpResponse response3  = http3.send(request3);
+
+            if (response3.getStatusCode() == 200) {
+                journalCallout = true;
+                Map<String, Object> processedJournals =
+                        processJournals(futureIds.keySet(), JSONParserQBOJournalFlow.parse(response3.getBody()));
+
+                monthTotalRevenue   += (Decimal)processedJournals.get('Total');
+                pnlRevenueDebit     += (Decimal)processedJournals.get('pnlDebit');
+                pnlRevenueCredit    += (Decimal)processedJournals.get('pnlCredit');
+
+                journalsToDefer.addAll((List<JSONParserQBOJournalFlow.cls_Line>) processedJournals.get('Journals'));
+                accrualsIds.addAll((Set<String>) processedJournals.get('AccrualIds'));
             }
 
-            // 2. CREDIT NOTE: callout to Quickbooks to retrieve any credit note entries siting in the prior month
-            String query2 = 'query?query=select%20%2a%20from%20creditMemo%20where%20TxnDate%20%3e%20%27' +
-                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
+            System.debug('when jrnl callout done the debit to pnl is ' + pnlRevenueDebit);
 
-            Http http2              = new Http();
-            HttpRequest request2    = buildCallout(query2);
-            HttpResponse response2  = http2.send(request2);
 
-            if (response2.getStatusCode() == 200) {
-                creditMemoCallout = true;
-                Map<String, Object> processedCreditMemos =
-                        processCreditMemos(futureIds.keySet(), JSONParserQBOCreditMemoFlow.parse(response2.getBody()));
+        }
 
-                monthTotalRevenue   += (Decimal)processedCreditMemos.get('Total');
-                pnlRevenueCredit    += (Decimal)processedCreditMemos.get('Credit');
+        for (JSONParserQBOJournalFlow.cls_Line line : journalsToDefer){
+            system.debug('the following journal line should now be deferred ' + line);
+        }
 
-                creditMemosToDefer.addAll((List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>) processedCreditMemos.get('CreditMemos'));
 
+        System.debug('total for month is ' + monthTotalRevenue);
+
+        // 4. INVOICES ACCRUAL: callout to Quickbooks to retrieve any invoice
+        // entries siting in the current month which are for the prior month
+        // and do not already have a journal associated with them
+        String query5 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
+                lastDayOfPriorMonth + '%27&minorversion=4';
+
+        Http http5              = new Http();
+        HttpRequest request5    = buildCallout(query5);
+        HttpResponse response5  = http5.send(request5);
+
+        if (response5.getStatusCode() == 200) {
+            accrualsCallout = true;
+            Map<String, Object> processedAccruals =
+                    processAccruals(accrualsIds, JSONParserQBOInvoiceFlow.parse(response5.getBody()));
+
+            pnlRevenueCredit        += (Decimal)processedAccruals.get('Credit');
+            accrualsToDebit.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedAccruals.get('Invoices'));
+        }
+
+        // 5. CREDIT NOTE ACCRUAL: callout to Quickbooks to retrieve any credit note entries
+        // siting in the current month which are for the prior month and do not already have
+        // a journal associated with them
+        String query6 = 'query?query=select%20%2a%20from%20creditMemo%20where%20TxnDate%20%3e%20%27' +
+                lastDayOfPriorMonth + '%27&minorversion=4';
+
+        Http http6              = new Http();
+        HttpRequest request6    = buildCallout(query6);
+        HttpResponse response6  = http6.send(request6);
+
+        if (response6.getStatusCode() == 200) {
+            accrualsCreditCallout = true;
+            Map<String, Object> processedAccruals =
+                    processCreditAccruals(accrualsIds, JSONParserQBOCreditMemoFlow.parse(response6.getBody()));
+
+            pnlRevenueDebit        += (Decimal)processedAccruals.get('Debit');
+            memoAccrualsToDebit.addAll((List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>) processedAccruals.get('CreditMemos'));
+        }
+
+
+        // 6. OPPORTUNITIES: determine if some opportunities from the prior month or
+        // earlier are still not fully invoiced
+        for (Opportunity opp : [SELECT Id, Filtered_Job_Number__c, Name, QuickbooksClassId__c,
+                Percent_Invoiced__c, Amount_Calder__c, CommittedRevenue__c,
+                Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
+        FROM Opportunity
+        WHERE Event_end__c < :Date.today().toStartOfMonth()
+        AND Event_end__c = THIS_FISCAL_YEAR
+        AND StageName = 'Closed Won'
+        AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
+
+            opportunitiesToAccrue.add(opp);
+
+            System.debug('processing an opportunity with remaning val ' + opp.Amount_Remaining__c);
+
+            if (opp.Amount_Remaining__c < 0){
+                pnlRevenueDebit += (opp.Amount_Remaining__c * -1);
+            } else {
+                pnlRevenueCredit += opp.Amount_Remaining__c;
             }
+        }
 
-            // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
-            // todo: ensure this picks up the journal from the prior month except for in the first execution instance
-            // todo: these ids should be passed over from the reversal method
-            Set<String> journalIds  = new Set<String>{'23133'};
-            Set<String> accrualsIds = new Set<String>();
+        // 7. OPPORTUNITY ADJUSTMENTS
+        for (Adjustment__c adjustment : [SELECT Id, Revenue__c, Opportunity__r.Name,
+                Opportunity__r.QuickbooksClassId__c,
+                Opportunity__r.Filtered_Job_Number__c
+        FROM Adjustment__c
+        WHERE Month__c >= :Date.today().toStartOfMonth()
+        AND Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
+        AND (Revenue__c < -0.1 OR Revenue__c > 0.1)]) {
 
-            for (String journalId : journalIds) {
+            System.debug('processing an opportunity with remaning val ' + adjustment.Revenue__c);
 
-                String query3 = 'query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' + journalId + '%27&minorversion=4';
+            adjustmentsToAccrue.add(adjustment);
 
-                // do callout
-                Http http3              = new http();
-                HttpRequest request3    = buildCallout(query3);
-                HttpResponse response3  = http3.send(request3);
-
-                if (response3.getStatusCode() == 200) {
-                    journalCallout = true;
-                    Map<String, Object> processedJournals =
-                            processJournals(futureIds.keySet(), JSONParserQBOJournalFlow.parse(response3.getBody()));
-
-                    monthTotalRevenue   += (Decimal)processedJournals.get('Total');
-                    pnlRevenueDebit     += (Decimal)processedJournals.get('pnlDebit');
-                    pnlRevenueCredit    += (Decimal)processedJournals.get('pnlCredit');
-
-                    journalsToDefer.addAll((List<JSONParserQBOJournalFlow.cls_Line>) processedJournals.get('Journals'));
-                    accrualsIds.addAll((Set<String>) processedJournals.get('AccrualIds'));
-                }
-
-                System.debug('when jrnl callout done the debit to pnl is ' + pnlRevenueDebit);
-
-
+            if (adjustment.Revenue__c < 0) {
+                pnlRevenueCredit += (adjustment.Revenue__c * -1);
+            } else {
+                pnlRevenueDebit += adjustment.Revenue__c;
             }
+        }
 
-            for (JSONParserQBOJournalFlow.cls_Line line : journalsToDefer){
-                system.debug('the following journal line should now be deferred ' + line);
-            }
+        // 8. DETERMINE IF CALDER COMMISSIONS SHOULD BE APPLIED TO THE MONTH
+        for (AggregateResult commissionAggregate : [SELECT SUM(Revenue__c) revenue
+        FROM Adjustment__c
+        WHERE Calder__c = TRUE
+        AND Month__c <= LAST_MONTH
+        AND Month__c = THIS_FISCAL_YEAR]) {
 
+            if ((Decimal)commissionAggregate.get('revenue') != null ){
+                Decimal amount = (Decimal)commissionAggregate.get('revenue');
 
-            System.debug('total for month is ' + monthTotalRevenue);
+                System.debug('processing a calder commission with val ' + amount);
 
-            // 4. INVOICES ACCRUAL: callout to Quickbooks to retrieve any invoice
-            // entries siting in the current month which are for the prior month
-            // and do not already have a journal associated with them
-            String query5 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
-                    lastDayOfPriorMonth + '%27&minorversion=4';
+                commissionsToAccrue.add(commissionAggregate);
 
-            Http http5              = new Http();
-            HttpRequest request5    = buildCallout(query5);
-            HttpResponse response5  = http5.send(request5);
-
-            if (response5.getStatusCode() == 200) {
-                accrualsCallout = true;
-                Map<String, Object> processedAccruals =
-                        processAccruals(accrualsIds, JSONParserQBOInvoiceFlow.parse(response5.getBody()));
-
-                pnlRevenueCredit        += (Decimal)processedAccruals.get('Credit');
-                accrualsToDebit.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedAccruals.get('Invoices'));
-            }
-
-            // 5. CREDIT NOTE ACCRUAL: callout to Quickbooks to retrieve any credit note entries
-            // siting in the current month which are for the prior month and do not already have
-            // a journal associated with them
-            String query6 = 'query?query=select%20%2a%20from%20creditMemo%20where%20TxnDate%20%3e%20%27' +
-                    lastDayOfPriorMonth + '%27&minorversion=4';
-
-            Http http6              = new Http();
-            HttpRequest request6    = buildCallout(query6);
-            HttpResponse response6  = http6.send(request6);
-
-            if (response6.getStatusCode() == 200) {
-                accrualsCreditCallout = true;
-                Map<String, Object> processedAccruals =
-                        processCreditAccruals(accrualsIds, JSONParserQBOCreditMemoFlow.parse(response6.getBody()));
-
-                pnlRevenueDebit        += (Decimal)processedAccruals.get('Debit');
-                memoAccrualsToDebit.addAll((List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>) processedAccruals.get('CreditMemos'));
-            }
-
-
-            // 6. OPPORTUNITIES: determine if some opportunities from the prior month or
-            // earlier are still not fully invoiced
-            for (Opportunity opp : [SELECT Id, Filtered_Job_Number__c, Name, QuickbooksClassId__c,
-                    Percent_Invoiced__c, Amount_Calder__c, CommittedRevenue__c,
-                    Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
-            FROM Opportunity
-            WHERE Event_end__c < :Date.today().toStartOfMonth()
-            AND Event_end__c = THIS_FISCAL_YEAR
-            AND StageName = 'Closed Won'
-            AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
-
-                opportunitiesToAccrue.add(opp);
-
-                System.debug('processing an opportunity with remaning val ' + opp.Amount_Remaining__c);
-
-                if (opp.Amount_Remaining__c < 0){
-                    pnlRevenueDebit += (opp.Amount_Remaining__c * -1);
+                if (amount < 0) {
+                    pnlRevenueDebit += (amount * -1);
                 } else {
-                    pnlRevenueCredit += opp.Amount_Remaining__c;
+                    pnlRevenueCredit += amount;
                 }
             }
+        }
 
-            // 7. OPPORTUNITY ADJUSTMENTS
-            for (Adjustment__c adjustment : [SELECT Id, Revenue__c, Opportunity__r.Name,
-                    Opportunity__r.QuickbooksClassId__c,
-                    Opportunity__r.Filtered_Job_Number__c
-            FROM Adjustment__c
-            WHERE Month__c >= :Date.today().toStartOfMonth()
-            AND Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
-            AND (Revenue__c < -0.1 OR Revenue__c > 0.1)]) {
-
-                System.debug('processing an opportunity with remaning val ' + adjustment.Revenue__c);
-
-                adjustmentsToAccrue.add(adjustment);
-
-                if (adjustment.Revenue__c < 0) {
-                    pnlRevenueCredit += (adjustment.Revenue__c * -1);
-                } else {
-                    pnlRevenueDebit += adjustment.Revenue__c;
-                }
-            }
-
-            // 8. DETERMINE IF CALDER COMMISSIONS SHOULD BE APPLIED TO THE MONTH
-            for (AggregateResult commissionAggregate : [SELECT SUM(Revenue__c) revenue
-            FROM Adjustment__c
-            WHERE Calder__c = TRUE
-            AND Month__c <= LAST_MONTH
-            AND Month__c = THIS_FISCAL_YEAR]) {
-
-                if ((Decimal)commissionAggregate.get('revenue') != null ){
-                    Decimal amount = (Decimal)commissionAggregate.get('revenue');
-
-                    System.debug('processing a calder commission with val ' + amount);
-
-                    commissionsToAccrue.add(commissionAggregate);
-
-                    if (amount < 0) {
-                        pnlRevenueDebit += (amount * -1);
-                    } else {
-                        pnlRevenueCredit += amount;
-                    }
-                }
-            }
-
-            // 9. DETERMINE BALANCES ARE ACCURATE
-            // create salesforce entries for each journal to post if all callouts were successful
-            // and the total figures are in agreement with the Salesforce figures
+        // 9. DETERMINE BALANCES ARE ACCURATE
+        // create salesforce entries for each journal to post if all callouts were successful
+        // and the total figures are in agreement with the Salesforce figures
 
 
 //            if (invoiceCallout && creditMemoCallout && journalCallout && accrualsCallout && accrualsCreditCallout) {
-            // if there is less than £1 discrepancy
-            Decimal pnlValue = (monthTotalRevenue - pnlRevenueDebit + pnlRevenueCredit) + 17800;
+        // if there is less than £1 discrepancy
+        Decimal pnlValue = (monthTotalRevenue - pnlRevenueDebit + pnlRevenueCredit) + 17800;
 
-            System.debug('total month rev is ' + monthTotalRevenue + ' and pnl rev debit is ' + pnlRevenueDebit +
-                    ' and pnl rev credit is ' + pnlRevenueCredit);
+        System.debug('total month rev is ' + monthTotalRevenue + ' and pnl rev debit is ' + pnlRevenueDebit +
+                ' and pnl rev credit is ' + pnlRevenueCredit);
 
-            System.debug('salesforce rev is ' + salesforceRevenue);
+        System.debug('salesforce rev is ' + salesforceRevenue);
 
 //                if ((pnlValue + 17800) <= (salesforceRevenue + 0.5) &&  (pnlValue + 17800) >= (salesforceRevenue - 0.5)){
-            createQBJournalEntries(invoicesToDefer, creditMemosToDefer, journalsToDefer,
-                    accrualsToDebit, memoAccrualsToDebit, opportunitiesToAccrue,
-                    adjustmentsToAccrue, commissionsToAccrue, futureIds, pastIds);
+        createQBJournalEntries(invoicesToDefer, creditMemosToDefer, journalsToDefer,
+                accrualsToDebit, memoAccrualsToDebit, opportunitiesToAccrue,
+                adjustmentsToAccrue, commissionsToAccrue, futureIds, pastIds);
 //                } else {
-            System.debug('amounts didnt add up: total rev: ' + salesforceRevenue + ' total pnl ' + pnlValue +
-                    ' (discrepancy ' + (salesforceRevenue - pnlValue) + ')');
-            System.debug('total pnl: ' + monthTotalRevenue);
-            System.debug('total debit: ' + pnlRevenueDebit);
-            System.debug('total credit: ' + pnlRevenueCredit);
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
-            System.debug('');
+        System.debug('amounts didnt add up: total rev: ' + salesforceRevenue + ' total pnl ' + pnlValue +
+                ' (discrepancy ' + (salesforceRevenue - pnlValue) + ')');
+        System.debug('total pnl: ' + monthTotalRevenue);
+        System.debug('total debit: ' + pnlRevenueDebit);
+        System.debug('total credit: ' + pnlRevenueCredit);
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
+        System.debug('');
 //                }
 //            }
-        }
     }
 
     private static Decimal getTotalSalesforceFigures(){
@@ -357,10 +356,10 @@ public with sharing class QuickbooksMonthEndRevenue {
         }
 
         for (Opportunity opp : [SELECT Filtered_Job_Number__c, Name, QuickbooksClassId__c
-        FROM Opportunity
-        WHERE StageName = 'Closed Won'
-        AND Event_end__c >= :startDate
-        AND Event_end__c <= :endDate]){
+                                    FROM Opportunity
+                                    WHERE StageName = 'Closed Won'
+                                    AND Event_end__c >= :startDate
+                                    AND Event_end__c <= :endDate]){
             List<Object> oppDetails = new List<Object>{
                     opp.Filtered_Job_Number__c,
                     opp.Name,
@@ -377,9 +376,9 @@ public with sharing class QuickbooksMonthEndRevenue {
         Map<String,String> pastIdMap = new Map<String,String>();
 
         for (Invoice_Schedule__c is : [SELECT Invoice_Id__c, Opportunity__r.QuickbooksClassId__c
-        FROM Invoice_Schedule__c
-        WHERE Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
-        AND Opportunity__r.Event_end__c > :Date.today().addMonths(-6)]){
+                                        FROM Invoice_Schedule__c
+                                        WHERE Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
+                                        AND Opportunity__r.Event_end__c > :Date.today().addMonths(-6)]){
             pastIdMap.put(is.Invoice_Id__c, is.Opportunity__r.QuickbooksClassId__c);
         }
         return pastIdMap;
@@ -833,12 +832,20 @@ public with sharing class QuickbooksMonthEndRevenue {
 //            }
 //        }
 //
-//        String month = (Date.today().month() < 10) ? '0' + String.valueOf(Date.today().month()) : String.valueOf(Date.today().month());
+//        Map<Integer,String> monthNameMap = new Map<Integer, String>{
+//                1=>'Jan', 2=>'Feb', 3=>'Mar', 4=>'Apr', 5=>'May',
+//                6=>'Jun', 7=>'Jul', 8=>'Aug', 9=>'Sep',10=>'Oct',
+//                11=>'Nov', 12=>'Dec'};
+//
+//        String month = (Date.today().month() < 10) ?
+//                '0' + String.valueOf(Date.today().month()) :
+//                String.valueOf(Date.today().month());
 //        String type = (journal.DocNumber.contains('Defer')) ? 'Defer' : 'Ac';
 //
 //        String journalString =
 //                '   {' +
-//                        '   "DocNumber": "' + 'THIS' + '",' +
+//                        '   "DocNumber": "' + 'P' + month + ' ' + monthNameMap.get(Date.today().month()) +
+//                        '                   Sales ' + type + '",' +
 //                        '   "TxnDate": "' + 'String.valueOf(journal.TxnDate__c).substring(0,10)' + '",' +
 //                        '   "Line": [' +
 //                        journalLines +

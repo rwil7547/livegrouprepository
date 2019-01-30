@@ -18,12 +18,12 @@ public class SalesDashboardTest {
         List<SalesTarget__c> targetsToInsert    = new List<SalesTarget__c>();
 
         // insert 10 won opps
-        for (Integer x = 0; x < 11; x++){
+        for (Integer x = 0; x < 13; x++){
 
             if (x < 2) {
                 Opportunity opp         = (Opportunity)SmartFactory.createSObject('Opportunity');
                 opp.AccountId           = acc.Id;
-                opp.Amount              = 10000;
+                opp.Amount              = 750001;
                 opp.Forecast_COS__c     = 1000;
                 opp.Committed__c        = true;
                 opp.CommittedRevenue__c = 1000;
@@ -38,14 +38,12 @@ public class SalesDashboardTest {
             } else if (x <4){
                 Opportunity opp         = (Opportunity)SmartFactory.createSObject('Opportunity');
                 opp.AccountId           = acc.Id;
-                opp.Amount              = 10000;
+                opp.Amount              = 400001;
                 opp.Forecast_COS__c     = 1000;
                 opp.Calder_Opportunity__c = true;
                 opp.StageName           = 'Closed Won';
                 opp.Invoice_Schedule__c = 'Single up-front invoice';
-//                opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -15);
                 opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -5);
-//                opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -15);
                 opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -5);
                 oppsToInsert.add(opp);
             } else if (x < 5){
@@ -80,7 +78,7 @@ public class SalesDashboardTest {
                 opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -15);
                 opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -15);
                 oppsToInsert.add(opp);
-            } else {
+            } else if (x < 12) {
                 Opportunity opp         = (Opportunity)SmartFactory.createSObject('Opportunity');
                 opp.AccountId           = acc.Id;
                 opp.Amount              = 10000;
@@ -90,6 +88,18 @@ public class SalesDashboardTest {
                 opp.StageName           = 'Repeat Prospect';
                 opp.Event_start__c      = Date.today().toStartOfMonth().addMonths(x -15);
                 opp.Event_end__c        = Date.today().toStartOfMonth().addMonths(x -15);
+                oppsToInsert.add(opp);
+            } else {
+                Opportunity opp         = (Opportunity)SmartFactory.createSObject('Opportunity');
+                opp.AccountId           = acc.Id;
+                opp.Amount              = 10000;
+                opp.Forecast_COS__c     = 1000;
+                opp.Probability         = 50;
+                opp.Calder_Opportunity__c = true;
+                opp.StageName           = 'Closed Won';
+                opp.Invoice_Schedule__c = 'Single up-front invoice';
+                opp.Event_start__c      = Date.newInstance(2018,03,01);
+                opp.Event_end__c        = Date.newInstance(2018,03,01);
                 oppsToInsert.add(opp);
             }
 
@@ -138,14 +148,18 @@ public class SalesDashboardTest {
         List<String> parents = new List<String>{'Payroll', 'IT costs', 'PR and bus. development', 'Utilities', 'Other'};
 
         for (Integer x = 0; x < 5; x++){
+//        for (Integer x = 0; x < 5; x++){
 
             operatingCosts.add(new QBProfitAndLoss__c(
-                    Month__c    = Date.today().toStartOfMonth().addMonths(x -15),
+                    Month__c    = Date.today().toStartOfMonth().addMonths(x -5),
                     Nominal__c  = 'Test ' + x,
                     Parent__c   = parents[x],
                     QBUpdated__c = (x < 15) ? true : false,
                     Actual__c   = 100,
-                    Budget__c   = 50));
+                    ForecastSource__c = 'Test',
+                    Budget__c   = 50,
+                    BudgetSource__c = 'Test'
+            ));
         }
 
         insert operatingCosts;
@@ -159,6 +173,15 @@ public class SalesDashboardTest {
                 Revenue__c = 1000,
                 Profit__c = 500,
                 CostOfSale__c = 20,
+                Month__c = Date.today());
+
+        // insert adjustment connected to an Opportunity which is committed
+        insert new Adjustment__c(
+                Opportunity__c = oppId,
+                Revenue__c = 1000,
+                Profit__c = 500,
+                CostOfSale__c = 20,
+                Committed__c = true,
                 Month__c = Date.today());
 
         // insert statutory adjustment with no opportunity
@@ -233,6 +256,13 @@ public class SalesDashboardTest {
         ));
 
         insert entries;
+
+        QBBalance__c balance = new QBBalance__c(
+                Date__c         = Date.today().addDays(-1),
+                Confirmed__c    = 1000
+        );
+
+        insert balance;
 
         // create sample data snapshots
         SalesDashboardUtils.createSnapshots();
@@ -346,7 +376,7 @@ public class SalesDashboardTest {
         JSONParserQBOInvoiceFlowMock invMock        = new JSONParserQBOInvoiceFlowMock();
         JSONParserQBOBillFlowMock billMock1         = new JSONParserQBOBillFlowMock();
         JSONParserQBOBillFlowMock billMock2         = new JSONParserQBOBillFlowMock();
-        JSONParserQBOCurrentAccountMock accMock     = new JSONParserQBOCurrentAccountMock();
+        JSONParserQBOCurrentAccountMock accMock     = new JSONParserQBOCurrentAccountMock(200);
         JSONParserQBOJournalFlowMock jrnlMock       = new JSONParserQBOJournalFlowMock();
         JSONParserQBOJournalFlowMock divMock        = new JSONParserQBOJournalFlowMock();
 
@@ -467,15 +497,24 @@ public class SalesDashboardTest {
     }
 
     @IsTest
-    public static void testGetBalance(){
+    public static void testGetBalance200Response(){
 
-        Test.setMock(HttpCalloutMock.class, new JSONParserQBOCurrentAccountMock());
+        Test.setMock(HttpCalloutMock.class, new JSONParserQBOCurrentAccountMock(200));
 
         Test.startTest();
         SalesDashboardUtils.getCurrentBalance();
         Test.stopTest();
     }
 
+    @IsTest
+    public static void testGetBalance400Response(){
+
+        Test.setMock(HttpCalloutMock.class, new JSONParserQBOCurrentAccountMock(400));
+
+        Test.startTest();
+        SalesDashboardUtils.getCurrentBalance();
+        Test.stopTest();
+    }
 
     @IsTest
     public static void testGetCashflowData(){
@@ -531,17 +570,41 @@ public class SalesDashboardTest {
     @IsTest
     public static void testGetBudgetOptions(){
 
-//        Map<String, HttpCalloutMock> endpoint2TestResp = new Map<String,HttpCalloutMock>();
-//        endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
-//                'EndDate%2c%20Id%20from%20budget&minorversion=4', new QBOBudgetMock());
-
-
-
         Test.setMock(HttpCalloutMock.class, new QBOBudgetMock());
 
         Test.startTest();
         SalesDashboardRemoter.getQBBudgets('CURRENT FY');
         Test.stopTest();
+    }
+
+    @IsTest
+    public static void testUpdateBudgets(){
+
+        String budgetId     = '1';
+        String forecastId   = '2';
+        String year         = 'CURRENT FY';
+        String month        = String.valueOf(Date.today());
+
+        insert new QBClosedMonth__c(Name = 'QBClosedMonth', Month__c = Date.today().toStartOfMonth());
+
+        QuickbooksProfitAndLossCalloutMock pnlMock  = new QuickbooksProfitAndLossCalloutMock();
+        QBOBudgetMock budgetMock      = new QBOBudgetMock();
+        QBOBudgetMock forecastMock    = new QBOBudgetMock();
+
+        Map<String, HttpCalloutMock> endpoint2TestResp = new Map<String,HttpCalloutMock>();
+        endpoint2TestResp.put('pnl',pnlMock);
+        endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20budget%20' +
+                'where%20id%20%3d%20%27' + forecastId + '%27&minorversion=4',forecastMock);
+        endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20budget%20' +
+                'where%20id%20%3d%20%27' + budgetId + '%27&minorversion=4',budgetMock);
+
+        QBBudgetMultiRequestMock multiMock = new QBBudgetMultiRequestMock(endpoint2TestResp);
+        Test.setMock(HttpCalloutMock.class, multiMock);
+
+        Test.startTest();
+        Boolean success = SalesDashboardRemoter.updateBudgets(budgetId, forecastId, year, month);
+        Test.stopTest();
+
     }
 
 }

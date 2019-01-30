@@ -11,11 +11,10 @@ public class QuickbooksMonthEndJournal {
             AND QuickbooksId__c = NULL AND Target__c = '4000 Revenue'].size() == 1) {
 
             QBJournal__c journal = [
-                    SELECT Id, DocNumber__c, TxnDate__c, (
-                            SELECT Id, Description__c, PostingType__c, AccountRefId__c,
-                                    ClassRefId__c, Amount__c, CallbackId__c
-                            FROM QBJournalEntries__r
-                    )
+                    SELECT Id, DocNumber__c, TxnDate__c,
+                        (SELECT Id, Description__c, PostingType__c, AccountRefId__c,
+                        ClassRefId__c, Amount__c, CallbackId__c
+                        FROM QBJournalEntries__r)
                     FROM QBJournal__c
                     WHERE Target__c = '4000 Revenue'
                     AND TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
