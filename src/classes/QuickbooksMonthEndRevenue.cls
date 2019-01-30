@@ -30,19 +30,10 @@ public with sharing class QuickbooksMonthEndRevenue {
 //        }
 //    }
 
-    public static void calculateRevenueJournal(Date currentMonth) {
+    public static void calculateRevenueJournal(Date closeMonth, Set<String> reversalIds) {
 
-        // check that the journals have not already been calculated
-        if (![SELECT Id FROM QBJournal__c WHERE TxnDate__c = :currentMonth
-            AND Target__c = '4000 Revenue'].isEmpty()) {
-
-            delete [SELECT Id FROM QBJournal__c WHERE TxnDate__c = :currentMonth
-                     AND Target__c = '4000 Revenue'];
-        }
-
-
-        // establish what the end figures need to be
-        Decimal salesforceRevenue   = getTotalSalesforceFigures();
+        // establish what the end Salesforce revenue figure need to be
+        Decimal salesforceRevenue   = getTotalSalesforceFigures(closeMonth);
 
         // delcare values to store total figures
         Decimal monthTotalRevenue   = 0;
@@ -57,9 +48,14 @@ public with sharing class QuickbooksMonthEndRevenue {
         Boolean journalCallout          = false;
 
         // generate date string params to be used in Quickbooks callout
-        String monthStart   = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
-        String monthEnd     = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
-        String lastDayOfPriorMonth = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
+//        String monthStart   = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
+//        String monthEnd     = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
+//        String lastDayOfPriorMonth = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
+
+        String monthStart   = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
+        String monthEnd     = String.valueOf(closeMonth.addMonths(1).toStartOfMonth()).substring(0, 10);
+        String lastDayOfPriorMonth = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
+
 
         // establish lists of journals to be created
         List<JSONParserQBOInvoiceFlow.cls_Invoice> invoicesToDefer              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
@@ -73,8 +69,10 @@ public with sharing class QuickbooksMonthEndRevenue {
 
         // get set of invoices and job numbers in the future, used to determine if entries
         // need to be deferred
-        Map<String, List<Object>> futureIds = getIds(true);
-        Map<String, List<Object>> pastIds   = getIds(false);
+        Map<String, List<Object>> futureIds = getIds(true, closeMonth);
+        Map<String, List<Object>> pastIds   = getIds(false, closeMonth);
+        Map<String,String> pastInvoiceIdMap = getPastInvoiceIdMap(closeMonth);
+
 
         // 1. INVOICES: callout to Quickbooks to retrieve any invoice entries siting in the prior month
         String query1 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
@@ -120,7 +118,7 @@ public with sharing class QuickbooksMonthEndRevenue {
         // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
         // todo: ensure this picks up the journal from the prior month except for in the first execution instance
         // todo: these ids should be passed over from the reversal method
-        Set<String> journalIds  = new Set<String>{'23133'};
+        Set<String> journalIds  = reversalIds;
         Set<String> accrualsIds = new Set<String>();
 
         for (String journalId : journalIds) {
@@ -133,6 +131,8 @@ public with sharing class QuickbooksMonthEndRevenue {
             HttpResponse response3  = http3.send(request3);
 
             if (response3.getStatusCode() == 200) {
+
+                system.debug(response3.getBody());
                 journalCallout = true;
                 Map<String, Object> processedJournals =
                         processJournals(futureIds.keySet(), JSONParserQBOJournalFlow.parse(response3.getBody()));
@@ -170,7 +170,7 @@ public with sharing class QuickbooksMonthEndRevenue {
         if (response5.getStatusCode() == 200) {
             accrualsCallout = true;
             Map<String, Object> processedAccruals =
-                    processAccruals(accrualsIds, JSONParserQBOInvoiceFlow.parse(response5.getBody()));
+                    processAccruals(accrualsIds, JSONParserQBOInvoiceFlow.parse(response5.getBody()), pastInvoiceIdMap);
 
             pnlRevenueCredit        += (Decimal)processedAccruals.get('Credit');
             accrualsToDebit.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedAccruals.get('Invoices'));
@@ -189,7 +189,9 @@ public with sharing class QuickbooksMonthEndRevenue {
         if (response6.getStatusCode() == 200) {
             accrualsCreditCallout = true;
             Map<String, Object> processedAccruals =
-                    processCreditAccruals(accrualsIds, JSONParserQBOCreditMemoFlow.parse(response6.getBody()));
+                    processCreditAccruals(accrualsIds, JSONParserQBOCreditMemoFlow.parse(response6.getBody()),
+                            pastInvoiceIdMap
+                    );
 
             pnlRevenueDebit        += (Decimal)processedAccruals.get('Debit');
             memoAccrualsToDebit.addAll((List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>) processedAccruals.get('CreditMemos'));
@@ -199,13 +201,13 @@ public with sharing class QuickbooksMonthEndRevenue {
         // 6. OPPORTUNITIES: determine if some opportunities from the prior month or
         // earlier are still not fully invoiced
         for (Opportunity opp : [SELECT Id, Filtered_Job_Number__c, Name, QuickbooksClassId__c,
-                Percent_Invoiced__c, Amount_Calder__c, CommittedRevenue__c,
-                Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
-        FROM Opportunity
-        WHERE Event_end__c < :Date.today().toStartOfMonth()
-        AND Event_end__c = THIS_FISCAL_YEAR
-        AND StageName = 'Closed Won'
-        AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
+                                        Percent_Invoiced__c, Amount_Calder__c, CommittedRevenue__c,
+                                        Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
+                                FROM Opportunity
+                                WHERE Event_end__c <= :closeMonth
+                                AND Event_end__c = THIS_FISCAL_YEAR
+                                AND StageName = 'Closed Won'
+                                AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
 
             opportunitiesToAccrue.add(opp);
 
@@ -220,12 +222,12 @@ public with sharing class QuickbooksMonthEndRevenue {
 
         // 7. OPPORTUNITY ADJUSTMENTS
         for (Adjustment__c adjustment : [SELECT Id, Revenue__c, Opportunity__r.Name,
-                Opportunity__r.QuickbooksClassId__c,
-                Opportunity__r.Filtered_Job_Number__c
-        FROM Adjustment__c
-        WHERE Month__c >= :Date.today().toStartOfMonth()
-        AND Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
-        AND (Revenue__c < -0.1 OR Revenue__c > 0.1)]) {
+                                                Opportunity__r.QuickbooksClassId__c,
+                                                Opportunity__r.Filtered_Job_Number__c
+                                        FROM Adjustment__c
+                                        WHERE Month__c > :closeMonth
+                                        AND Opportunity__r.Event_end__c <= :closeMonth
+                                        AND (Revenue__c < -0.1 OR Revenue__c > 0.1)]) {
 
             System.debug('processing an opportunity with remaning val ' + adjustment.Revenue__c);
 
@@ -240,10 +242,10 @@ public with sharing class QuickbooksMonthEndRevenue {
 
         // 8. DETERMINE IF CALDER COMMISSIONS SHOULD BE APPLIED TO THE MONTH
         for (AggregateResult commissionAggregate : [SELECT SUM(Revenue__c) revenue
-        FROM Adjustment__c
-        WHERE Calder__c = TRUE
-        AND Month__c <= LAST_MONTH
-        AND Month__c = THIS_FISCAL_YEAR]) {
+                                                    FROM Adjustment__c
+                                                    WHERE Calder__c = TRUE
+                                                    AND Month__c <= :closeMonth
+                                                    AND Month__c = THIS_FISCAL_YEAR]) {
 
             if ((Decimal)commissionAggregate.get('revenue') != null ){
                 Decimal amount = (Decimal)commissionAggregate.get('revenue');
@@ -267,7 +269,8 @@ public with sharing class QuickbooksMonthEndRevenue {
 
 //            if (invoiceCallout && creditMemoCallout && journalCallout && accrualsCallout && accrualsCreditCallout) {
         // if there is less than £1 discrepancy
-        Decimal pnlValue = (monthTotalRevenue - pnlRevenueDebit + pnlRevenueCredit) + 17800;
+//        Decimal pnlValue = (monthTotalRevenue - pnlRevenueDebit + pnlRevenueCredit) + 17800;
+        Decimal pnlValue = (monthTotalRevenue - pnlRevenueDebit + pnlRevenueCredit);
 
         System.debug('total month rev is ' + monthTotalRevenue + ' and pnl rev debit is ' + pnlRevenueDebit +
                 ' and pnl rev credit is ' + pnlRevenueCredit);
@@ -275,9 +278,22 @@ public with sharing class QuickbooksMonthEndRevenue {
         System.debug('salesforce rev is ' + salesforceRevenue);
 
 //                if ((pnlValue + 17800) <= (salesforceRevenue + 0.5) &&  (pnlValue + 17800) >= (salesforceRevenue - 0.5)){
+
+        // check for any prior journal calculations for the relevant period
+        List<QBJournal__c> priorJournals = [SELECT Id FROM QBJournal__c WHERE TxnDate__c = :closeMonth
+                                            AND Target__c = '4000 Revenue'];
+
+        // delete any prior journal entries found
+        if (!priorJournals.isEmpty()) {
+            delete priorJournals;
+        }
+
+        // create new journal
         createQBJournalEntries(invoicesToDefer, creditMemosToDefer, journalsToDefer,
                 accrualsToDebit, memoAccrualsToDebit, opportunitiesToAccrue,
                 adjustmentsToAccrue, commissionsToAccrue, futureIds, pastIds);
+
+
 //                } else {
         System.debug('amounts didnt add up: total rev: ' + salesforceRevenue + ' total pnl ' + pnlValue +
                 ' (discrepancy ' + (salesforceRevenue - pnlValue) + ')');
@@ -302,17 +318,19 @@ public with sharing class QuickbooksMonthEndRevenue {
 //            }
     }
 
-    private static Decimal getTotalSalesforceFigures(){
+    private static Decimal getTotalSalesforceFigures(Date closeMonth){
 
         List<AggregateResult> oppFigures = [SELECT SUM(CommittedRevenue__c) revenue
-        FROM Opportunity
-        WHERE Event_end__c = LAST_MONTH
-        AND Committed__c = TRUE];
+                                                FROM Opportunity
+                                                WHERE Event_end__c >= :closeMonth
+                                                AND Event_end__c < :closeMonth.addMonths(1).toStartOfMonth()];
+//                                                AND Committed__c = TRUE];
 
         List<AggregateResult> adjustmentFigures = [SELECT SUM(Revenue__c) revenue
-        FROM Adjustment__c
-        WHERE Month__c = LAST_MONTH
-        AND Committed__c = TRUE];
+                                                FROM Adjustment__c
+                                                WHERE Month__c >= :closeMonth
+                                                AND Month__c < :closeMonth.addMonths(1).toStartOfMonth()];
+//                                                AND Committed__c = TRUE];
 
         Decimal totalOppRevenue = ((Decimal)oppFigures[0].get('revenue') != null) ?
                 (Decimal)oppFigures[0].get('revenue') : 0;
@@ -334,10 +352,10 @@ public with sharing class QuickbooksMonthEndRevenue {
         return request;
     }
 
-    private static Map<String,List<Object>> getIds(Boolean future){
+    private static Map<String,List<Object>> getIds(Boolean future, Date closeMonth){
 
-        Date startDate  = (future) ?  Date.today().toStartOfMonth() : Date.today().addMonths(-6);
-        Date endDate    = (future) ?  Date.today().addYears(3) : Date.today().toStartOfMonth().addDays(-1);
+        Date startDate  = (future) ?  closeMonth.addMonths(1).toStartOfMonth() : closeMonth.addMonths(-6);
+        Date endDate    = (future) ?  closeMonth.addYears(3) : closeMonth.addMonths(1).toStartOfMonth().addDays(-1);
 
         Map<String,List<Object>> futureIds = new Map<String,List<Object>>();
 
@@ -371,14 +389,14 @@ public with sharing class QuickbooksMonthEndRevenue {
         return futureIds;
     }
 
-    private static Map<String,String> getPastIdMap(){
+    private static Map<String,String> getPastInvoiceIdMap(Date closeMonth){
 
         Map<String,String> pastIdMap = new Map<String,String>();
 
         for (Invoice_Schedule__c is : [SELECT Invoice_Id__c, Opportunity__r.QuickbooksClassId__c
                                         FROM Invoice_Schedule__c
-                                        WHERE Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
-                                        AND Opportunity__r.Event_end__c > :Date.today().addMonths(-6)]){
+                                        WHERE Opportunity__r.Event_end__c <= :closeMonth
+                                        AND Opportunity__r.Event_end__c >= :closeMonth.addMonths(-6)]){
             pastIdMap.put(is.Invoice_Id__c, is.Opportunity__r.QuickbooksClassId__c);
         }
         return pastIdMap;
@@ -484,42 +502,51 @@ public with sharing class QuickbooksMonthEndRevenue {
                             journalsTotal   -= journalLine.Amount;
                             isDebit         = false;
                         }
+                    } else if (journalLine.JournalEntryLineDetail.AccountRef.name == '4002 Revenue:Rebates'){
+                        journalsTotal   -= journalLine.Amount;
+                        System.debug('processing a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
+
                     }
 
                     if (isDebit != null) {
 
-                        System.debug('processing a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType +
-                            ' and the class ref found in future ids is ' + futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.value));
+
+                        // check for journals which are associated with an opportunity
+                        if (journalLine.JournalEntryLineDetail.ClassRef != null){
 
 
-                        if (futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.value)) {
+                            System.debug('processing a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType +
+                                    ' and the class ref found in future ids is ' + futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.value));
 
-                            System.debug('deferring a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
 
-                            System.debug(journalLine.JournalEntryLineDetail.ClassRef.value);
+                            if (futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.value)) {
 
-                            journalsToDefer.add(journalLine);
-                            if (isDebit) {
-                                pnlDebit += journalLine.Amount;
-                            } else {
-                                pnlCredit += journalLine.Amount;
+                                System.debug('deferring a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
+
+                                System.debug(journalLine.JournalEntryLineDetail.ClassRef.value);
+
+                                journalsToDefer.add(journalLine);
+                                if (isDebit) {
+                                    pnlDebit += journalLine.Amount;
+                                } else {
+                                    pnlCredit += journalLine.Amount;
+                                }
+                            } else if (futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5))) {
+
+                                System.debug('deferring a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
+
+                                System.debug(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5));
+                                journalsToDefer.add(journalLine);
+                                if (isDebit) {
+                                    pnlDebit += journalLine.Amount;
+                                } else {
+                                    pnlCredit += journalLine.Amount;
+                                }
+
+                                // if the Opportunity is missing the class Id, add to the list to update
+                                missingOppClassIds.put(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5),
+                                        journalLine.JournalEntryLineDetail.ClassRef.value);
                             }
-                        } else if (futureIds.contains(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5))) {
-
-
-                            System.debug('deferring a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
-
-                            System.debug(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5));
-                            journalsToDefer.add(journalLine);
-                            if (isDebit) {
-                                pnlDebit += journalLine.Amount;
-                            } else {
-                                pnlCredit += journalLine.Amount;
-                            }
-
-                            // if the Opportunity is missing the class Id, add to the list to update
-                            missingOppClassIds.put(journalLine.JournalEntryLineDetail.ClassRef.name.substring(0, 5),
-                                    journalLine.JournalEntryLineDetail.ClassRef.value);
                         }
                     }
                 }
@@ -540,9 +567,8 @@ public with sharing class QuickbooksMonthEndRevenue {
         return processedResults;
     }
 
-    private static Map<String,Object> processAccruals(Set<String> accrualsIds, JSONParserQBOInvoiceFlow parsedResults){
-
-        Map<String,String> pastIdMap = getPastIdMap();
+    private static Map<String,Object> processAccruals(Set<String> accrualsIds, JSONParserQBOInvoiceFlow parsedResults,
+            Map<String,String> pastIdMap){
 
         Decimal pnlCredit       = 0;
         List<JSONParserQBOInvoiceFlow.cls_Invoice> invoicesToAccrue = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
@@ -583,9 +609,8 @@ public with sharing class QuickbooksMonthEndRevenue {
         return processedResults;
     }
 
-    private static Map<String,Object> processCreditAccruals(Set<String> accrualsIds, JSONParserQBOCreditMemoFlow parsedResults){
-
-        Map<String,String> pastIdMap = getPastIdMap();
+    private static Map<String,Object> processCreditAccruals(Set<String> accrualsIds,
+            JSONParserQBOCreditMemoFlow parsedResults, Map<String,String> pastIdMap){
 
         Decimal pnlDebit       = 0;
         List<JSONParserQBOCreditMemoFlow.cls_CreditMemo> memosToAccrue = new List<JSONParserQBOCreditMemoFlow.cls_CreditMemo>();
