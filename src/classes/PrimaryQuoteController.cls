@@ -80,16 +80,29 @@ public with sharing class PrimaryQuoteController {
     }
 
     @AuraEnabled
-    public static List<Product2> getProducts(){
+    public static Map<String,List<Product2>> getProducts(){
 
-        return [SELECT Id, Name, Description, Family,
-                (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
-                WHERE SBQQ__Active__c = TRUE LIMIT 1),
-                (SELECT UnitPrice FROM PricebookEntries
-                WHERE Pricebook2.Name = 'Default')
-                FROM Product2
-                WHERE IsActive = TRUE
-                ORDER BY Family];
+        Map<String,List<Product2>> familyMap = new Map<String,List<Product2>>();
+
+        Schema.DescribeFieldResult fieldResult = Product2.Family.getDescribe();
+        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+        for( Schema.PicklistEntry pickListVal : ple){
+            familyMap.put(pickListVal.getLabel(), new List<Product2>());
+        }
+
+        for (Product2 product : [SELECT Id, Name, Description, Family,
+                                (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
+                                WHERE SBQQ__Active__c = TRUE LIMIT 1),
+                                (SELECT UnitPrice FROM PricebookEntries
+                                WHERE Pricebook2.Name = 'Default')
+                                FROM Product2
+                                WHERE IsActive = TRUE
+                                ORDER BY Family]){
+
+            familyMap.get(product.Family).add(product);
+        }
+
+        return familyMap;
 
     }
 
