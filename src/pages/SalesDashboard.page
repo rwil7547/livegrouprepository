@@ -2008,7 +2008,7 @@
 
                                     changes += '<div class="changeRow">' +
                                         // '<div>' + '<div class="imageIcon" >C</div>' + '</div>' +
-                                        '<div>' + '<img class="photo" src="https://pbs.twimg.com/profile_images/1831474227/profile_picture_400x400.jpg"/>' + '</div>' +
+                                        '<div>' + '<img class="photo" src="{!$Resource.CalderLogo}"/>' + '</div>' +
                                         '<div>' +
                                         'At ' + changeTime + ' a new ' + '<strong>Calder commission entry</strong> worth' +
                                         ' £' + amount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' was created ' +
@@ -2186,7 +2186,6 @@
 
                         if (result[element].length > 0) {
 
-
                             var entries = Array.from(result[element]);
                             entries.sort(function(obj1, obj2){
                                 if (new Date(obj1.CreatedDate) > new Date(obj2.CreatedDate))
@@ -2231,7 +2230,7 @@
                                     }
 
                                     changes += '<div class="changeRow">' +
-                                        '<div>' + '<div class="imageIcon" >C</div>' + '</div>' +
+                                        '<div>' + '<img class="photo" src="{!$Resource.CalderLogo}"/>' + '</div>' +
                                         '<div>' +
                                         'At ' + changeTime + ' a new ' + '<strong>Calder commission entry</strong> worth' +
                                         ' £' + amount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' was created ' +
@@ -2263,7 +2262,7 @@
                                     }
 
                                     changes += '<div class="changeRow">' +
-                                        '<div>' + '<div class="imageIcon" >C</div>' + '</div>' +
+                                        '<div>' + '<img class="photo" src="{!$Resource.CalderLogo}"/>' + '</div>' +
                                         '<div>' +
                                         'At ' + changeTime + ' the ' + '<strong>Calder commission</strong>' + ' for  ' +
                                         monthText + ' was ' + movement + ' from £' + oldAmount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' to £' +
@@ -2327,6 +2326,16 @@
                                         difference = oldAmount - newAmount;
                                     }
 
+                                    if (record.Expenses){
+                                        console.log('found expenses ' + record.Expenses);
+                                    }
+
+                                    if (record.Revenue){
+                                        console.log('found revenue ' + record.Revenue);
+                                    }
+
+                                    var expenses = (record.Expenses) ? record.Expenses : '';
+
                                     changes += '<div class="changeRow">' +
                                         '<div>' + image + '</div>' +
                                         '<div>' +
@@ -2334,6 +2343,7 @@
                                         ' the ' + '<strong>profit</strong>' + ' on ' +
                                         record.Opportunity.Name + ' from £' + oldAmount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' to £' +
                                         newAmount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + concession +
+                                            ' ' + expenses +
                                         '</div>' +
                                         '<div class="' + colorClass + ' changeFigure">' + '£' + difference.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' +
                                         iconClass +

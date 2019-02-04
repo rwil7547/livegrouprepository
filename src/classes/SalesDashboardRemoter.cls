@@ -503,6 +503,7 @@ global class SalesDashboardRemoter {
             }
         }
 
+
         // capture amount changes and relevant stage (Closed Won) at time of change
         List<OpportunityFieldHistory> revenueChanges =
                 [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
@@ -510,10 +511,7 @@ global class SalesDashboardRemoter {
                         Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
                         CreatedBy.FirstName, CreatedBy.LastName, CreatedById
                 FROM OpportunityFieldHistory
-                WHERE
-//                Opportunity.StageName = 'Closed Won' // todo: remove this condition
-//                AND
-                Opportunity.Event_end__c >= :startDate
+                WHERE Opportunity.Event_end__c >= :startDate
                 AND Opportunity.Event_end__c <= :endDate
                 AND CreatedDate >= :fallBack
                 AND Field = 'Amount'
@@ -539,19 +537,12 @@ global class SalesDashboardRemoter {
 
         // detect duplicate entries caused by quote change
         Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
-//        Map<String,List<OpportunityFieldHistory>> changeTimeMap = new Map<String,List<OpportunityFieldHistory>>();
 
         for (OpportunityFieldHistory ofs : revenueChanges) {
-
-            system.debug('processing rev change for ' + ofs.Opportunity.Name + ' with prior val ' +
-            ofs.OldValue + ' and new val ' + ofs.NewValue);
-
-
             if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
 
                 Boolean isDuplicate = false;
                 List<Object> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
-//                List<OpportunityFieldHistory> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
 
                 for (Integer x = 0; x < siblings.size(); x++){
 
@@ -559,28 +550,11 @@ global class SalesDashboardRemoter {
                     String dateString           = (String)fieldMap.get('CreatedDate');
                     dateString                  = dateString.replace('T',' ');
                     Datetime siblingCreatedTime = Datetime.valueOf(dateString.substring(0,19));
-//                    Datetime siblingCreatedTime = siblings[x].CreatedDate;
 
                     if (siblingCreatedTime <= ofs.CreatedDate.addMinutes(2) && siblingCreatedTime >= ofs.CreatedDate.addMinutes(-2)) {
 
                         isDuplicate = true;
                         fieldMap.put('OldValue', ofs.OldValue);
-//                        fieldMap.put('OldValue', ofs.OldValue);
-
-//                        Object oldValue = (Object)ofs.OldValue;
-//                        Map<String, Object> fieldsToValue = siblings[x].clone(true,true).getPopulatedFieldsAsMap();
-////                        fieldsToValue.put('OldValue',oldValue);
-//                        String historyObjectString = JSON.serialize(fieldsToValue);
-//                        Object historyObject = JSON.deserialize(historyObjectString, OpportunityFieldHistory.class);
-//                        siblings[x] = (OpportunityFieldHistory)historyObject;
-
-
-//                        OpportunityFieldHistory replacement = siblings[x].clone(true,true);
-//                        replacement.OldValue = Ofs.OldValue;
-//                        siblings[x] = (OpportunityFieldHistory)historyObject;
-
-
-//                        siblings[x].OldValue = ofs.OldValue;
                         changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
                         changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
                     }
@@ -590,46 +564,18 @@ global class SalesDashboardRemoter {
                     String ofsString = JSON.serialize(ofs);
                     Object ofsObject = JSON.deserializeUntyped(ofsString);
                     changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
-//                    changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofs);
                 }
             } else {
 
                 String ofsString = JSON.serialize(ofs);
                 Object ofsObject = JSON.deserializeUntyped(ofsString);
                 changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<Object>{ofsObject});
-//                changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<OpportunityFieldHistory>{ofs});
             }
         }
 
         for (String jobNo : changeTimeMap.keySet()) {
 
-//            for (OpportunityFieldHistory ofs : changeTimeMap.get(jobNo)){
-//
-//                if (stageHistoriesByIds.containsKey(ofs.OpportunityId)){
-//
-//                    for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get(ofs.OpportunityId)){
-//                        if (stageHistory.CreatedDate >= ofs.CreatedDate){
-//                            ofs.Opportunity.StageName = stageHistory.Opportunity.StageName;
-//                        } else {
-//                            break;
-//                        }
-//                    }
-//
-//                    if (ofs.Opportunity.StageName == 'Closed Won'){
-//                        String dayString        = String.valueOf(Date.valueOf(ofs.createdDate).daysBetween(Date.today()));
-//                        changeMap.get(dayString).add(ofs);
-//
-//                    }
-//
-//                }
-//
-//
-//            }
-
-//
             for (Object ofsObject : changeTimeMap.get(jobNo)) {
-
-
 
                 Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
                 Map<String,Object> oppMap = (Map<String,Object>)fieldMap.get('Opportunity');
@@ -639,15 +585,11 @@ global class SalesDashboardRemoter {
                 Date createdDate        = Date.valueOf(createdString);
                 Datetime createdTime    = Datetime.valueOf(createdString);
 
-//
                 if (stageHistoriesByIds.containsKey((String)fieldMap.get('OpportunityId'))){
 
                     for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get((String)fieldMap.get('OpportunityId'))){
                         if (stageHistory.CreatedDate.getTime() <= createdTime.getTime()){
-//                            if(stageHistory.NewValue == 'Closed Won'){
-                                system.debug('assigning a new val for ' + oppMap.get('Name'));
-                                oppMap.put('StageName', stageHistory.NewValue );
-//                            }
+                            oppMap.put('StageName', stageHistory.NewValue );
                         }
                     }
 
@@ -657,19 +599,11 @@ global class SalesDashboardRemoter {
                     fieldMap.put('Opportunity', oppMap);
                     String newOfsString = JSON.serialize(fieldMap);
                     Object newOfsObject = JSON.deserializeUntyped(newOfsString);
-
-
-//                String createdString    = (String)fieldMap.get('CreatedDate');
-//                createdString           = createdString.replace('T',' ');
-//                Date createdDate        = Date.valueOf(createdString);
                     String dayString        = String.valueOf(createdDate.daysBetween(Date.today()));
-//                    changeMap.get(dayString).add(ofsObject);
                     changeMap.get(dayString).add(newOfsObject);
-
                 }
             }
         }
-
 
         // capture stage changes and relevant amounts at time of change
         List<OpportunityFieldHistory> stageChanges =
@@ -707,10 +641,6 @@ global class SalesDashboardRemoter {
 
         for (OpportunityFieldHistory ofs : stageChanges){
 
-
-            system.debug('processing stage change for ' + ofs.Opportunity.Name + ' with prior val ' +
-                    ofs.OldValue + ' and new val ' + ofs.NewValue + ' at ' + ofs.CreatedDate);
-
             if (revenueHistoriesByIds.containsKey(ofs.OpportunityId)){
                 for (OpportunityFieldHistory revenueHistory : revenueHistoriesByIds.get(ofs.OpportunityId)){
                     if (revenueHistory.CreatedDate.getTime() <= ofs.CreatedDate.getTime()){
@@ -719,15 +649,10 @@ global class SalesDashboardRemoter {
                 }
             }
 
-//            String dayString = String.valueOf(Date.valueOf(ofs.CreatedDate).daysBetween(Date.today().addDays(1)));
             String dayString = String.valueOf(Date.valueOf(ofs.CreatedDate).daysBetween(Date.today().addDays(0)));
 
             // Revenue which has gone out of the current financial year
             if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
-
-                system.debug('serialising stage change for ' + ofs.Opportunity.Name + ' with prior val ' +
-                        ofs.OldValue + ' and new val ' + ofs.NewValue + ' at ' + ofs.CreatedDate);
-
                 String ofsString = JSON.serialize(ofs);
                 Object ofsObject = JSON.deserializeUntyped(ofsString);
                 changeMap.get(dayString).add(ofsObject);
@@ -759,13 +684,9 @@ global class SalesDashboardRemoter {
                 AND Parent.Month__c <= :endDate];
 
         for (Adjustment__History adj : changedCommissions){
-
             String dayString = String.valueOf(Date.valueOf(adj.CreatedDate).daysBetween(Date.today()));
             changeMap.get(dayString).add(adj);
         }
-
-
-
 
         return changeMap;
     }
@@ -813,9 +734,7 @@ global class SalesDashboardRemoter {
             changeMap.get(dayString).add(snapshots[x]);
         }
 
-
-
-
+        // track date changes
         List<OpportunityFieldHistory> dateChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
                                                             Opportunity.Gross_Profit_Field_History__c,
                                                             Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
@@ -844,29 +763,175 @@ global class SalesDashboardRemoter {
             }
         }
 
-        List<OpportunityFieldHistory> revenueChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
-                                                                Opportunity.Gross_Profit_Field_History__c,
-                                                                Opportunity.Calder_Opportunity__c,Opportunity.StageName,
-                                                                Field, OldValue, NewValue, CreatedDate,
-                                                                CreatedBy.FirstName, CreatedBy.LastName
-                                                        FROM OpportunityFieldHistory
-                                                        WHERE Opportunity.StageName = 'Closed Won'
-                                                        AND Opportunity.Event_end__c >= :startDate
-                                                        AND Opportunity.Event_end__c <= :endDate
-                                                        AND CreatedDate >= :fallBack
-                                                        AND Field = 'Gross_Profit_Field_History__c'
-                                                        ORDER BY CreatedDate DESC];
 
-//        for (OpportunityFieldHistory ofs : revenueChanges) {
-//            String dayString = String.valueOf(Date.valueOf(ofs.CreatedDate).daysBetween(Date.today()));
-//            changeMap.get(dayString).add(ofs);
+
+//
+//        // derive possible source of profit change as Quickbooks integration
+//        Map<String,List<Expense__c>> expenseMap = new Map<String,List<Expense__c>>();
+//
+//        for (Expense__c expense : [SELECT Id, Amount__c, Description__c, Opportunity__c, CreatedDate
+//        FROM Expense__c
+//        WHERE Opportunity__c IN :stageHistoriesByIds.keySet()]){
+//            String key = expense.Opportunity__c + String.valueOf(expense.CreatedDate.getTime()).substring(0,8);
+//            if (!expenseMap.containsKey(key)){
+//                expenseMap.put(key, new List<Expense__c>());
+//            }
+//            expenseMap.get(key).add(expense);
 //        }
+
+
+
+
+//        // track revenue changes
+//        List<OpportunityFieldHistory> revenueChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+//                                                                Opportunity.Gross_Profit_Field_History__c,
+//                                                                Opportunity.Calder_Opportunity__c,Opportunity.StageName,
+//                                                                Field, OldValue, NewValue, CreatedDate,
+//                                                                CreatedBy.FirstName, CreatedBy.LastName
+//                                                        FROM OpportunityFieldHistory
+//                                                        WHERE Opportunity.StageName = 'Closed Won'
+//                                                        AND Opportunity.Event_end__c >= :startDate
+//                                                        AND Opportunity.Event_end__c <= :endDate
+//                                                        AND CreatedDate >= :fallBack
+//                                                        AND Field = 'Gross_Profit_Field_History__c'
+//                                                        ORDER BY CreatedDate DESC];
+//
+////        for (OpportunityFieldHistory ofs : revenueChanges) {
+////            String dayString = String.valueOf(Date.valueOf(ofs.CreatedDate).daysBetween(Date.today()));
+////            changeMap.get(dayString).add(ofs);
+////        }
+//
+//        // detect duplicate entries caused by quote change
+//        Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
+//
+//        for (OpportunityFieldHistory ofs : revenueChanges) {
+//
+//            system.debug('prof change for ' + ofs.Opportunity.Name + ' prior val ' + ofs.OldValue +
+//            ' and new val ' + ofs.NewValue);
+//
+//
+//            if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
+//
+//                Boolean isDuplicate = false;
+//                List<Object> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
+//
+//                for (Integer x = 0; x < siblings.size(); x++){
+//
+//                    Map<String,Object> fieldMap = (Map<String, Object>)siblings[x];
+//                    String dateString = (String)fieldMap.get('CreatedDate');
+//                    dateString = dateString.replace('T',' ');
+//                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.subString(0,19));
+//
+//                    if (siblingCreatedTime <= ofs.CreatedDate.addSeconds(5) && siblingCreatedTime >= ofs.CreatedDate.addSeconds(-5)) {
+//
+//                        isDuplicate = true;
+//
+//                        System.debug('the less recent of the changes, which should contain the original value is ' + ofs);
+//
+//                        fieldMap.put('OldValue', ofs.OldValue);
+//
+//                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
+//                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
+//                    }
+//                }
+//
+//                if (!isDuplicate){
+//                    String ofsString = JSON.serialize(ofs);
+//                    Object ofsObject = JSON.deserializeUntyped(ofsString);
+//                    changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
+//                }
+//            } else {
+//
+//                System.debug('the most recent of the changes, which should contain the ending value is ' + ofs);
+//
+//                String ofsString = JSON.serialize(ofs);
+//                Object ofsObject = JSON.deserializeUntyped(ofsString);
+//                changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<Object>{ofsObject});
+//            }
+//        }
+//
+//        for (String jobNo : changeTimeMap.keySet()) {
+//            for (Object ofsObject : changeTimeMap.get(jobNo)) {
+//
+//                Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
+//                String createdString = (String)fieldMap.get('CreatedDate');
+//                createdString = createdString.replace('T',' ');
+//
+//                Date createdDate = Date.valueOf(createdString);
+//
+//                String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+//                changeMap.get(dayString).add(ofsObject);
+//            }
+//        }
+
+
+        // capture amount changes and relevant stage (Closed Won) at time of change
+        List<OpportunityFieldHistory> revenueChanges =
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount_Calder__c, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.FirstName, CreatedBy.LastName, CreatedById
+                                    FROM OpportunityFieldHistory
+                                    WHERE Opportunity.Event_end__c >= :startDate
+                                    AND Opportunity.Event_end__c <= :endDate
+                                    AND CreatedDate >= :fallBack
+                                    AND Field = 'Gross_Profit_Field_History__c'
+                                    ORDER BY CreatedDate DESC];
+
+        Map<Id,List<OpportunityFieldHistory>> stageHistoriesByIds   = new Map<Id,List<OpportunityFieldHistory>>();
+
+        for (OpportunityFieldHistory ofs : revenueChanges) {
+            stageHistoriesByIds.put(ofs.OpportunityId, new List<OpportunityFieldHistory>());
+        }
+
+        // track stage at time of change
+        for (OpportunityFieldHistory ofs :
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.FirstName, CreatedBy.LastName
+                                    FROM OpportunityFieldHistory
+                                    WHERE Field = 'StageName'
+                                    AND OpportunityId IN :stageHistoriesByIds.keySet()
+                                    ORDER BY CreatedDate ASC]){
+            stageHistoriesByIds.get(ofs.OpportunityId).add(ofs);
+        }
+
+        // derive possible source of profit change as Quickbooks integration
+        Map<String,List<Expense__c>> expenseMap = new Map<String,List<Expense__c>>();
+
+        for (Expense__c expense : [SELECT Id, Amount__c, Description__c, Opportunity__c, CreatedDate
+                                    FROM Expense__c
+                                    WHERE Opportunity__c IN :stageHistoriesByIds.keySet()]){
+            String key = expense.Opportunity__c + String.valueOf(expense.CreatedDate.getTime()).substring(0,8);
+            if (!expenseMap.containsKey(key)){
+                expenseMap.put(key, new List<Expense__c>());
+            }
+            expenseMap.get(key).add(expense);
+        }
+
+
+        Map<String,OpportunityFieldHistory> revenueHistoryMap = new Map<String,OpportunityFieldHistory>();
+
+        // derive possible source of profit change as revenue change
+        for (OpportunityFieldHistory ofs :
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.FirstName, CreatedBy.LastName
+                                    FROM OpportunityFieldHistory
+                                    WHERE Field = 'Amount'
+                                    AND OpportunityId IN :stageHistoriesByIds.keySet()
+                                    ORDER BY CreatedDate ASC]){
+            String key = ofs.OpportunityId + String.valueOf(ofs.CreatedDate.getTime()).substring(0,8);
+            revenueHistoryMap.put(key, ofs);
+        }
+
 
         // detect duplicate entries caused by quote change
         Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
 
         for (OpportunityFieldHistory ofs : revenueChanges) {
-
             if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
 
                 Boolean isDuplicate = false;
@@ -875,31 +940,26 @@ global class SalesDashboardRemoter {
                 for (Integer x = 0; x < siblings.size(); x++){
 
                     Map<String,Object> fieldMap = (Map<String, Object>)siblings[x];
-                    String dateString = (String)fieldMap.get('CreatedDate');
-                    dateString = dateString.replace('T',' ');
-                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.subString(0,19));
+                    String dateString           = (String)fieldMap.get('CreatedDate');
+                    dateString                  = dateString.replace('T',' ');
+                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.substring(0,19));
 
-                    if (siblingCreatedTime <= ofs.CreatedDate.addSeconds(5) && siblingCreatedTime >= ofs.CreatedDate.addSeconds(-5)) {
+                    if (siblingCreatedTime <= ofs.CreatedDate.addMinutes(2) && siblingCreatedTime >= ofs.CreatedDate.addMinutes(-2)) {
 
                         isDuplicate = true;
-
-                        System.debug('the less recent of the changes, which should contain the original value is ' + ofs);
-
                         fieldMap.put('OldValue', ofs.OldValue);
-
                         changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
                         changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
                     }
                 }
 
                 if (!isDuplicate){
+
                     String ofsString = JSON.serialize(ofs);
                     Object ofsObject = JSON.deserializeUntyped(ofsString);
                     changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
                 }
             } else {
-
-                System.debug('the most recent of the changes, which should contain the ending value is ' + ofs);
 
                 String ofsString = JSON.serialize(ofs);
                 Object ofsObject = JSON.deserializeUntyped(ofsString);
@@ -908,20 +968,62 @@ global class SalesDashboardRemoter {
         }
 
         for (String jobNo : changeTimeMap.keySet()) {
+
             for (Object ofsObject : changeTimeMap.get(jobNo)) {
 
                 Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
-                String createdString = (String)fieldMap.get('CreatedDate');
-                createdString = createdString.replace('T',' ');
+                Map<String,Object> oppMap = (Map<String,Object>)fieldMap.get('Opportunity');
 
-                Date createdDate = Date.valueOf(createdString);
+                String createdString    = (String)fieldMap.get('CreatedDate');
+                createdString           = createdString.replace('T',' ');
+                Date createdDate        = Date.valueOf(createdString);
+                Datetime createdTime    = Datetime.valueOf(createdString);
 
-                String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
-                changeMap.get(dayString).add(ofsObject);
+                if (stageHistoriesByIds.containsKey((String)fieldMap.get('OpportunityId'))){
+
+                    for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get((String)fieldMap.get('OpportunityId'))){
+                        if (stageHistory.CreatedDate.getTime() <= createdTime.getTime()){
+                            oppMap.put('StageName', stageHistory.NewValue );
+                        }
+                    }
+                }
+
+                if (oppMap.get('StageName') == (String)'Closed Won'){
+
+                    // get key
+
+                    String key           = (String)fieldMap.get('OpportunityId') +
+                                            String.valueOf(createdTime.getTime()).substring(0,8);
+
+                    // check both maps
+
+                    if (expenseMap.containsKey(key)){
+
+                        system.debug('found matching expenses');
+                        fieldMap.put('Expenses', expenseMap.get(key));
+                    }
+
+                    if (revenueHistoryMap.containsKey(key)){
+
+                        system.debug('found revenue changes');
+                        fieldMap.put('Revenue', revenueHistoryMap.get(key));
+                    }
+                    // add values to obj if found in maps
+
+
+                    fieldMap.put('Opportunity', oppMap);
+                    String newOfsString = JSON.serialize(fieldMap);
+                    Object newOfsObject = JSON.deserializeUntyped(newOfsString);
+                    String dayString    = String.valueOf(createdDate.daysBetween(Date.today()));
+                    changeMap.get(dayString).add(newOfsObject);
+                }
             }
         }
 
 
+
+
+        // capture stage changes
         List<OpportunityFieldHistory> stageChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
                                                             Opportunity.Gross_Profit_Field_History__c, Opportunity.Calder_Opportunity__c,
                                                             Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
