@@ -136,7 +136,7 @@ public class QuickbooksMonthEndRevenueTest {
         Test.setMock(HttpCalloutMock.class, cashMultiMock);
 
         Test.startTest();
-        QuickbooksMonthEndRevenue.calculateRevenueJournal(Date.today().toStartOfMonth());
+        QuickbooksMonthEndRevenue.calculateRevenueJournal(Date.today().addMonths(-1).toStartOfMonth(), new Set<String>{'23133'});
         Test.stopTest();
 
     }

@@ -242,7 +242,7 @@ public class QuickbooksChangeDataCapture {
 
 	            // query for all invoice schedules with id in set of updated records
 	            List<Invoice_Schedule__c> updateRecords = [SELECT Id, Invoice_Id__c, QBOCreditMemoLastUpdate__c,
-																	Invoice_Amount__c
+																	Invoice_Amount__c, Amount__c, Invoice_Number__c
 								            			FROM Invoice_Schedule__c 
 								            			WHERE Invoice_Id__c IN:updateIds];
 
@@ -290,8 +290,12 @@ public class QuickbooksChangeDataCapture {
 			            	is.Credit_Note_Number__c		= cm.DocNumber;
 			            	is.QBOCreditNoteId__c			= cm.Id;
 			            	is.Credit_Note__c				= cm.TxnTaxDetail.TaxLine[0].TaxLineDetail.NetAmountTaxable;
-							if (is.Invoice_Amount__c != 0){
+							if (is.Invoice_Amount__c != 0 && is.Invoice_Number__c != null){
 								is.Amount__c 	= is.Invoice_Amount__c - is.Credit_Note__c;
+							} else {
+								is.Amount__c 	= (is.Credit_Note__c * -1);
+								is.Invoice_Sent__c = true;
+								is.Invoice_Paid__c = true;
 							}
 						}
 		            } 	

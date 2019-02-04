@@ -1,0 +1,4 @@
+<aura:event type="APPLICATION" description="Insert products response" >
+    <aura:attribute name="groupId" type="string" />
+    <aura:attribute name="lines" type="Object[]" />
+</aura:event>

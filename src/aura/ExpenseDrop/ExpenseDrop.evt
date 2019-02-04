@@ -1,0 +1,3 @@
+<aura:event type="APPLICATION" description="Expense drop" >
+    <aura:attribute name="lineId" type="string" />
+</aura:event>

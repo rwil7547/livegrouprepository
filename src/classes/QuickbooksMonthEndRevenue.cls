@@ -54,7 +54,7 @@ public with sharing class QuickbooksMonthEndRevenue {
 
         String monthStart   = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
         String monthEnd     = String.valueOf(closeMonth.addMonths(1).toStartOfMonth()).substring(0, 10);
-        String lastDayOfPriorMonth = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
+        String lastDayOfPriorMonth = String.valueOf(closeMonth.addMonths(1).toStartOfMonth().addDays(-1)).substring(0, 10);
 
 
         // establish lists of journals to be created
@@ -279,9 +279,9 @@ public with sharing class QuickbooksMonthEndRevenue {
 
 //                if ((pnlValue + 17800) <= (salesforceRevenue + 0.5) &&  (pnlValue + 17800) >= (salesforceRevenue - 0.5)){
 
-        // check for any prior journal calculations for the relevant period
+        // check for any prior journal calculations for the relevant period which have not yet been exported to Quickbooks
         List<QBJournal__c> priorJournals = [SELECT Id FROM QBJournal__c WHERE TxnDate__c = :closeMonth
-                                            AND Target__c = '4000 Revenue'];
+                                            AND Target__c = '4000 Revenue' AND QuickbooksId__c = NULL];
 
         // delete any prior journal entries found
         if (!priorJournals.isEmpty()) {

@@ -2132,7 +2132,7 @@
                                         '<div>' + image + '</div>' +
                                         '<div>' +
                                         'At ' + changeTime + ' ' + record.CreatedBy.FirstName + ' set ' +
-                                        record.Opportunity.Name + ' to <strong>' + movement + ' **</strong>' +
+                                        record.Opportunity.Name + ' to <strong>' + movement + '</strong>' +
                                         '</div>' +
                                         '<div class="' + colorClass + ' changeFigure">' +
                                         '£' + amount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' + iconClass +
@@ -2368,7 +2368,7 @@
                                         '<div>' + image + '</div>' +
                                         '<div>' +
                                         'At ' + changeTime + ' ' + record.CreatedBy.FirstName + ' set ' +
-                                        record.Opportunity.Name + ' to <strong>' + movement + ' **</strong>' +
+                                        record.Opportunity.Name + ' to <strong>' + movement + '</strong>' +
                                         '</div>' +
                                         '<div class="' + colorClass + ' changeFigure">' +
                                         '£' + record.Opportunity.Gross_Profit_Field_History__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' + iconClass +

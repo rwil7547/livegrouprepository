@@ -1,0 +1,4 @@
+<aura:event type="COMPONENT" description="Product selected" >
+    <aura:attribute name="selected" type="boolean"/>
+    <aura:attribute name="productId" type="string"/>
+</aura:event>

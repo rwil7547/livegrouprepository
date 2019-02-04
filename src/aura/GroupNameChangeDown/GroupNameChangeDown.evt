@@ -1,0 +1,4 @@
+<aura:event type="APPLICATION" description="Group name change down" >
+    <aura:attribute name="id" type="string"/>
+    <aura:attribute name="status" type="boolean" />
+</aura:event>

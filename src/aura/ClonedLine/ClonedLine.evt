@@ -1,0 +1,4 @@
+<aura:event type="COMPONENT" description="Line cloned" >
+    <aura:attribute name="originalId" type="string" />
+    <aura:attribute name="line" type="SBQQ__QuoteLine__c" />
+</aura:event>

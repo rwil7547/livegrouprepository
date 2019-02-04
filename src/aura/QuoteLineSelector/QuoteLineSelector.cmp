@@ -1,0 +1,66 @@
+<aura:component controller="PrimaryQuoteController">
+    <aura:attribute name="products" type="Product2[]" />
+    <aura:attribute name="families" type="string[]" />
+    <aura:attribute name="selectedIds" type="string[]" />
+    <aura:attribute name="groupId" type="string" />
+    
+    <aura:registerEvent name="addGroupedProducts" type="c:AddGroupedProducts" />
+    <aura:registerEvent name="closeModal" type="c:CloseModal" />
+    <aura:registerEvent name="DeselectAllProducts" type="c:DeselectAllProducts" />
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:handler name="productSelect" event="c:ProductSelect" action="{!c.handleSelect}"/>
+    
+    <div class="selectorModal">
+        <div style="height:15%;">
+            <lightning:layout >
+                <div class="slds-grid slds-p-around__medium" style="width: 100%;position:relative;">
+                    <div class="slds-col--padded slds-size_2-of-8" >
+                        <div style="font-weight:bold;font-size:15px;">Search by name:</div>
+                        <div onchange="{!c.handleKeyUp}">
+                            <lightning:input
+                                aura:id="enter-search"
+                                name="enter-search"
+                                type="search"/>
+                        </div>
+                    </div>
+                    <div class="slds-col--padded slds-size_2-of-8" >
+                        <div style="font-weight:bold;font-size:15px;">Filter by product family:</div>
+                        <lightning:select onchange="{!c.filterFamily}" aura:id="families">
+                            <option value="">All</option>
+                            <aura:iteration items="{!v.families}" var="family">
+                            	<option value="{!family}">{!family}</option>
+                            </aura:iteration>
+                        </lightning:select>
+                    </div>
+                    <div class="slds-col--padded slds-size_4-of-8 slds-truncate" 
+                         style="display:flex;flex-wrap: wrap;justify-content: flex-end;position:relative;font-size:10px;">
+                        <div style="float:right;">                  
+                            <lightning:button variant="neutral" label="CANCEL" onclick="{!c.close}"/>
+                        </div>
+                        <div style="float:right;margin-right:10px;">               
+                         	<aura:if isTrue="{!v.selectedIds.length > 0}">
+                            	<lightning:button variant="neutral" label="{!'ADD SELECTED (' + v.selectedIds.length + ')'}" 
+                                                  onclick="{!c.addSelected}"/>                        
+                        	</aura:if>   
+                        </div>
+                    </div>
+                </div>
+            </lightning:layout>
+        </div>    
+        <div class="slds-grid quoteKey">
+            <div class="slds-col slds-size_1-of-12"></div>
+            <div class="slds-col slds-size_3-of-12">NAME</div>
+            <div class="slds-col slds-size_4-of-12">DESCRIPTION</div>
+            <div class="slds-col slds-size_2-of-12" style="text-align:right;padding-right:20px;">UNIT COST</div>
+            <div class="slds-col slds-size_2-of-12" style="text-align:right;padding-right:25px;">UNIT PRICE</div>
+        </div>       
+        <div class="lineHolder">
+            <aura:iteration items="{!v.products}" var="product">
+                <c:ProductLine product="{!product}" 
+                               productId="{!product.Id}"/>
+            </aura:iteration>
+        </div>
+    
+    </div>	
+</aura:component>

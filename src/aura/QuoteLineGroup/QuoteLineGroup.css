@@ -1,0 +1,63 @@
+.THIS.group {
+    border-radius: 4px;
+    border: 1px solid #ccc9c9;
+    cursor: pointer;
+	margin-bottom: 12px;
+}
+
+.THIS .lineHeaderGrid {
+    display: grid;
+    grid-template-columns: 40% 8% 8% 11% 11% 11% 11% 11%;    
+}
+
+.THIS .paddedCol {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.THIS .selected {
+    box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.1), 0 3px 8px 0 rgba(0, 0, 0, 0.1);
+	background-color: #f4f4f4;
+}
+
+.THIS .textArea {
+    height: 100%;
+    margin-top: 0;
+}
+
+.THIS .quoteKey {
+    color: grey;
+    border-bottom: 1px solid grey;
+}
+
+.THIS .right {
+    text-align: right;
+    padding-right: 3px;
+}
+
+.THIS .valInput input{
+    text-align: right;
+}
+
+.THIS .valInput label,
+.THIS .inputText label,
+.THIS .groupName label,
+.THIS label {
+    display: none;
+}
+
+.THIS .inputText div,
+.THIS .inputText div > textarea {
+    height: inherit;
+    min-height: inherit;
+}
+
+.THIS .lineEdits > div {
+    padding: 5px;
+    z-index:3;
+}
+
+.THIS .lineEdits > div:hover {
+    -webkit-filter: drop-shadow( -5px -5px 5px #bfc0c1 );
+    filter: drop-shadow( -5px -5px 5px #bfc0c1 );
+}

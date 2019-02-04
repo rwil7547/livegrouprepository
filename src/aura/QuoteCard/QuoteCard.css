@@ -1,0 +1,14 @@
+.THIS .icon:hover {
+    z-index: 1000;
+    opacity: 1;
+}
+
+.THIS .primary {
+    border-radius: 3px;
+    background-color: black;
+    color: white;
+    margin-left: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-bottom: -3px;
+}

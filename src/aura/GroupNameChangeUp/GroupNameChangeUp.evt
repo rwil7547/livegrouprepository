@@ -1,0 +1,4 @@
+<aura:event type="COMPONENT" description="Group name change up">
+    <aura:attribute name="id" type="string"/>
+	<aura:attribute name="name" type="string"/>
+</aura:event>

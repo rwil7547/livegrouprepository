@@ -1,0 +1,21 @@
+<aura:component >    
+    <aura:attribute name="opportunityId" type="string" access="public"/>
+    <aura:attribute name="expenses" type="Expense__c[]" />
+    <aura:attribute name="reconciling" type="boolean" />
+    
+	<div class="expenseHolder">
+        <div style="height:50px;position:relative;display:flex;">
+        	<img src="{!$Resource.QuickbooksLogo}" style="height:50px;" />
+            <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeRec}"/> 
+		</div>
+        <br/>
+        <div style="height:calc(95% - 50px); overflow-y:scroll;"  ondragover="{!c.dragOver}" 
+             ondragleave="{!c.dragLeave}" ondrop="{!c.drop}">
+            <aura:iteration items="{!v.expenses}" var="expense" >
+                <aura:if isTrue="{!expense.QuoteLine__c == null}">
+                	<c:QuickbooksExpense expense="{!expense}" />
+                </aura:if>
+            </aura:iteration>
+		</div>
+    </div>
+</aura:component>

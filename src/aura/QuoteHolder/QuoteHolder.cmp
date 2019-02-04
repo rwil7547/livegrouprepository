@@ -1,0 +1,22 @@
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="QuoteListViewController" >
+    <aura:attribute name="quotes" type="SBQQ__Quote__c[]" />
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>    
+    <aura:handler event="c:Refresh" action="{!c.doInit}" />
+    <lightning:card class="slds-p-around_medium">
+    
+        <lightning:layout class="slds-m-bottom_small">
+            <lightning:layoutItem >
+                <lightning:icon iconName="standard:quotes" size="small" alternativeText="Quotes"/>
+            </lightning:layoutItem>
+            <lightning:layoutItem padding="horizontal-small">
+                <div class="page-section page-header">
+                    <h1 class="slds-text-heading--medium" style="font-weight:bold;">Quotes</h1>
+                </div>
+            </lightning:layoutItem>
+        </lightning:layout>   
+    
+        <aura:iteration items="{!v.quotes}" var="quote">
+            <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>      
+        </aura:iteration>    
+    </lightning:card>
+</aura:component>

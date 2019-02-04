@@ -1,0 +1,5 @@
+<aura:event type="APPLICATION" description="Line change response" >
+    <aura:attribute name="originalId" type="string" />
+    <aura:attribute name="response" type="string" />
+    <aura:attribute name="operation" type="string" />
+</aura:event>

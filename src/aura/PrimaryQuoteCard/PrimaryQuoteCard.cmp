@@ -1,0 +1,56 @@
+<aura:component >
+	<aura:attribute name="quote" type="SBQQ__Quote__c" />
+    <aura:attribute name="pdf" type="string" default=""/>
+    <aura:attribute name="word" type="string"  default=""/>
+
+        <lightning:layout class="slds-p-around_small quoteCardPrimary red">
+        <div class="slds-grid" style="width: 100%;">
+			<div class="slds-col slds-size_8-of-12">
+                <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
+                	<div >{!v.quote.Version__c}</div>
+                    <div hidden="{!!v.quote.SBQQ__Primary__c}" class="primary">PRIMARY</div>
+                    <!--<input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="true"/>-->
+                </div>
+                <div style="display:flex;">
+                    <span style="margin-right:25px;">
+                		<div class="totalsField">Amount</div>
+                        <div class="totals">
+                        	<lightning:formattedNumber value="{!v.quote.SBQQ__NetAmount__c}" 
+                                                   style="currency" currencyCode="GBP"/>
+                    	</div>
+                    </span>
+                    <span style="margin-right:25px;">
+                		<div class="totalsField">Gross Profit</div>
+                        <div class="totals">
+                        	<lightning:formattedNumber value="{!v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/>                        
+                    	</div>
+                    </span>
+                    <span>
+                    	<div class="totalsField">Margin</div>
+                        <div  class="totals">{!v.quote.Gross_Margin__c}%</div>
+                    </span>
+                </div> 
+    		</div>
+            <div class="slds-col slds-size_4-of-12" style="position:relative;">
+                <div style="float:right;">
+                    <aura:renderIf isTrue="{!v.pdf != ''}">
+                    	<span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;">
+                        	<lightning:icon iconName="doctype:pdf" size="large" alternativeText="document"/>
+                    	</span>
+                    </aura:renderIf>
+                    <aura:renderIf isTrue="{!v.word != ''}">
+                        <span id="{!v.word}" style="top:10px;right:1px;position:absolute;z-index:1;">
+                            <lightning:icon iconName="doctype:word" size="large" alternativeText="word"/>
+                        </span>                
+                    </aura:renderIf>
+            	</div>
+            </div>
+        </div>
+    </lightning:layout>
+
+     <aura:iteration items="{!v.quote.SBQQ__LineItemGroups__r}" var="group">
+         <c:QuoteLineGroup group="{!group}"/>
+     </aura:iteration>
+                                  
+    
+</aura:component>

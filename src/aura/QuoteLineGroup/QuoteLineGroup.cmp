@@ -1,0 +1,105 @@
+<aura:component >
+    <aura:attribute name="group" type="SBQQ__QuoteLineGroup__c" />
+    <aura:attribute name="lines" type="Object[]"/>
+    <aura:attribute name="cosTotal" type="decimal" />
+    <aura:attribute name="revTotal" type="decimal" />    
+    <aura:attribute name="editable" type="boolean" default="false"/>
+    <aura:attribute name="customGroup" type="boolean" />
+    <aura:attribute name="responsePending" type="boolean" default="false" />
+    <aura:attribute name="reconciling" type="boolean" default="false" />
+    <aura:attribute name="expenses" type="Expense__c[]" />
+    
+    <aura:registerEvent name="groupNameChangeUp" type="c:GroupNameChangeUp"/>
+    <aura:registerEvent name="addGroupProducts" type="c:AddGroupProducts"/>
+    <aura:registerEvent name="deleteGroup" type="c:DeleteGroupEvent"/>
+    <aura:registerEvent name="cloneGroup" type="c:CloneGroup" />
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+	<aura:handler event="c:DeleteGroupResponse" action="{!c.handleDeleteResponse}"/>
+    <aura:handler event="c:InsertProductsResponse" action="{!c.handleAddLinesResponse}" />
+    <aura:handler event="c:GroupResponsePending" action="{!c.responsePending}"/>
+    <aura:handler name="clonedLine" event="c:ClonedLine" action="{!c.handleLineCloned}" />
+    <aura:handler name="change" value="{!v.lines}" action="{!c.calculateTotals}" />
+	<aura:handler event="c:LineChangeResponse" action="{!c.calculateTotals}" />    
+    <!---->
+  
+    <lightning:layout class="slds-p-around_small group" multipleRows="true">
+    	
+            <lightning:layoutItem size="12" class="slds-p-around__large">
+                <div class="slds-grid" style="margin-bottom:20px;">
+                    <div class="slds-col slds-size_2-of-6" >
+                        <div id="{!v.group.Id + 'name'}" class="groupName" 
+                             style="display:flex;" onclick="{!c.editGroupName}">
+                            <div style="font-size:18px;margin-right:5px;">{!v.group.Name}</div>
+                            <aura:if isTrue="{!(v.editable &amp;&amp; v.customGroup)}">
+                                <div style="opacity:0.5;">
+                                    <lightning:icon iconName="utility:edit" alternativeText="Edit"
+                                                    size="xx-small" /> 
+                                </div>
+                            </aura:if>
+                        </div>
+                        <div id="{!v.group.Id + 'nameEdit'}" style="display:none;font-size:18px;margin-right:5px;" 
+                             onkeyup="{!c.saveGroupName}">
+                            <lightning:input type="text" value="{!v.group.Name}" maxlength="80"/>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_4-of-6">
+                        <aura:if isTrue="{!(v.editable &amp;&amp; v.customGroup &amp;&amp; !v.reconciling)}">
+                            <div style="display:flex;justify-content: flex-end;position:relative;font-size:11px;">
+                                <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showProducts}" />
+                                <lightning:button variant="neutral" label="CLONE GROUP" onclick="{!c.cloneGroup}" />
+                                <lightning:button variant="neutral" label="DELETE GROUP" onclick="{!c.deleteGroup}" />
+                            </div>
+                        </aura:if>
+                    </div>
+                </div>
+            </lightning:layoutItem>
+    
+            <div style="width:100%;position:relative;">
+                <div class="lineHeaderGrid quoteKey">
+                    <div >PRODUCT</div>
+                    <div class="right">DAYS</div>
+                    <div class="right">QTY</div>
+                    <div class="right">COS</div>
+                    <div class="right">TOTAL</div>
+                    <div class="right">PRICE</div>
+                    <div class="right">TOTAL</div>
+                </div>
+                    
+                <lightning:layoutItem size="12" >
+                    <aura:iteration items="{!v.lines}" var="line">
+                        <div style="position:relative;">
+                            <c:QuoteLine original="{#line}" 
+                                         editable="{!v.editable}"
+                                         expenses="{!v.expenses}"
+                                         reconciling="{!v.reconciling}"/>
+                        </div>
+                    </aura:iteration>
+                </lightning:layoutItem>
+				
+                <div class="lineHeaderGrid" style="font-weight:bold;margin-top: 10px; font-size:16px;">
+                    <div >{!v.group.Name} total:</div>
+                    <div class="right"></div>
+                    <div class="right"></div>
+                    <div class="right"></div>
+                    <div class="right">
+                    	<lightning:formattedNumber value="{!v.cosTotal}" 
+                                                   style="currency" currencyCode="GBP"/>
+                    </div>
+                    <div class="right"></div>
+                    <div class="right">
+                        <lightning:formattedNumber value="{!v.revTotal}" 
+                                                   style="currency" currencyCode="GBP"/>
+                    </div>                
+                
+                </div>        
+        	</div>
+
+        <aura:if isTrue="{!v.responsePending}">
+            <lightning:spinner variant="brand" size="small"/>
+        </aura:if>
+        
+    </lightning:layout>
+
+       	
+</aura:component>

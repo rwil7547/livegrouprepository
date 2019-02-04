@@ -1,0 +1,35 @@
+.THIS.selectorModal {
+    position: fixed;
+    top: 80px;
+    left: 200px;
+    right:  200px;
+    bottom: 50px;
+    background-color: white;
+    border-radius: 5px;
+    border: 0.5px solid grey; 
+    z-index: 10000;
+    padding: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+}
+
+.THIS .lineHolder {
+    max-height: 80%;
+    width: 100%;
+    overflow-y:scroll;
+}
+
+.THIS .quoteKey {
+    color: grey;
+    border-bottom: 1px solid grey;
+}
+
+.THIS .quoteLine {
+    border-bottom: 0.5px solid #e0e0e0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.THIS .quoteLine:hover {
+    background-color: #f4f4f4;
+}

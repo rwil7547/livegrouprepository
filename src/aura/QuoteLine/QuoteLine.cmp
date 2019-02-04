@@ -1,0 +1,167 @@
+<aura:component>
+    <aura:attribute name="line" type="SBQQ__QuoteLine__c" access="public" />
+    <aura:attribute name="original" type="SBQQ__QuoteLine__c" />
+    <aura:attribute name="editable" type="boolean" default="false" />
+    <aura:attribute name="editmode" type="boolean" default="false" />
+    <aura:attribute name="changed" type="boolean" default="false" />
+    <aura:attribute name="responsePending" type="boolean" default="false" />
+    <aura:attribute name="expenses" type="Expense__c[]" />
+    <aura:attribute name="expensesTotal" type="decimal" default="0" />
+    <aura:attribute name="reconciling" type="boolean" default="false" />
+
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:handler event="c:LineSelected" action="{!c.closeEdit}" />
+    <aura:handler event="c:LineChangeResponse" action="{!c.processChangeResponse}" />
+    <aura:handler event="c:MultipleLineUpdate" action="{!c.handleMultiLineUpdate}" />
+    <aura:handler name="change" value="{!v.line.SBQQ__Description__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Description__c}" />
+    <aura:handler name="change" value="{!v.line.SBQQ__SubscriptionTerm__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__SubscriptionTerm__c}" />
+    <aura:handler name="change" value="{!v.line.SBQQ__Quantity__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Quantity__c}" />
+    <aura:handler name="change" value="{!v.line.SBQQ__UnitCost__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__UnitCost__c}" />
+    <aura:handler name="change" value="{!v.line.SBQQ__ListPrice__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__ListPrice__c}" />
+    <aura:handler name="change" value="{!v.expenses}" action="{!c.calculateTotal}" />
+
+    <aura:registerEvent name="lineEdit" type="c:LineItemChange" />
+    <aura:registerEvent name="clonedLine" type="c:ClonedLine" />
+
+    <div class="{!v.line.SBQQ__Optional__c ? 'quoteLine optionalLine ' : 'quoteLine'}" 
+         ondblclick="{!c.openEdit}" aura:id="line" id="{!v.line.Id}" draggable="{!v.editable}" 
+         ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}" ondrop="{!c.drop}">
+        <div class="quoteGrid">
+            <div class="paddedCol">
+                <div style="font-weight:bold;font-size:14px;display:flex;">
+                    <div>{!v.line.SBQQ__Product__r.Name}</div>
+                </div>
+                <aura:if isTrue="{!v.editmode}">
+                    <lightning:inputRichText value="{!v.line.SBQQ__Description__c}" disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
+                    <aura:set attribute="else">
+                        <aura:unescapedHtml value="{!v.line.SBQQ__Description__c}" />
+                    </aura:set>
+                </aura:if>
+            </div>
+            <div>
+                <div class="figures">
+                    <div class="right">
+                        <aura:if isTrue="{!and(v.editmode, v.line.SBQQ__SubscriptionTerm__c != null)}">
+                            <span onkeyup="{!c.save}">
+                        <lightning:input class="slds-p-top_none valInput"   
+                           type="integer" 
+                           value="{!v.line.SBQQ__SubscriptionTerm__c}"/>
+                     </span>
+                            <aura:set attribute="else">
+                                {!v.line.SBQQ__SubscriptionTerm__c}
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                    <div class="right">
+                        <aura:if isTrue="{!v.editmode}">
+                            <span onkeyup="{!c.save}">
+                        <lightning:input class="slds-p-top_none valInput"   
+                           type="decimal" 
+                           value="{!v.line.SBQQ__Quantity__c}"/>
+                     </span>
+                            <aura:set attribute="else">
+                                {!v.line.SBQQ__Quantity__c}
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                    <div class="right">
+                        <aura:if isTrue="{!v.editmode}">
+                            <span onkeyup="{!c.save}">
+                        <lightning:input class="slds-p-top_none valInput"   
+                           type="decimal" 
+                           value="{!v.line.SBQQ__UnitCost__c}"/>
+                     </span>
+                            <aura:set attribute="else">
+                                <lightning:formattedNumber value="{!v.line.SBQQ__UnitCost__c}" style="currency" currencyCode="GBP" />
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                    <div class="right">
+                        <lightning:formattedNumber value="{!v.line.SBQQ__SubscriptionTerm__c == null ?
+                     (v.line.SBQQ__UnitCost__c * v.line.SBQQ__Quantity__c) :
+                     (v.line.SBQQ__UnitCost__c * v.line.SBQQ__Quantity__c * v.line.SBQQ__SubscriptionTerm__c)}" style="currency" currencyCode="GBP" />
+                    </div>
+                    <div class="right">
+                        <aura:if isTrue="{!v.editmode}">
+                            <span onkeyup="{!c.save}">
+                        <lightning:input class="slds-p-top_none valInput"   
+                           type="decimal" 
+                           value="{!v.line.SBQQ__ListPrice__c}"/>
+                     </span>
+                            <aura:set attribute="else">
+                                <lightning:formattedNumber value="{!v.line.SBQQ__ListPrice__c}" style="currency" currencyCode="GBP" />
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                    <div class="right">
+                        <lightning:formattedNumber value="{!v.line.SBQQ__SubscriptionTerm__c == null ?
+                     (v.line.SBQQ__ListPrice__c * v.line.SBQQ__Quantity__c) :
+                     (v.line.SBQQ__ListPrice__c * v.line.SBQQ__Quantity__c * v.line.SBQQ__SubscriptionTerm__c)}" style="currency" currencyCode="GBP" />
+                    </div>
+                    <aura:if isTrue="{!v.editmode}">
+                        <div class="lineEdits" style="z-index:10;">
+                            <aura:if isTrue="{!v.changed}">
+                                <div>
+                                    <lightning:icon iconName="action:update_status" alternativeText="Save" size="small" onclick="{!c.updateLine}" />
+                                </div>
+                                <div>
+                                    <lightning:icon iconName="action:recall" alternativeText="Undo" size="small" onclick="{!c.undoChanges}" />
+                                </div>
+                            </aura:if>
+                            <aura:if isTrue="{!not(v.changed)}">
+                                <div>
+                                    <lightning:icon iconName="action:clone" alternativeText="Clone" size="small" onclick="{!c.cloneLine}" title="Clone" />
+                                </div>
+                                <div>
+                                    <lightning:icon iconName="action:delete" alternativeText="Delete" size="small" onclick="{!c.deleteLine}" title="Delete" />
+                                </div>
+                                <div>
+                                    <lightning:icon iconName="action:question_post_action" alternativeText="Delete" size="small" onclick="{!c.toggleLineOptional}" title="Make optional" />
+                                </div>
+                                <div style="opacity:0.5;">
+                                    <lightning:icon iconName="action:remove" alternativeText="Cancel" size="small" onclick="{!c.cancelEdit}" title="Cancel" />
+                                </div>
+                            </aura:if>
+                        </div>
+                    </aura:if>
+                </div>
+                
+                <aura:if isTrue="{!v.reconciling}">
+                    <div>
+                        <div class="quickbooksTotal figures">
+                            <div></div>
+                            <div></div>
+                            <div class="right">
+                                <lightning:formattedNumber value="{!(v.line.SBQQ__SubscriptionTerm__c == null || v.line.SBQQ__SubscriptionTerm__c == 0) ?
+                             (v.expensesTotal / v.line.SBQQ__Quantity__c) :
+                             (v.expensesTotal / v.line.SBQQ__SubscriptionTerm__c / v.line.SBQQ__Quantity__c)}" style="currency" currencyCode="GBP" />
+                            </div>
+                            <div class="right">
+                                <lightning:formattedNumber value="{!v.expensesTotal}" style="currency" currencyCode="GBP" />
+                            </div>
+                            <aura:if isTrue="{!v.line.Line_cost_total__c != v.expensesTotal}">
+                            	<div style="margin-left:5px;">
+                                	<lightning:icon iconName="utility:change_record_type" alternativeText="Cancel" size="x-small" onclick="{!c.calculate}" title="Calculate" />
+                                </div>
+                            </aura:if>
+                        </div>
+                        <aura:iteration items="{!v.expenses}" var="expense">
+                            <aura:if isTrue="{!expense.QuoteLine__c == v.line.Id}">
+                                <div style="width:31vw;margin-left:3%;">
+                                    <c:QuickbooksExpense expense="{!expense}" opacity="0.7" />
+                                </div>
+                            </aura:if>
+                        </aura:iteration>
+                    </div>
+                </aura:if>
+                
+            </div>
+        </div>
+        <div>
+
+            <aura:if isTrue="{!v.responsePending}">
+                <lightning:spinner variant="brand" size="small" />
+            </aura:if>
+        </div>
+    </div>
+</aura:component>

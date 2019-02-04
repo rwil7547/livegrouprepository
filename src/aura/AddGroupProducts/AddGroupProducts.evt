@@ -1,0 +1,3 @@
+<aura:event type="COMPONENT" description="Add group products" >
+    <aura:attribute name="groupId" type="string"/>
+</aura:event>

@@ -1,0 +1,14 @@
+.THIS.expenseHolder{
+    position: fixed;
+    top: 120px;
+    right:  2px;
+    bottom: 2px;
+    width: 33vw;
+    background-color: white;
+    border-radius: 5px;
+    border: 0.5px solid grey; 
+    z-index: 10000;
+    padding: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+    
+}
