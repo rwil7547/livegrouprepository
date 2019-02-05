@@ -378,6 +378,10 @@
                 color: green;
             }
 
+            .neutralChange {
+                color: grey;
+            }
+
             .changeRowTotal {
                 position:absolute;
                 right:10px;
@@ -1984,7 +1988,8 @@
                                 var record     = entries[x];
                                 var changeDate = new Date(record.CreatedDate);
                                 var minutes = (changeDate.getMinutes() < 10) ? '0' + changeDate.getMinutes() : changeDate.getMinutes();
-                                var changeTime = changeDate.getHours() + ':' + minutes;
+                                var changeTime = changeDate.getHours() + ':' + minutes + '  ' + changeDate.toLocaleDateString();
+                                // var changeTime = changeDate.getHours() + ':' + minutes;
                                 var movement;
                                 var colorClass;
                                 var iconClass;
@@ -2138,8 +2143,8 @@
                                         '£' + amount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' + iconClass +
                                         '</div>' +
                                         '</div>';
-                                } else if (record.TotalRevenue__c) {
-                                    if (record.TotalRevenue__c >= 0) {
+                                } else if (record.TotalRevenue__c !== null) {
+                                    if (record.TotalRevenue__c > 0) {
                                         totalColorClass = 'positiveChange';
                                         totalIconClass = '<i class="fas fa-arrow-circle-up"></i>';
                                         dayTotalChange = '£' + record.TotalRevenue__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
@@ -2147,7 +2152,11 @@
                                         totalColorClass = 'negativeChange';
                                         totalIconClass = '<i class="fas fa-arrow-circle-down"></i>';
                                         dayTotalChange = '£' + (record.TotalRevenue__c * -1).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
-
+                                    } else {
+                                            console.log('found a neutral');
+                                        totalColorClass = 'neutralChange';
+                                        totalIconClass = '<i class="fas fa-minus-circle"></i>';
+                                        dayTotalChange = '£0';
                                     }
                                 }
                             }
@@ -2204,9 +2213,9 @@
                                 var record = result[element][x];
                                 var changeDate = new Date(record.CreatedDate);
                                 var minutes = (changeDate.getMinutes() < 10) ? '0' + changeDate.getMinutes() : changeDate.getMinutes();
-                                var changeTime = changeDate.getHours() + ':' + minutes;
-                                var initials = (record.CreatedBy.FirstName === 'Ronan') ? 'QB'
-                                    : record.CreatedBy.FirstName.substr(0, 1) + record.CreatedBy.LastName.substr(0, 1)
+                                var changeTime = changeDate.getHours() + ':' + minutes + '  ' + changeDate.toLocaleDateString();
+
+                                // var changeTime = changeDate.getHours() + ':' + minutes;
                                 var image =
                                     (!imageMap[record.CreatedBy.FirstName + record.CreatedBy.LastName]) ?
                                         '<div class="imageIcon" >' + record.CreatedBy.FirstName.substr(0, 1) + '' + record.CreatedBy.LastName.substr(0, 1) + '</div>' :
@@ -2218,8 +2227,11 @@
 
                                 if (record.Month__c) {
 
+                                    console.log('in new commission record old val is ' + record.OldValue);
+
+
                                     var monthText = record.Parent.EventMonthYear__c;
-                                    var amount = record.Revenue__c * -1;
+                                    var amount = record.Profit__c * -1;
 
                                     if (amount < 0) {
                                         colorClass = 'negativeChange';
@@ -2243,6 +2255,9 @@
                                         '</div>';
 
                                 } else if (record.Parent && record.Field === 'Profit__c') {
+
+                                    console.log('in changed commission record old val is ' + record.OldValue + ' new ' +
+                                    record.NewValued);
 
                                     var monthText = record.Parent.EventMonthYear__c;
                                     var oldAmount = (!record.OldValue) ? 0 : parseFloat(record.OldValue) * -1;
@@ -2276,6 +2291,9 @@
 
                                 } else if (record.Field === 'Event_end__c') {
 
+                                    console.log('in event end record old val is ' + record.OldValue);
+
+
                                     var oldDateText = new Date(record.OldValue).toString().substr(0, 15);
                                     var newDateText = new Date(record.NewValue).toString().substr(0, 15);
                                     var newDate = new Date(record.NewValue);
@@ -2303,13 +2321,10 @@
                                         '</div>';
 
                                 } else if (record.Field === 'Gross_Profit_Field_History__c' && record.OldValue != null) {
+
                                     var calder = (record.Calder_Opportunity__c === true);
-                                    var createdBy = (record.CreatedBy.FirstName === 'Ronan') ?
-                                        'the Quickbooks integration' : record.CreatedBy.FirstName;
-                                    var concession = (record.CreatedBy.FirstName === 'Ronan') ?
-                                        ' (this happens either when a bill is added in Quickbooks after the' +
-                                        ' project has already been set to Rec Complete, ' +
-                                        'or when the COS in Quickbooks is higher than the Salesforce quote)' : '';
+                                    var createdBy = record.CreatedBy.FirstName;
+                                    var concession = '';
                                     var oldAmount = (calder) ? parseFloat(record.OldValue * 0.9) : parseFloat(record.OldValue);
                                     var newAmount = (calder) ? parseFloat(record.NewValue * 0.9) : parseFloat(record.NewValue);
                                     var difference;
@@ -2327,14 +2342,35 @@
                                     }
 
                                     if (record.Expenses){
-                                        console.log('found expenses ' + record.Expenses);
-                                    }
+                                        createdBy = 'the Quickbooks integration';
+                                        concession = ' (this happens either when a bill is added in Quickbooks after the' +
+                                            ' project has already been set to Rec Complete,' +
+                                            ' or when the COS in Quickbooks is higher than the Salesforce quote)';
+                                        image = '<img class="photo" src="{!$Resource.QuickbooksLogoSmall}"/>';
+                                    } else if (record.Revenue){
+                                        console.log('rev' + Object.keys(record.Revenue));
+                                        console.log('rev' + Object.values(record.Revenue));
 
-                                    if (record.Revenue){
-                                        console.log('found revenue ' + record.Revenue);
-                                    }
+                                        var revenueDifference = record.Revenue.NewValue - record.Revenue.OldValue;
+                                        var revenueMovement = (revenueDifference < 0) ? 'decrease' : 'increase';
+                                        var revenueMultiplier = (revenueDifference < 0) ? -1 : 1;
 
-                                    var expenses = (record.Expenses) ? record.Expenses : '';
+                                        if (revenueDifference === (newAmount - oldAmount)){
+                                            concession = ' (this was caused purely by a ' + revenueMovement + ' in revenue)';
+                                        } else {
+                                            var cosDifference = (newAmount - oldAmount) - revenueDifference;
+                                            var cosMovement = (cosDifference < 0) ? 'increase' : 'decrease';
+                                            var cosMultiplier = (cosDifference < 0) ? -1 : 1;
+
+                                            concession = ' (this was caused by a cost of sale ' + cosMovement + ' of ' +
+                                                '£' + (cosDifference * cosMultiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
+                                                ' and a revenue ' + revenueMovement + ' of £' +
+                                                (revenueDifference * revenueMultiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ')';
+                                        }
+                                    } else {
+                                        var cosMovement = (oldAmount < newAmount) ? 'increase' : 'decrease';
+                                        concession = ' (this was caused purely by a ' + cosMovement + ' in cost of sales)';
+                                    }
 
                                     changes += '<div class="changeRow">' +
                                         '<div>' + image + '</div>' +
@@ -2343,7 +2379,6 @@
                                         ' the ' + '<strong>profit</strong>' + ' on ' +
                                         record.Opportunity.Name + ' from £' + oldAmount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' to £' +
                                         newAmount.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + concession +
-                                            ' ' + expenses +
                                         '</div>' +
                                         '<div class="' + colorClass + ' changeFigure">' + '£' + difference.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' +
                                         iconClass +
@@ -2351,7 +2386,7 @@
                                         '</div>';
                                 } else if (record.Field === 'StageName') {
 
-                                    console.log('found a record relating to stagename ');
+                                    console.log('found a record relating to stagename ' + Object.keys(record));//.Opportunity.Gross_Profit_Field_History__c);
 
 
                                     if (record.NewValue === 'Closed Won') {
@@ -2371,19 +2406,24 @@
                                         record.Opportunity.Name + ' to <strong>' + movement + '</strong>' +
                                         '</div>' +
                                         '<div class="' + colorClass + ' changeFigure">' +
+                                        // '£' + record.Opportunity.Gross_Profit_Field_History__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' + iconClass +
                                         '£' + record.Opportunity.Gross_Profit_Field_History__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + ' ' + iconClass +
                                         '</div>' +
                                         '</div>';
-                                } else if (record.TotalGrossProfit__c) {
-                                    if (record.TotalGrossProfit__c >= 0) {
-                                        colorClass = 'positiveChange';
-                                        iconClass = '<i class="fas fa-arrow-circle-up"></i>';
+                                } else if (record.TotalGrossProfit__c !== null) {
+                                    if (record.TotalGrossProfit__c > 0) {
+                                        totalColorClass = 'positiveChange';
+                                        totalIconClass = '<i class="fas fa-arrow-circle-up"></i>';
                                         dayTotalChange = '£' + record.TotalGrossProfit__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
                                     } else if (record.TotalGrossProfit__c < 0) {
-                                        colorClass = 'negativeChange';
-                                        iconClass = '<i class="fas fa-arrow-circle-down"></i>';
+                                        totalColorClass = 'negativeChange';
+                                        totalIconClass = '<i class="fas fa-arrow-circle-down"></i>';
                                         dayTotalChange = '£' + (record.TotalGrossProfit__c * -1).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+                                    } else {
 
+                                        totalColorClass = 'neutralChange';
+                                        totalIconClass = '<i class="fas fa-minus-circle"></i>';
+                                        dayTotalChange = '£0';
                                     }
                                 }
                             }
@@ -2399,8 +2439,8 @@
                             document.getElementById('profitChangeDays').innerHTML +=
                                 '<fieldset id="opextoday" class="changeHolder">' +
                                 '<legend>' + period + '</legend>' +
-                                '<div class="changeRowTotal ' + colorClass + '">' +
-                                dayTotalChange + ' ' + iconClass +
+                                '<div class="changeRowTotal ' + totalColorClass + '">' +
+                                dayTotalChange + ' ' + totalIconClass +
                                 '</div>' +
                                 changes +
                                 '</fieldset>';

@@ -204,7 +204,7 @@ public with sharing class QuickbooksMonthEndRevenue {
                                         Percent_Invoiced__c, Amount_Calder__c, CommittedRevenue__c,
                                         Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
                                 FROM Opportunity
-                                WHERE Event_end__c <= :closeMonth
+                                WHERE Event_end__c <= :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
                                 AND Event_end__c = THIS_FISCAL_YEAR
                                 AND StageName = 'Closed Won'
                                 AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
@@ -225,8 +225,8 @@ public with sharing class QuickbooksMonthEndRevenue {
                                                 Opportunity__r.QuickbooksClassId__c,
                                                 Opportunity__r.Filtered_Job_Number__c
                                         FROM Adjustment__c
-                                        WHERE Month__c > :closeMonth
-                                        AND Opportunity__r.Event_end__c <= :closeMonth
+                                        WHERE Month__c > :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
+                                        AND Opportunity__r.Event_end__c <= :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
                                         AND (Revenue__c < -0.1 OR Revenue__c > 0.1)]) {
 
             System.debug('processing an opportunity with remaning val ' + adjustment.Revenue__c);
@@ -503,7 +503,7 @@ public with sharing class QuickbooksMonthEndRevenue {
                             isDebit         = false;
                         }
                     } else if (journalLine.JournalEntryLineDetail.AccountRef.name == '4002 Revenue:Rebates'){
-                        journalsTotal   -= journalLine.Amount;
+                        journalsTotal   += journalLine.Amount;
                         System.debug('processing a journal line with val ' + journalLine.Amount + ' of type ' + journalLine.JournalEntryLineDetail.PostingType);
 
                     }
@@ -760,6 +760,8 @@ public with sharing class QuickbooksMonthEndRevenue {
         // iterate through opportunities which have not been invoiced and do not have journal lines against them already
         for (Opportunity opp : opportunities){
 
+            system.debug('creating a journal line for the followin opportunity ' + opp);
+
             Boolean minus       = (opp.Amount_Remaining__c) < 0;
             Decimal amount      = (minus) ? opp.Amount_Remaining__c * -1 : opp.Amount_Remaining__c;
             String classId      = opp.QuickbooksClassId__c;
@@ -777,7 +779,7 @@ public with sharing class QuickbooksMonthEndRevenue {
         for (Adjustment__c adjustment : adjustments){
 
             Boolean minus       = (adjustment.Revenue__c) < 0;
-            Decimal amount      = adjustment.Revenue__c * -1;
+            Decimal amount      = (minus) ? adjustment.Revenue__c * -1 : adjustment.Revenue__c;
             String classId      = adjustment.Opportunity__r.QuickbooksClassId__c;
             String className    = adjustment.Opportunity__r.Filtered_Job_Number__c + ' ' + adjustment.Opportunity__r.Name;
             String balSheetType = (minus) ? 'Debit' : 'Credit';

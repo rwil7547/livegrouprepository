@@ -267,6 +267,24 @@ public class SalesDashboardTest {
         // create sample data snapshots
         SalesDashboardUtils.createSnapshots();
 
+        // create fake snapshots stretching further back in time
+        SalesDashboardSnapshot__c snapshot = [SELECT TotalRevenue__c, TotalGrossProfit__c, CreatedDate,
+                                                Id FROM SalesDashboardSnapshot__c LIMIT 1];
+
+        List<SalesDashboardSnapshot__c> newSnapshots = new List<SalesDashboardSnapshot__c>();
+
+        for (Integer x = 0; x < 10; x++){
+            newSnapshots.add(
+                    new SalesDashboardSnapshot__c(
+                            TotalRevenue__c = snapshot.TotalRevenue__c,
+                            TotalGrossProfit__c = snapshot.TotalGrossProfit__c,
+                            CreatedDate = snapshot.CreatedDate.addDays(- (x + 1))
+                    )
+            );
+        }
+
+        insert newSnapshots;
+
     }
 
     ///// TEST DASHBOARD MAIN METHODS
@@ -321,7 +339,7 @@ public class SalesDashboardTest {
         String startDate    = String.valueOf(Date.today().addMonths(-20));
         String endDate      = String.valueOf(Date.today().addMonths(20));
 
-        Map<String,List<Object>> results = SalesDashboardRemoter.getOppChanges(startDate, endDate, 7);
+        Map<String,List<Object>> results = SalesDashboardRemoter.getOppChanges(startDate, endDate, 7, 200);
     }
 
     @IsTest
@@ -362,7 +380,7 @@ public class SalesDashboardTest {
         String startDate    = String.valueOf(Date.today().addYears(-3));
         String endDate      = String.valueOf(Date.today().addYears(3));
 
-        Map<String,List<Object>> results = SalesDashboardRemoter.getOppProfitChanges(startDate, endDate, 7);
+        Map<String,List<Object>> results = SalesDashboardRemoter.getOppProfitChanges(startDate, endDate, 7, 200);
     }
 
     @IsTest
