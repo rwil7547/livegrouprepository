@@ -4,32 +4,6 @@
 
 public with sharing class QuickbooksMonthEndRevenue {
 
-//    public static void reverseRevenueJournals(Date priorMonth){
-//
-//        // get params for queries
-//        String month    = (priorMonth.month() < 10) ? '0' + String.valueOf(priorMonth.month()) : String.valueOf(priorMonth.month());
-//
-//        // check for accruals journal from prior month
-//        String journals = 'query?query=select%20%2a%20from%20journalentry%20where%20docNumber%20like%20%27%25Sales' +
-//                '%25%27%20and%20TxnDate%20%3d%20%27' + priorMonth.year() + '-' + month + '-01' + '%27&minorversion=4';
-//
-//        Http http              = new Http();
-//        HttpRequest request    = buildCallout(journals);
-//        HttpResponse response  = http.send(request);
-//
-//        JSONParserQBOJournalFlow accrualJournal = JSONParserQBOJournalFlow.parse(response.getBody());
-//        if (accrualJournal.QueryResponse.JournalEntry != null){
-//            for (JSONParserQBOJournalFlow.cls_JournalEntry journal : accrualJournal.QueryResponse.JournalEntry){
-//
-//                // check that the journal is not a reversal
-//                if (!journal.DocNumber.contains('R') && !journal.DocNumber.contains('Reversal')){
-//                    // generate posting string
-//                    generateJournalString(journal);
-//                }
-//            }
-//        }
-//    }
-
     public static void calculateRevenueJournal(Date closeMonth, Set<String> reversalIds) {
 
         // establish what the end Salesforce revenue figure need to be
@@ -48,14 +22,9 @@ public with sharing class QuickbooksMonthEndRevenue {
         Boolean journalCallout          = false;
 
         // generate date string params to be used in Quickbooks callout
-//        String monthStart   = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
-//        String monthEnd     = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
-//        String lastDayOfPriorMonth = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
-
         String monthStart   = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
         String monthEnd     = String.valueOf(closeMonth.addMonths(1).toStartOfMonth()).substring(0, 10);
         String lastDayOfPriorMonth = String.valueOf(closeMonth.addMonths(1).toStartOfMonth().addDays(-1)).substring(0, 10);
-
 
         // establish lists of journals to be created
         List<JSONParserQBOInvoiceFlow.cls_Invoice> invoicesToDefer              = new List<JSONParserQBOInvoiceFlow.cls_Invoice>();
@@ -73,7 +42,6 @@ public with sharing class QuickbooksMonthEndRevenue {
         Map<String, List<Object>> pastIds   = getIds(false, closeMonth);
         Map<String,String> pastInvoiceIdMap = getPastInvoiceIdMap(closeMonth);
 
-
         // 1. INVOICES: callout to Quickbooks to retrieve any invoice entries siting in the prior month
         String query1 = 'query?query=select%20%2a%20from%20invoice%20where%20TxnDate%20%3e%20%27' +
                 monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
@@ -90,9 +58,7 @@ public with sharing class QuickbooksMonthEndRevenue {
             monthTotalRevenue   += (Decimal)processedInvoices.get('Total');
             pnlRevenueDebit     += (Decimal)processedInvoices.get('Debit');
 
-
             invoicesToDefer.addAll((List<JSONParserQBOInvoiceFlow.cls_Invoice>) processedInvoices.get('Invoices'));
-
         }
 
         // 2. CREDIT NOTE: callout to Quickbooks to retrieve any credit note entries siting in the prior month
@@ -116,8 +82,6 @@ public with sharing class QuickbooksMonthEndRevenue {
         }
 
         // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
-        // todo: ensure this picks up the journal from the prior month except for in the first execution instance
-        // todo: these ids should be passed over from the reversal method
         Set<String> journalIds  = reversalIds;
         Set<String> accrualsIds = new Set<String>();
 
@@ -126,7 +90,7 @@ public with sharing class QuickbooksMonthEndRevenue {
             String query3 = 'query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' + journalId + '%27&minorversion=4';
 
             // do callout
-            Http http3              = new http();
+            Http http3              = new Http();
             HttpRequest request3    = buildCallout(query3);
             HttpResponse response3  = http3.send(request3);
 
@@ -205,7 +169,7 @@ public with sharing class QuickbooksMonthEndRevenue {
                                         Amount_Invoiced2__c, Event_end__c, Amount_Remaining__c
                                 FROM Opportunity
                                 WHERE Event_end__c <= :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
-                                AND Event_end__c = THIS_FISCAL_YEAR
+                                AND Event_end__c = LAST_N_MONTHS:6
                                 AND StageName = 'Closed Won'
                                 AND (Percent_Invoiced__c < 99.9 OR Percent_Invoiced__c > 100.1)]){
 

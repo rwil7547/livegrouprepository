@@ -736,20 +736,20 @@ global class SalesDashboardRemoter {
                         [SELECT TotalGrossProfit__c, DateCreated__c, CreatedDate,
                                 CreatedBy.FirstName, CreatedBy.LastName
                         FROM SalesDashboardSnapshot__c
-                        WHERE DateCreated__c >= :fallBack
+                        WHERE DateCreated__c >= :fallBack.addDays(-1)
                         AND PeriodEnd__c <= :endDate
                         ORDER BY CreatedDate DESC];
 
-        List<SalesDashboardSnapshot__c> snapshotsClone = snapshots.deepClone();
+        List<SalesDashboardSnapshot__c> snapshotsClone = snapshots.deepClone(false);
 
         system.debug('before ' + snapshotsClone);
 
-        for (Integer x = 0; x < snapshots.size(); x++){
+        for (Integer x = 0; x < snapshots.size() - 1; x++){
 
             if (x == 0){
                 snapshots[x].TotalGrossProfit__c = currentTotal - snapshots[x].TotalGrossProfit__c;
             } else {
-                snapshots[x].TotalGrossProfit__c = snapshotsClone[x - 1].TotalGrossProfit__c - snapshots[x].TotalGrossProfit__c;
+                snapshots[x].TotalGrossProfit__c = snapshotsClone[x + 1].TotalGrossProfit__c - snapshots[x].TotalGrossProfit__c;
             }
 //            String dayString = String.valueOf(Date.valueOf(snapshots[x].DateCreated__c).daysBetween(Date.today().addDays(-1)));
 //            String dayString = String.valueOf(Date.valueOf(snapshots[x].DateCreated__c).daysBetween(Date.today()));

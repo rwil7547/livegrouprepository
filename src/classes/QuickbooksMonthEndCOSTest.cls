@@ -19,6 +19,8 @@ public class QuickbooksMonthEndCOSTest {
         opp1.Amount         = 1000;
         opp1.Calder_Opportunity__c = true;
         opp1.CommittedRevenue__c = 900;
+        opp1.CommittedProfit__c = 400;
+        opp1.CommittedCOS__c = 500;
         opp1.Forecast_COS__c = 500;
         opp1.QuickbooksClassId__c = '1111';
         opp1.Invoice_Schedule__c = 'Single up-front invoice';
@@ -43,6 +45,8 @@ public class QuickbooksMonthEndCOSTest {
         opp4.Committed__c   = true;
         opp4.Amount         = 1000;
         opp4.CommittedRevenue__c = 1000;
+        opp1.CommittedProfit__c = 400;
+        opp1.CommittedCOS__c = 500;
         opp4.QuickbooksClassId__c = '1112';
         opp1.Forecast_COS__c = 500;
         opp4.Invoice_Schedule__c = 'Single up-front invoice';
@@ -58,6 +62,8 @@ public class QuickbooksMonthEndCOSTest {
         opp5.Name           = 'PAST EXPENSED';
         opp5.Amount         = 1000;
         opp5.CommittedRevenue__c = 1000;
+        opp1.CommittedProfit__c = 400;
+        opp1.CommittedCOS__c = 500;
         opp5.QuickbooksClassId__c = '1114';
         opp5.Forecast_COS__c = 500;
         opp5.Invoice_Schedule__c = 'Single up-front invoice';
@@ -93,6 +99,9 @@ public class QuickbooksMonthEndCOSTest {
                 QuickbooksId__c = '1112',
                 Description__c  = 'Test'
         );
+
+        SalesDashboardUtils.commitOpportunites();
+//        SalesDashboardUtils.adjustOpportunities();
 
     }
 
@@ -131,57 +140,96 @@ public class QuickbooksMonthEndCOSTest {
         Test.setMock(HttpCalloutMock.class, cashMultiMock);
 
         Test.startTest();
-        QuickbooksMonthEndCOS.calculateCOSJournal();
+        QuickbooksMonthEndCOS.calculateCOSJournal(Date.today().addMonths(-1).toStartOfMonth(), new Set<String>{'23363'}, new Set<String>{'23364'});
         Test.stopTest();
 
     }
 
-//    @IsTest
-//    public static void testJournalPost(){
-//
-//        QBJournal__c journal = new QBJournal__c(
-//                DocNumber__c = 'Test',
-//                TxnDate__c   = Date.today().toStartOfMonth().addMonths(-1),
-//                Target__c    = '5000 Cost of sales'
-//        );
-//
-//        insert journal;
-//
-//        QBJournalEntry__c entry1 = new QBJournalEntry__c(
-//                QBJournal__c        = journal.Id,
-//                Description__c      = 'Pxx Mgt Accs Defer sales ' +
-//                        System.now().addMonths(-1).format('MMM') + ' ' +
-//                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
-//                PostingType__c      = 'Credit',
-//                AccountRefId__c     = '333',
-//                AccountRefName__c   = '',
-//                Amount__c           = 10,
-//                ClassRefId__c       = '333',
-//                ClassRefName__c     = 'Test'
-//        );
-//
-//        insert entry1;
-//
-//        QBJournalEntry__c entry2 = new QBJournalEntry__c(
-//                QBJournal__c        = journal.Id,
-//                Description__c      = 'Pxx Mgt Accs Defer sales ' +
-//                        System.now().addMonths(-1).format('MMM') + ' ' +
-//                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
-//                PostingType__c      = 'Debit',
-//                AccountRefId__c     = '333',
-//                AccountRefName__c   = '',
-//                Amount__c           = 10,
-//                ClassRefId__c       = '333',
-//                ClassRefName__c     = 'Test'
-//        );
-//
-//        insert entry2;
-//
-//        Test.setMock(HttpCalloutMock.class, new MonthEndCosJournalMock());
-//
-//        Test.startTest();
-//        QuickbooksMonthEndJournal.postCOSJournals();
-//        Test.stopTest();
-//
-//    }
+    @IsTest
+    public static void testAccrualJournalPost(){
+
+        QBJournal__c accrualJournal = new QBJournal__c(
+                DocNumber__c = 'Test',
+                TxnDate__c   = Date.today().toStartOfMonth().addMonths(-1),
+                Target__c    = '5000 Cost of sales'
+        );
+
+        insert accrualJournal;
+
+        QBJournalEntry__c accrualEntry1 = new QBJournalEntry__c(
+                QBJournal__c        = accrualJournal.Id,
+                Description__c      = 'Pxx Mgt Accs Acc sales ' +
+                        System.now().addMonths(-1).format('MMM') + ' ' +
+                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+                PostingType__c      = 'Credit',
+                AccountRefId__c     = '333',
+                AccountRefName__c   = '',
+                Amount__c           = 10,
+                ClassRefId__c       = '333',
+                ClassRefName__c     = 'Test'
+        );
+
+        insert accrualEntry1;
+
+        QBJournalEntry__c accryalEntry2 = new QBJournalEntry__c(
+                QBJournal__c        = accrualJournal.Id,
+                Description__c      = 'Pxx Mgt Accs Acc sales ' +
+                        System.now().addMonths(-1).format('MMM') + ' ' +
+                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+                PostingType__c      = 'Debit',
+                AccountRefId__c     = '333',
+                AccountRefName__c   = '',
+                Amount__c           = 10,
+                ClassRefId__c       = '333',
+                ClassRefName__c     = 'Test'
+        );
+
+        insert accryalEntry2;
+
+        QBJournal__c deferralJournal = new QBJournal__c(
+                DocNumber__c = 'Test',
+                TxnDate__c   = Date.today().toStartOfMonth().addMonths(-1),
+                Target__c    = '5000 Cost of sales'
+        );
+
+        insert deferralJournal;
+
+        QBJournalEntry__c deferralEntry1 = new QBJournalEntry__c(
+                QBJournal__c        = deferralJournal.Id,
+                Description__c      = 'Pxx Mgt Accs Def sales ' +
+                        System.now().addMonths(-1).format('MMM') + ' ' +
+                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+                PostingType__c      = 'Credit',
+                AccountRefId__c     = '657',
+                AccountRefName__c   = '',
+                Amount__c           = 10,
+                ClassRefId__c       = '333',
+                ClassRefName__c     = 'Test'
+        );
+
+        insert deferralEntry1;
+
+        QBJournalEntry__c deferralEntry2 = new QBJournalEntry__c(
+                QBJournal__c        = deferralJournal.Id,
+                Description__c      = 'Pxx Mgt Accs Acc sales ' +
+                        System.now().addMonths(-1).format('MMM') + ' ' +
+                        String.valueOf(Date.today().addMonths(-1).year()).substring(2) + ' YTD',
+                PostingType__c      = 'Debit',
+                AccountRefId__c     = '333',
+                AccountRefName__c   = '',
+                Amount__c           = 10,
+                ClassRefId__c       = '333',
+                ClassRefName__c     = 'Test'
+        );
+
+        insert deferralEntry2;
+
+
+        Test.setMock(HttpCalloutMock.class, new MonthEndCosJournalMock());
+
+        Test.startTest();
+        QuickbooksMonthEndJournal.postCOSJournals();
+        Test.stopTest();
+
+    }
 }

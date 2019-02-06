@@ -164,16 +164,17 @@ public class QuickbooksMonthEndJournal {
         Map<String,Object> journalResponse  = (Map<String,Object>)responseMap.get('JournalEntry');
 
         // create SB Journal entry map
-        Map<String,QBJournalEntry__c> entryMap = new Map<String,QBJournalEntry__c>();
+//        Map<String,QBJournalEntry__c> entryMap = new Map<String,QBJournalEntry__c>();
+//
+//        for (QBJournalEntry__c entry : journal.QBJournalEntries__r){
+//            entryMap.put(entry.CallbackId__c, entry);
+//        }
 
-        for (QBJournalEntry__c entry : journal.QBJournalEntries__r){
-            entryMap.put(entry.CallbackId__c, entry);
-        }
-
-        System.debug('the id returned from Quickbooks is ' + (String)journalResponse.get('Id'));
+//        System.debug('the id returned from Quickbooks is ' + (String)journalResponse.get('Id'));
+        System.debug('the id returned from Quickbooks is ' + journalResponse);
 
         // populate journal Id with Quickbooks entry Id
-        journal.QuickbooksId__c = (String)journalResponse.get('Id');
+//        journal.QuickbooksId__c = (String)journalResponse.get('Id');
 
         update journal;
     }

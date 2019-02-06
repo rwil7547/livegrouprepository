@@ -4,262 +4,300 @@
 
 public class QuickbooksMonthEndCOS {
 
-    public static void calculateCOSJournal() {
+    public static void calculateCOSJournal(Date closeMonth, Set<String> accrualIds, Set<String> deferralIds) {
 
-        // check that the journals have not already been calculated
-        if ([SELECT Id FROM QBJournal__c WHERE TxnDate__c = :Date.today().toStartOfMonth().addMonths(-1)
-                AND Target__c = '5000 Events COS'].isEmpty()) {
+        // establish what the end figures need to be
+        Decimal salesforceCOS = getTotalSalesforceFigures(closeMonth);
 
-            // establish what the end figures need to be
-            Decimal salesforceCOS = getTotalSalesforceFigures();
+        // delcare values to store total figures
+        Decimal monthTotalCOS   = 0;
+        Decimal pnlCOSDebit     = 0;
+        Decimal pnlCOSCredit    = 0;
 
-            // delcare values to store total figures
-            Decimal monthTotalCOS   = 0;
-            Decimal pnlCOSDebit     = 0;
-            Decimal pnlCOSCredit    = 0;
+        // boolean check that all callouts have been successful
+        Boolean billsCallout                = false;
+        Boolean vendorCreditCallout         = false;
+        Boolean billsAccrualsCallout        = false;
+        Boolean vendorCreditAccrualsCallout = false;
+        Boolean journalWIPCallout           = false;
+        Boolean journalAccrualCallout       = false;
 
-            // boolean check that all callouts have been successful
-            Boolean billsCallout                = false;
-            Boolean vendorCreditCallout         = false;
-            Boolean billsAccrualsCallout        = false;
-            Boolean vendorCreditAccrualsCallout = false;
-            Boolean journalWIPCallout           = false;
-            Boolean journalAccrualCallout       = false;
+        // generate date string params to be used in Quickbooks callout
+        String monthStart   = String.valueOf(closeMonth.addDays(-1)).substring(0, 10);
+        String monthEnd     = String.valueOf(closeMonth.addMonths(1).toStartOfMonth()).substring(0, 10);
+        String lastDayOfPriorMonth = String.valueOf(closeMonth.addMonths(1).toStartOfMonth().addDays(-1)).substring(0, 10);
 
-            // generate date string params to be used in Quickbooks callout
-            String monthStart           = String.valueOf(Date.today().addMonths(-1).toStartOfMonth().addDays(-1)).substring(0, 10);
-            String monthEnd             = String.valueOf(Date.today().toStartOfMonth()).substring(0, 10);
-            String lastDayOfPriorMonth  = String.valueOf(Date.today().toStartOfMonth().addDays(-1)).substring(0, 10);
+        // establish lists of journals to be created
+        List<JSONParserQBOBillFlow.cls_Line> billLinesToDefer                   = new List<JSONParserQBOBillFlow.cls_Line>();
+        List<JSONParserQBOVendorCreditFlow.cls_Line> vendorCreditLinesToDefer   = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
+        List<JSONParserQBOBillFlow.cls_Line> billAccrualsToCredit               = new List<JSONParserQBOBillFlow.cls_Line>();
+        List<JSONParserQBOVendorCreditFlow.cls_Line> vendorCreditLinesToAccrue   = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
+        List<JSONParserQBOJournalFlow.cls_Line> journalsToDefer                 = new List<JSONParserQBOJournalFlow.cls_Line>();
+        List<Opportunity> opportunitiesToAccrue                                 = new List<Opportunity>();
+        List<Adjustment__c> adjustmentsToAccrue                                 = new List<Adjustment__c>();
+        Map<Id,Decimal> adjustmentValueMap                                      = new Map<Id,Decimal>();
 
-            // establish lists of journals to be created
-            List<JSONParserQBOBillFlow.cls_Line> billLinesToDefer                   = new List<JSONParserQBOBillFlow.cls_Line>();
-            List<JSONParserQBOVendorCreditFlow.cls_Line> vendorCreditLinesToDefer   = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
-            List<JSONParserQBOBillFlow.cls_Line> billAccrualsToCredit               = new List<JSONParserQBOBillFlow.cls_Line>();
-            List<JSONParserQBOVendorCreditFlow.cls_Line> vendorCreditLinesToAccrue   = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
-            List<JSONParserQBOJournalFlow.cls_Line> journalsToDefer                 = new List<JSONParserQBOJournalFlow.cls_Line>();
-            List<Opportunity> opportunitiesToAccrue                                 = new List<Opportunity>();
-            List<Adjustment__c> adjustmentsToAccrue                                 = new List<Adjustment__c>();
-            Map<Id,Decimal> adjustmentValueMap                                      = new Map<Id,Decimal>();
+        // get set of invoices and job numbers in the future, used to determine if entries
+        // need to be deferred
+        Map<String, List<Object>> futureIds = getIds(true, closeMonth);
+        Map<String, List<Object>> pastIds = getIds(false, closeMonth);
 
-            // get set of invoices and job numbers in the future, used to determine if entries
-            // need to be deferred
-            Map<String, List<Object>> futureIds = getIds(true);
-            Map<String, List<Object>> pastIds = getIds(false);
+        Map<String,Decimal> amountsOnPNL = new Map<String,Decimal>();
 
-            Map<String,Decimal> amountsOnPNL = new Map<String,Decimal>();
+        for (String jobNo : pastIds.keySet()){
+            amountsOnPNL.put(jobNo, 0);
+//            system.debug('past id is ' + jobNo);
+        }
 
-            for (String jobNo : pastIds.keySet()){
-                amountsOnPNL.put(jobNo, 0);
-                system.debug('past id is ' + jobNo);
-            }
+        // 1. BILLS: callout to Quickbooks to retrieve any bill entries siting in the prior month
+        String query1 = 'query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
+                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27%20maxResults%201000&minorversion=4';
 
-            // 1. BILLS: callout to Quickbooks to retrieve any bill entries siting in the prior month
-            String query1 = 'query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
-                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27%20maxResults%201000&minorversion=4';
-//                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%20maxResults%2010&minorversion=4';
+        Http http1 = new Http();
+        HttpRequest request1 = buildCallout(query1);
+        HttpResponse response1 = http1.send(request1);
 
-            Http http1 = new Http();
-            HttpRequest request1 = buildCallout(query1);
-            HttpResponse response1 = http1.send(request1);
+        if (response1.getStatusCode() == 200) {
+            billsCallout = true;
+            Map<String, Object> processedBillLines =
+                    processBills(futureIds.keySet(), JSONParserQBOBillFlow.parse(response1.getBody()),amountsOnPNL);
 
-            if (response1.getStatusCode() == 200) {
-                billsCallout = true;
-                Map<String, Object> processedBillLines =
-                        processBills(futureIds.keySet(), JSONParserQBOBillFlow.parse(response1.getBody()),amountsOnPNL);
+            Object responseObj = JSON.deserializeUntyped(response1.getBody());
+            Map<String,Object> responseMap = (Map<String,Object>)responseObj;
+            Map<String,Object> queryMap = (Map<String,Object>)responseMap.get('QueryResponse');
+            List<Object> bills = (List<Object>)queryMap.get('Bill');
 
-                Object responseObj = JSON.deserializeUntyped(response1.getBody());
-                Map<String,Object> responseMap = (Map<String,Object>)responseObj;
-                Map<String,Object> queryMap = (Map<String,Object>)responseMap.get('QueryResponse');
-                List<Object> bills = (List<Object>)queryMap.get('Bill');
+            system.debug('response object is ' + JSON.deserializeUntyped(response1.getBody()));
+            system.debug('size is ' + bills.size());
 
-                system.debug('response object is ' + JSON.deserializeUntyped(response1.getBody()));
-                system.debug('size is ' + bills.size());
+            monthTotalCOS   += (Decimal) processedBillLines.get('Total');
+            pnlCOSCredit    += (Decimal) processedBillLines.get('Credit');
+            amountsOnPNL    =  (Map<String,Decimal>) processedBillLines.get('amountsOnPNL');
 
-                monthTotalCOS   += (Decimal) processedBillLines.get('Total');
-                pnlCOSCredit    += (Decimal) processedBillLines.get('Credit');
-                amountsOnPNL    =  (Map<String,Decimal>) processedBillLines.get('amountsOnPNL');
+            billLinesToDefer.addAll((List<JSONParserQBOBillFlow.cls_Line>) processedBillLines.get('BillLines'));
+        }
 
-                billLinesToDefer.addAll((List<JSONParserQBOBillFlow.cls_Line>) processedBillLines.get('BillLines'));
-            }
+        // 2. VENDOR CREDIT: callout to Quickbooks to retrieve any vendor credit note entries siting in the prior month
+        String query2 = 'query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
+                monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
 
-            // 2. VENDOR CREDIT: callout to Quickbooks to retrieve any vendor credit note entries siting in the prior month
-            String query2 = 'query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
-                    monthStart + '%27%20and%20TxnDate%20%3c%20%27' + monthEnd + '%27&minorversion=4';
+        Http http2 = new Http();
+        HttpRequest request2 = buildCallout(query2);
+        HttpResponse response2 = http2.send(request2);
 
-            Http http2 = new Http();
-            HttpRequest request2 = buildCallout(query2);
-            HttpResponse response2 = http2.send(request2);
+        if (response2.getStatusCode() == 200) {
+            vendorCreditCallout = true;
+            Map<String, Object> processedVendorCreditLines =
+                    processVendorCredits(futureIds.keySet(), JSONParserQBOVendorCreditFlow.parse(response2.getBody()),amountsOnPNL);
 
-            if (response2.getStatusCode() == 200) {
-                vendorCreditCallout = true;
-                Map<String, Object> processedVendorCreditLines =
-                        processVendorCredits(futureIds.keySet(), JSONParserQBOVendorCreditFlow.parse(response2.getBody()),amountsOnPNL);
+            monthTotalCOS   += (Decimal) processedVendorCreditLines.get('Total');
+            pnlCOSDebit     += (Decimal) processedVendorCreditLines.get('Debit');
+            amountsOnPNL    =  (Map<String,Decimal>) processedVendorCreditLines.get('amountsOnPNL');
 
-                monthTotalCOS   += (Decimal) processedVendorCreditLines.get('Total');
-                pnlCOSDebit     += (Decimal) processedVendorCreditLines.get('Debit');
-                amountsOnPNL    =  (Map<String,Decimal>) processedVendorCreditLines.get('amountsOnPNL');
+            vendorCreditLinesToDefer.addAll((List<JSONParserQBOVendorCreditFlow.cls_Line>) processedVendorCreditLines.get('CreditLines'));
+        }
 
-                vendorCreditLinesToDefer.addAll((List<JSONParserQBOVendorCreditFlow.cls_Line>) processedVendorCreditLines.get('CreditLines'));
-            }
+        // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
+        // the two types of journals are accruals reversal and work in progress reversal
+        // todo: ensure this picks up the journal from the prior month except for in the first execution instance
+//        Set<String> journalIds  = new Set<String>{'23364', '23363'};
+        Set<String> accrualsIds = new Set<String>();
 
+        Map<String, String> journalTypeMap = new Map<String, String>();
+//        {
+//                '23364' => 'WIP',
+//                '23363' => 'Accrual'
+//        };
 
+        for (String deferral : deferralIds){
+            journalTypeMap.put(deferral, 'WIP');
+        }
 
+        for (String accrual : accrualIds){
+            journalTypeMap.put(accrual, 'Accrual');
+        }
 
-            // 3. JOURNALS: callout Quickbooks to retrieve reversed journals from the month prior
-            // the two types of journals are accruals reversal and work in progress reversal
-            // todo: ensure this picks up the journal from the prior month except for in the first execution instance
-            Set<String> journalIds  = new Set<String>{'23364', '23363'};
-            Set<String> accrualsIds = new Set<String>();
+        for (String journalId : journalTypeMap.keySet()) {
 
-            Map<String, String> journalTypeMap = new Map<String, String>{
-                    '23364' => 'WIP',
-                    '23363' => 'Accrual'
-            };
+            String query3 = 'query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' + journalId + '%27&minorversion=4';
 
-            for (String journalId : journalIds) {
+            // do callout
+            Http http3 = new Http();
+            HttpRequest request3 = buildCallout(query3);
+            HttpResponse response3 = http3.send(request3);
 
-                String query3 = 'query?query=select%20%2a%20from%20journalentry%20where%20Id%20%3d%20%27' + journalId + '%27&minorversion=4';
+            if (response3.getStatusCode() == 200) {
 
-                // do callout
-                Http http3 = new http();
-                HttpRequest request3 = buildCallout(query3);
-                HttpResponse response3 = http3.send(request3);
-
-                if (response3.getStatusCode() == 200) {
-
-                    // mark the correct journal type callout as correct
-                    if (journalTypeMap.get(journalId) == 'WIP') {
-                        journalWIPCallout = true;
-                    } else if (journalTypeMap.get(journalId) == 'Accrual') {
-                        journalAccrualCallout = true;
-                    }
-
-                    Map<String, Object> processedJournals =
-                            processJournals(futureIds.keySet(), JSONParserQBOJournalFlow.parse(response3.getBody()),journalTypeMap.get(journalId),amountsOnPNL);
-
-                    monthTotalCOS   += (Decimal) processedJournals.get('Total');
-                    pnlCOSDebit     += (Decimal) processedJournals.get('pnlDebit');
-                    pnlCOSCredit    += (Decimal) processedJournals.get('pnlCredit');
-                    amountsOnPNL    =  (Map<String,Decimal>) processedJournals.get('amountsOnPNL');
-
-                    journalsToDefer.addAll((List<JSONParserQBOJournalFlow.cls_Line>) processedJournals.get('Journals'));
-                    accrualsIds.addAll((Set<String>) processedJournals.get('AccrualIds'));
+                // mark the correct journal type callout as correct
+                if (journalTypeMap.get(journalId) == 'WIP') {
+                    journalWIPCallout = true;
+                } else if (journalTypeMap.get(journalId) == 'Accrual') {
+                    journalAccrualCallout = true;
                 }
+
+                Map<String, Object> processedJournals =
+                        processJournals(futureIds.keySet(), JSONParserQBOJournalFlow.parse(response3.getBody()),journalTypeMap.get(journalId),amountsOnPNL);
+
+                monthTotalCOS   += (Decimal) processedJournals.get('Total');
+                pnlCOSDebit     += (Decimal) processedJournals.get('pnlDebit');
+                pnlCOSCredit    += (Decimal) processedJournals.get('pnlCredit');
+                amountsOnPNL    =  (Map<String,Decimal>) processedJournals.get('amountsOnPNL');
+
+                journalsToDefer.addAll((List<JSONParserQBOJournalFlow.cls_Line>) processedJournals.get('Journals'));
+                accrualsIds.addAll((Set<String>) processedJournals.get('AccrualIds'));
             }
+        }
 
-            for (String s : amountsOnPNL.keySet()){
-                system.debug('pnl key is ' + s + ' and value is ' + amountsOnPNL.get(s));
-            }
-
-
-            // 4. BILLS ACCRUAL: callout to Quickbooks to retrieve any bill entries siting in the current month
-            // which are for the prior month and do not already have a journal associated with them
-            String query4 = 'query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
-                    lastDayOfPriorMonth + '%27&minorversion=4';
-
-            Http http4              = new Http();
-            HttpRequest request4    = buildCallout(query4);
-            HttpResponse response4  = http4.send(request4);
-
-            if (response4.getStatusCode() == 200) {
-                billsAccrualsCallout = true;
-                Map<String, Object> processedAccruals =
-                        processAccruals(accrualsIds, pastIds.keySet(), JSONParserQBOBillFlow.parse(response4.getBody()),amountsOnPNL);
-
-                pnlCOSDebit        += (Decimal)processedAccruals.get('Debit');
-                amountsOnPNL       =  (Map<String,Decimal>) processedAccruals.get('amountsOnPNL');
-
-                billAccrualsToCredit.addAll((List<JSONParserQBOBillFlow.cls_Line>) processedAccruals.get('BillLines'));
-            }
-
-            // 5. VENDOR CREDITS TO ACCRUE: callout to Quickbooks to retrieve any vendor credit note entries siting in the current month
-            // which are for the prior month and do not already have a journal associated with them
-            String query5 = 'query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
-                    lastDayOfPriorMonth + '%27&minorversion=4';
-            Http http5 = new Http();
-            HttpRequest request5 = buildCallout(query5);
-            HttpResponse response5 = http5.send(request5);
-
-            if (response5.getStatusCode() == 200) {
-                vendorCreditAccrualsCallout = true;
-                Map<String, Object> processedVendorCreditLines =
-                        processCreditAccruals(futureIds.keySet(),  pastIds.keySet(), JSONParserQBOVendorCreditFlow.parse(response5.getBody()),amountsOnPNL);
-
-                pnlCOSCredit    += (Decimal)processedVendorCreditLines.get('Credit');
-                amountsOnPNL    =  (Map<String,Decimal>) processedVendorCreditLines.get('amountsOnPNL');
-
-                vendorCreditLinesToAccrue.addAll((List<JSONParserQBOVendorCreditFlow.cls_Line>) processedVendorCreditLines.get('VendorCreditLines'));
-            }
-
-            // 6. OPPORTUNITIES: determine if some opportunities from the prior month or earlier are still not fully invoiced
-            for (Opportunity opp : [SELECT Id, Filtered_Job_Number__c, Name, QuickbooksClassId__c,
-                                            COSRemaining__c, Event_end__c
-                                    FROM Opportunity
-                                    WHERE Event_end__c < :Date.today().toStartOfMonth()
-                                    AND Event_end__c >= 2018-04-18
-                                    AND StageName = 'Closed Won'
-                                    AND COSRemaining__c > 0]){
-
-                opportunitiesToAccrue.add(opp);
-                pnlCOSDebit += opp.COSRemaining__c;
-            }
+        for (String s : amountsOnPNL.keySet()){
+            System.debug('pnl key is ' + s + ' and value is ' + amountsOnPNL.get(s));
+        }
 
 
-            Map<String, Decimal> expenseOffsetMap = new Map<String,Decimal>();
+        // 4. BILLS ACCRUAL: callout to Quickbooks to retrieve any bill entries siting in the current month
+        // which are for the prior month and do not already have a journal associated with them
+        String query4 = 'query?query=select%20%2a%20from%20bill%20where%20TxnDate%20%3e%20%27' +
+                lastDayOfPriorMonth + '%27&minorversion=4';
 
-            for (Expense__c ex : [SELECT Id, Opportunity__r.Filtered_Job_Number__c, Amount__c
-                                    FROM Expense__c WHERE CreatedDate >= :Date.today().toStartOfMonth().addDays(1)
-                                    AND Opportunity__r.Filtered_Job_Number__c IN :pastIds.keySet()]){
+        Http http4              = new Http();
+        HttpRequest request4    = buildCallout(query4);
+        HttpResponse response4  = http4.send(request4);
 
-                if (expenseOffsetMap.containsKey(ex.Opportunity__r.Filtered_Job_Number__c)){
-                    expenseOffsetMap.put(ex.Opportunity__r.Filtered_Job_Number__c, expenseOffsetMap.get(ex.Opportunity__r.Filtered_Job_Number__c) + ex.Amount__c);
+        if (response4.getStatusCode() == 200) {
+            billsAccrualsCallout = true;
+            Map<String, Object> processedAccruals =
+                    processAccruals(accrualsIds, pastIds.keySet(), JSONParserQBOBillFlow.parse(response4.getBody()),amountsOnPNL);
+
+            pnlCOSDebit        += (Decimal)processedAccruals.get('Debit');
+            amountsOnPNL       =  (Map<String,Decimal>) processedAccruals.get('amountsOnPNL');
+
+            billAccrualsToCredit.addAll((List<JSONParserQBOBillFlow.cls_Line>) processedAccruals.get('BillLines'));
+        }
+
+        // 5. VENDOR CREDITS TO ACCRUE: callout to Quickbooks to retrieve any vendor credit note entries siting in the current month
+        // which are for the prior month and do not already have a journal associated with them
+        String query5 = 'query?query=select%20%2a%20from%20VendorCredit%20where%20TxnDate%20%3e%20%27' +
+                lastDayOfPriorMonth + '%27&minorversion=4';
+        Http http5 = new Http();
+        HttpRequest request5 = buildCallout(query5);
+        HttpResponse response5 = http5.send(request5);
+
+        if (response5.getStatusCode() == 200) {
+            vendorCreditAccrualsCallout = true;
+            Map<String, Object> processedVendorCreditLines =
+                    processCreditAccruals(futureIds.keySet(),  pastIds.keySet(), JSONParserQBOVendorCreditFlow.parse(response5.getBody()),amountsOnPNL);
+
+            pnlCOSCredit    += (Decimal)processedVendorCreditLines.get('Credit');
+            amountsOnPNL    =  (Map<String,Decimal>) processedVendorCreditLines.get('amountsOnPNL');
+
+            vendorCreditLinesToAccrue.addAll((List<JSONParserQBOVendorCreditFlow.cls_Line>) processedVendorCreditLines.get('VendorCreditLines'));
+        }
+
+        // 6. OPPORTUNITIES: determine if some opportunities from the prior month or earlier are still not fully invoiced
+
+        // begin by adjusting all Opportunities
+//        SalesDashboardUtils.adjustOpportunities();
+
+        for (Opportunity opp : [SELECT Id, Filtered_Job_Number__c, Name, QuickbooksClassId__c,
+                                        COSRemaining__c, Event_end__c,
+                                        (SELECT Id, CostOfSale__c FROM Adjustments__r
+                                        WHERE Month__c > :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
+                                        AND (CostOfSale__c < -0.1 OR CostOfSale__c > 0.1))
+                                FROM Opportunity
+                                WHERE Event_end__c <= :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
+                                AND Event_end__c >= :Date.newInstance(2018,04,01)
+                                AND StageName = 'Closed Won'
+                                AND COSRemaining__c > 0]){
+
+            Decimal cosToAccrue = opp.COSRemaining__c;
+
+            for (Adjustment__c adj : opp.Adjustments__r){
+                if (adj.CostOfSale__c < 0){
+                    cosToAccrue += (adj.CostOfSale__c * -1);
                 } else {
-                    expenseOffsetMap.put(ex.Opportunity__r.Filtered_Job_Number__c, ex.Amount__c);
+                    cosToAccrue -= adj.CostOfSale__c;
                 }
             }
 
+            opp.Forecast_COS__c = cosToAccrue;
 
-            // 7. OPPORTUNITY ADJUSTMENTS
-            for (Adjustment__c adjustment : [SELECT Id, CostOfSale__c, Opportunity__r.Name, Opportunity__r.QuickbooksClassId__c,
-                                                    Opportunity__r.Filtered_Job_Number__c, Opportunity__r.SBQQ__PrimaryQuote__r.Amount_Calder__c,
-                                                    Opportunity__r.Filtered_Cost_of_Sale__c, Opportunity__r.Quote_Status__c, Opportunity__r.Quickbooks_COS__c,
-                                                    Opportunity__r.CommittedCOS__c
-                                            FROM Adjustment__c
-                                            WHERE Month__c >= :Date.today().toStartOfMonth()
-                                            AND Opportunity__r.Event_end__c < :Date.today().toStartOfMonth()
-                                            AND (CostOfSale__c < -0.1 OR CostOfSale__c > 0.1)
-                                            ]){
-                adjustmentsToAccrue.add(adjustment);
+            opportunitiesToAccrue.add(opp);
+//            pnlCOSDebit += opp.COSRemaining__c;
+            pnlCOSDebit += cosToAccrue;
+        }
 
-                if (expenseOffsetMap.containsKey(adjustment.Opportunity__r.Filtered_Job_Number__c)){
-//                        pnlCOSCredit += (expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c));
+//
+//        Map<String, Decimal> expenseOffsetMap = new Map<String,Decimal>();
+//
+//        for (Expense__c ex : [SELECT Id, Opportunity__r.Filtered_Job_Number__c, Amount__c
+//                                FROM Expense__c
+////                                WHERE CreatedDate >= :Date.today().toStartOfMonth().addDays(1)
+//                                WHERE CreatedDate >= :closeMonth.addMonths(1).toStartOfMonth()
+//                                AND Opportunity__r.Filtered_Job_Number__c
+//                                IN :pastIds.keySet()]){
+//
+//            if (expenseOffsetMap.containsKey(ex.Opportunity__r.Filtered_Job_Number__c)){
+//                expenseOffsetMap.put(ex.Opportunity__r.Filtered_Job_Number__c, expenseOffsetMap.get(ex.Opportunity__r.Filtered_Job_Number__c) + ex.Amount__c);
+//            } else {
+//                expenseOffsetMap.put(ex.Opportunity__r.Filtered_Job_Number__c, ex.Amount__c);
+//            }
+//        }
+//
+//
+//        // 7. OPPORTUNITY ADJUSTMENTS
+//        for (Adjustment__c adjustment : [SELECT Id, CostOfSale__c, Opportunity__r.Name, Opportunity__r.QuickbooksClassId__c,
+//                                                Opportunity__r.Filtered_Job_Number__c, Opportunity__r.SBQQ__PrimaryQuote__r.Amount_Calder__c,
+//                                                Opportunity__r.Filtered_Cost_of_Sale__c, Opportunity__r.Quote_Status__c, Opportunity__r.Quickbooks_COS__c,
+//                                                Opportunity__r.CommittedCOS__c
+//                                        FROM Adjustment__c
+//                                        WHERE Month__c > :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
+//                                        AND Opportunity__r.Event_end__c <= :closeMonth.addMonths(1).toStartOfMonth().addDays(-1)
+//                                        AND (CostOfSale__c < -0.1 OR CostOfSale__c > 0.1)]){
+//            adjustmentsToAccrue.add(adjustment);
+//
+//            if (expenseOffsetMap.containsKey(adjustment.Opportunity__r.Filtered_Job_Number__c)){
+////                        pnlCOSCredit += (expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c));
+//
+//                pnlCOSDebit += (expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c));
+//                adjustmentValueMap.put(adjustment.Id,(expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c)));
+//            } else {
+//                if (adjustment.CostOfSale__c < 0) {
+////                    pnlCOSCredit += (adjustment.CostOfSale__c);
+////                    pnlCOSCredit += (adjustment.CostOfSale__c * -1);
+//                    pnlCOSDebit += (adjustment.CostOfSale__c * -1);
+//                } else {
+////                    pnlCOSDebit += (adjustment.CostOfSale__c);
+//                    pnlCOSCredit += (adjustment.CostOfSale__c);
+////                    pnlCOSDebit += (adjustment.CostOfSale__c);
+//                }
+//
+//                adjustmentValueMap.put(adjustment.Id, adjustment.CostOfSale__c);
+//            }
+//        }
 
-                    pnlCOSDebit += (expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c));
-                    adjustmentValueMap.put(adjustment.Id,(expenseOffsetMap.get(adjustment.Opportunity__r.Filtered_Job_Number__c)));
-                } else {
-                    if (adjustment.CostOfSale__c < 0) {
-                        pnlCOSCredit += (adjustment.CostOfSale__c);
-                    } else {
-                        pnlCOSDebit += (adjustment.CostOfSale__c);
-                    }
 
-                    adjustmentValueMap.put(adjustment.Id, adjustment.CostOfSale__c);
-                }
-            }
-
-
-            // 8. DETERMINE BALANCES ARE ACCURATE
-            // create salesforce entries for each journal to post if all callouts were successful
-            // and the total figures are in agreement with the Salesforce figures
-            if (billsCallout && vendorCreditCallout && vendorCreditCallout && vendorCreditCallout && journalWIPCallout && journalAccrualCallout) {
-                // if there is less than £1 discrepancy
-                Decimal pnlValue = (monthTotalCOS + pnlCOSDebit - pnlCOSCredit);
+        // 8. DETERMINE BALANCES ARE ACCURATE
+        // create salesforce entries for each journal to post if all callouts were successful
+        // and the total figures are in agreement with the Salesforce figures
+        if (billsCallout && vendorCreditCallout && vendorCreditCallout && vendorCreditCallout && journalWIPCallout && journalAccrualCallout) {
+            // if there is less than £1 discrepancy
+//            Decimal pnlValue = (monthTotalCOS + pnlCOSDebit - pnlCOSCredit);
 
 //                if (pnlValue <= (salesforceCOS + 0.5) &&  pnlValue >= (salesforceCOS - 0.5)){
 
-                    System.debug('SUCCESS!');
-                    createQBJournalEntries(billLinesToDefer, vendorCreditLinesToDefer, billAccrualsToCredit, vendorCreditLinesToAccrue,
-                            journalsToDefer, opportunitiesToAccrue, adjustmentsToAccrue, adjustmentValueMap, futureIds, pastIds);
+
+            // check for any prior journal calculations for the relevant period which have not yet been exported to Quickbooks
+            List<QBJournal__c> priorJournals = [SELECT Id FROM QBJournal__c WHERE TxnDate__c = :closeMonth
+                                                AND Target__c = '5000 Cost of sales' AND QuickbooksId__c = NULL];
+
+            // delete any prior journal entries found
+            if (!priorJournals.isEmpty()) {
+                delete priorJournals;
+            }
+
+
+                System.debug('SUCCESS!');
+                createQBJournalEntries(billLinesToDefer, vendorCreditLinesToDefer, billAccrualsToCredit, vendorCreditLinesToAccrue,
+                        journalsToDefer, opportunitiesToAccrue, adjustmentsToAccrue, adjustmentValueMap, futureIds, pastIds);
 
 
 //                    List<JSONParserQBOBillFlow.cls_Line> bills,
@@ -276,33 +314,51 @@ public class QuickbooksMonthEndCOS {
 
 
 //                } else {
-                    System.debug('amounts didnt add up: total cos in SF: ' + salesforceCOS);
-                    System.debug('total pnl: ' + monthTotalCOS);
-                    System.debug('total debit: ' + pnlCOSDebit);
-                    System.debug('total credit: ' + pnlCOSCredit);
-                    System.debug('total finished figure: ' + (monthTotalCOS -  pnlCOSCredit +  pnlCOSDebit));
-                    System.debug('total discrepancy is : ' + (salesforceCOS - (monthTotalCOS -  pnlCOSCredit +  pnlCOSDebit)));
+                System.debug('amounts didnt add up: total cos in SF: ' + salesforceCOS);
+                System.debug('total pnl: ' + monthTotalCOS);
+                System.debug('total debit: ' + pnlCOSDebit);
+                System.debug('total credit: ' + pnlCOSCredit);
+                System.debug('total finished figure: ' + (monthTotalCOS -  pnlCOSCredit +  pnlCOSDebit));
+                System.debug('total discrepancy is : ' + (salesforceCOS - (monthTotalCOS -  pnlCOSCredit +  pnlCOSDebit)));
 //                }
-            }
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
+                System.debug('');
 
         }
     }
 
 
-    private static Decimal getTotalSalesforceFigures() {
+    private static Decimal getTotalSalesforceFigures(Date closeMonth) {
 
         List<AggregateResult> oppFigures = [SELECT SUM(CommittedCOS__c) cos
                                             FROM Opportunity
-                                            WHERE Event_end__c = LAST_MONTH
-                                            AND Committed__c = TRUE];
+                                            WHERE Event_end__c >= :closeMonth
+                                            AND Event_end__c < :closeMonth.addMonths(1).toStartOfMonth()];
 
         List<AggregateResult> adjustmentFigures = [SELECT SUM(CostOfSale__c) cos
                                             FROM Adjustment__c
-                                            WHERE Month__c = LAST_MONTH
-                                            AND Committed__c = TRUE];
+                                            WHERE Month__c >= :closeMonth
+                                            AND Month__c < :closeMonth.addMonths(1).toStartOfMonth()];
 
-        Decimal totalOppCOS = ((Decimal) oppFigures[0].get('cos') != null) ? (Decimal) oppFigures[0].get('cos') : 0;
-        Decimal totalAdjCOS = ((Decimal) adjustmentFigures[0].get('cos') != null) ? (Decimal) adjustmentFigures[0].get('cos') : 0;
+        Decimal totalOppCOS = ((Decimal) oppFigures[0].get('cos') != null) ?
+                (Decimal) oppFigures[0].get('cos') : 0;
+        Decimal totalAdjCOS = ((Decimal) adjustmentFigures[0].get('cos') != null) ?
+                (Decimal) adjustmentFigures[0].get('cos') : 0;
 
         return totalOppCOS + totalAdjCOS;
     }
@@ -319,10 +375,10 @@ public class QuickbooksMonthEndCOS {
         return request;
     }
 
-    private static Map<String, List<Object>> getIds(Boolean future) {
+    private static Map<String, List<Object>> getIds(Boolean future, Date closeMonth) {
 
-        Date startDate = (future) ? Date.today().toStartOfMonth() : Date.today().addMonths(-12);
-        Date endDate = (future) ? Date.today().addYears(3) : Date.today().toStartOfMonth().addDays(-1);
+        Date startDate  = (future) ?  closeMonth.addMonths(1).toStartOfMonth() : closeMonth.addMonths(-6);
+        Date endDate    = (future) ?  closeMonth.addYears(3) : closeMonth.addMonths(1).toStartOfMonth().addDays(-1);
 
         Map<String, List<Object>> idMap = new Map<String, List<Object>>();
 
@@ -362,24 +418,23 @@ public class QuickbooksMonthEndCOS {
 
 
                     if (line.AccountBasedExpenseLineDetail.AccountRef.value == '646'){
-                        // add the line amount to the total
-                        billsTotal += line.Amount;
 
-                        system.debug(line.Description);
-
-                        system.debug('class ref found in map is ' + (amountsOnPNL.containsKey(line.AccountBasedExpenseLineDetail.ClassRef.name)));
-
-//                        System.debug('Bill line ' + line.Amount + ' ' + bill.Id + ' ' + line.AccountBasedExpenseLineDetail.ClassRef.name + ' and class id is ' +
-//                                line.AccountBasedExpenseLineDetail.ClassRef.value);
-                        billCount++;
+                        // throw error if the bill line is missing a class ref
+                        if (line.AccountBasedExpenseLineDetail.ClassRef == null){
+                            throw new MissingQBClassException('Bill line found which is missing a class: ' + bill.Id + ' ' + line);
+                        } else {
+                            // add the line amount to the total
+                            billsTotal += line.Amount;
+                            System.debug(line.Description);
+                            System.debug('class ref found in map is ' + (amountsOnPNL.containsKey(line.AccountBasedExpenseLineDetail.ClassRef.name)));
+                            billCount++;
+                        }
                     }
 
                     // check that the bill line has been posted to 5000 Cost of sales:Events COS
                     if (line.AccountBasedExpenseLineDetail.ClassRef != null && line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
                         // if the class Id or name can be used to identify that the bill line is for a future month it needs
                         // to be deferred
-
-//                        system.debug('bill without class ' + line.AccountBasedExpenseLineDetail.AccountRef.value);
 
                         if (futureIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
                                 futureIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5))) {
@@ -409,8 +464,6 @@ public class QuickbooksMonthEndCOS {
             Map<String,Decimal> amountsOnPNL) {
 
         Integer creditCount = 0;
-
-
         Decimal billsTotal  = 0;
         Decimal pnlDebit    = 0;
         List<JSONParserQBOVendorCreditFlow.cls_Line> creditLinesToDefer = new List<JSONParserQBOVendorCreditFlow.cls_Line>();
@@ -422,12 +475,19 @@ public class QuickbooksMonthEndCOS {
                 for (JSONParserQBOVendorCreditFlow.cls_Line line : vendorCredit.Line) {
 
                     // check that the vendor credit line has been posted to 5000 Cost of sales:Events COS
-                    if (line.AccountBasedExpenseLineDetail.ClassRef != null && line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
+                    if (line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
 
-                        // add the line amount to the total
-                        billsTotal -= line.Amount;
+                        // check that the line has a class associated with it
+                        if (line.AccountBasedExpenseLineDetail.ClassRef == null){
+                            throw new MissingQBClassException('Vendor credit line found which is missing a class: ' + vendorCredit.Id + ' ' +  + line);
+                        } else {
+                            // add the line amount to the total
 
-                        creditCount++;
+                            System.debug('found the following vendor credit ' + line);
+
+                            billsTotal -= line.Amount;
+                            creditCount++;
+                        }
 
                         // if the class Id or name can be used to identify that the  vendor credit line is for a future month it needs
                         // to be deferred
@@ -451,7 +511,6 @@ public class QuickbooksMonthEndCOS {
         processedResults.put('amountsOnPNL', amountsOnPNL);
 
         System.debug('total vendorCredits is ' + creditCount + ' and vendor credit total is £' + billsTotal);
-
 
         return processedResults;
     }
@@ -534,7 +593,7 @@ public class QuickbooksMonthEndCOS {
 
         return processedResults;
     }
-
+//
     private static Map<String,Object> processAccruals(Set<String> accrualsIds, Set<String> pastIds, JSONParserQBOBillFlow parsedResults,
             Map<String,Decimal> amountsOnPNL){
 
@@ -548,22 +607,29 @@ public class QuickbooksMonthEndCOS {
                 for (JSONParserQBOBillFlow.cls_Line line : bill.Line) {
 
                     // check that the bill line has been posted to 5000 Cost of sales:Events COS
-                    if (line.AccountBasedExpenseLineDetail.ClassRef != null && line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
+                    if (line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
+                        // check that the line  has a class
+                        if (line.AccountBasedExpenseLineDetail.ClassRef == null){
+                            throw new MissingQBClassException('Bill line found which is missing a class: ' + bill.Id + ' ' +  + line);
+                        } else {
 
-                        // if the class Id or name can be used to identify that the bill line is for a future month it needs
-                        // to be deferred
-                        if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
-                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
+                            // if the class Id or name can be used to identify that the bill line is for a future month it needs
+                            // to be deferred
+                            if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
+                                    pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
 //                                &&
 //                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
 //                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))
-                                ) {
-                            billLinesToAccrue.add(line);
-                            pnlDebit += line.Amount;
+                                    ) {
+                                billLinesToAccrue.add(line);
+                                pnlDebit += line.Amount;
+
+                                System.debug('following bill found in next month for prior month ' + line);
 
 //                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5),
 //                            amountsOnPNL.get((line.AccountBasedExpenseLineDetail.ClassRef.name.substring(0, 5)) + line.Amount));
 
+                            }
                         }
                     }
                 }
@@ -591,24 +657,29 @@ public class QuickbooksMonthEndCOS {
                 for (JSONParserQBOVendorCreditFlow.cls_Line line : vendorCredit.Line) {
 
                     // check that the bill line has been posted to 5000 Cost of sales:Events COS
-                    if (line.AccountBasedExpenseLineDetail.ClassRef != null && line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
+                    if (line.AccountBasedExpenseLineDetail.AccountRef.value == '646') {
+                        // check that the line  has a class
+                        if (line.AccountBasedExpenseLineDetail.ClassRef == null){
+                            throw new MissingQBClassException('Bill line found which is missing a class: ' + vendorCredit.Id + ' ' +  + line);
+                        } else {
+                            system.debug('processing a mock credit on ' + line);
 
-                        system.debug('processing a mock credit on ' + line);
-
-                        // if the class Id or name can be used to identify that the bill line is for a future month it needs
-                        // to be deferred
-                        if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
-                                pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
+                            // if the class Id or name can be used to identify that the bill line is for a future month it needs
+                            // to be deferred
+                            if ((pastIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) ||
+                                    pastIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0, 5)))
 //                                &&
 //                                !accrualsIds.contains(line.AccountBasedExpenseLineDetail.ClassRef.value) &&
 //                                !accrualsIds.contains((line.AccountBasedExpenseLineDetail.ClassRef.name).substring(0,5))
-                                ) {
-                            vendorCreditLinesToAccrue.add(line);
-                            pnlCredit += line.Amount;
+                                    ) {
+                                vendorCreditLinesToAccrue.add(line);
+                                pnlCredit += line.Amount;
 
 //                            amountsOnPNL.put(line.AccountBasedExpenseLineDetail.ClassRef.value,
 //                                    amountsOnPNL.get(line.AccountBasedExpenseLineDetail.ClassRef.value) - line.Amount);
 
+
+                            }
                         }
                     }
                 }
@@ -816,7 +887,8 @@ public class QuickbooksMonthEndCOS {
         // iterate through opportunities which have not been invoiced and do not have journal lines against them already
         for (Opportunity opp : opportunities){
 
-            Decimal amount      = opp.COSRemaining__c;
+//            Decimal amount      = opp.COSRemaining__c;
+            Decimal amount      = opp.Forecast_COS__c;
             String classId      = opp.QuickbooksClassId__c;
             String className    = opp.Filtered_Job_Number__c + ' ' + opp.Name;
 
@@ -837,46 +909,46 @@ public class QuickbooksMonthEndCOS {
                 entries.get(classId + '689' + 'Credit').Amount__c += amount;
             }
 
-            System.debug('creating accrual for ' + className + ' worth ' + amount + ' of ' + 'Credit');
+            System.debug('creating accrual for ' + className + ' worth ' + amount + ' of ' + 'debit');
 
 
 //            entries.add(populateEntry(accrualsJournal.Id, periodString, 'Credit', '689',
 //                    '2112 COS Accrual', amount, classId, className));
         }
 
-        for (Adjustment__c adjustment : adjustments){
-
-            Boolean minus       = adjustmentValueMap.get(adjustment.Id) < 0;
-            Decimal amount      = (minus) ? adjustmentValueMap.get(adjustment.Id) * -1 : adjustmentValueMap.get(adjustment.Id);
-            String classId      = adjustment.Opportunity__r.QuickbooksClassId__c;
-            String className    = adjustment.Opportunity__r.Filtered_Job_Number__c + ' ' + adjustment.Opportunity__r.Name;
-            String balSheetType = (minus) ? 'Credit' : 'Debit';
-            String pnlType      = (minus) ? 'Debit' : 'Credit';
-
-
-            if (!entries.containsKey(classId + '646' + pnlType)){
-                entries.put(classId + '646'+ pnlType, populateEntry(accrualsJournal.Id, periodString,pnlType,'646',
-                        '5000 Cost of sales:Events COS', amount, classId, className));
-            } else {
-                entries.get(classId + '646' + pnlType).Amount__c += amount;
-            }
+//        for (Adjustment__c adjustment : adjustments){
 //
-//            entries.add(populateEntry(accrualsJournal.Id, periodString, pnlType,'646',
-//                    '5000 Cost of sales:Events COS', amount, classId, className));
-
-
-            if (!entries.containsKey(classId + '689' + balSheetType)){
-                entries.put(classId + '689' + balSheetType, populateEntry(accrualsJournal.Id, periodString,balSheetType,'689',
-                        '2112 COS Accrual', amount, classId, className));
-            } else {
-                entries.get(classId + '689' + balSheetType).Amount__c += amount;
-            }
+//            Boolean minus       = adjustmentValueMap.get(adjustment.Id) < 0;
+//            Decimal amount      = (minus) ? adjustmentValueMap.get(adjustment.Id) * -1 : adjustmentValueMap.get(adjustment.Id);
+//            String classId      = adjustment.Opportunity__r.QuickbooksClassId__c;
+//            String className    = adjustment.Opportunity__r.Filtered_Job_Number__c + ' ' + adjustment.Opportunity__r.Name;
+//            String balSheetType = (minus) ? 'Credit' : 'Debit';
+//            String pnlType      = (minus) ? 'Debit' : 'Credit';
 //
-//            entries.add(populateEntry(accrualsJournal.Id, periodString, balSheetType, '689',
-//                    '2112 COS Accrual', amount, classId, className));
-
-            System.debug('creating adjustment for ' + className + ' worth ' + amount + ' of ' + pnlType);
-        }
+//
+//            if (!entries.containsKey(classId + '646' + pnlType)){
+//                entries.put(classId + '646'+ pnlType, populateEntry(accrualsJournal.Id, periodString,pnlType,'646',
+//                        '5000 Cost of sales:Events COS', amount, classId, className));
+//            } else {
+//                entries.get(classId + '646' + pnlType).Amount__c += amount;
+//            }
+////
+////            entries.add(populateEntry(accrualsJournal.Id, periodString, pnlType,'646',
+////                    '5000 Cost of sales:Events COS', amount, classId, className));
+//
+//
+//            if (!entries.containsKey(classId + '689' + balSheetType)){
+//                entries.put(classId + '689' + balSheetType, populateEntry(accrualsJournal.Id, periodString,balSheetType,'689',
+//                        '2112 COS Accrual', amount, classId, className));
+//            } else {
+//                entries.get(classId + '689' + balSheetType).Amount__c += amount;
+//            }
+////
+////            entries.add(populateEntry(accrualsJournal.Id, periodString, balSheetType, '689',
+////                    '2112 COS Accrual', amount, classId, className));
+//
+//            System.debug('creating adjustment for ' + className + ' worth ' + amount + ' of ' + pnlType);
+//        }
 
         insert entries.values();
     }
