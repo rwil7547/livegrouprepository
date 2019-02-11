@@ -2,6 +2,8 @@
 	doInit : function(component, event, helper) {
         helper.getQuote(component, 'default');
         component.set('v.ready',true);
+
+
     },
     changeQuote : function(component, event, helper){
         component.set('v.responsePending',true);
@@ -41,18 +43,22 @@
                  };
             }
 
-            console.log('line is ' + event.getParam('line'));
-            console.log('operation is ' + event.getParam('operation'));       
+            // console.log('line is ' + event.getParam('line'));
+            // console.log('operation is ' + event.getParam('operation'));
             
             lineUpdate.setParams({
                 line : line,
                 operation : event.getParam('operation') 
             });
             lineUpdate.setCallback(this, function(response){
-				console.log(response.getState() + ' ' + response.getReturnValue());                
+				// console.log(response.getState() + ' ' + response.getReturnValue());
                 if (response.getState() === "SUCCESS" && response.getReturnValue() !== 'error'){
                     helper.showToast('Success!', 'The quote succesfully updated.','success');
                     var refresh = $A.get("e.c:Refresh");
+                    refresh.setParams({
+                        id : component.get('v.quote.Id'),
+                        quote : component.get('v.quote')
+                    });
                 	refresh.fire();
                 } else {
                     helper.showToast('Error', 'There was an error updating the quote line: ' + response.getState(), 'error');
@@ -164,7 +170,7 @@
         deleteGroup.setCallback(this, function(response){
             var changeResponse = $A.get("e.c:DeleteGroupResponse");            
             if (response.getState() === "SUCCESS" && response.getReturnValue() === true){
-                var refresh = $A.get("e.c:Refresh");
+                var refresh = $A.get("e.c:Refresh")
                 refresh.fire();
                 changeResponse.setParams({
                     groupId : event.getParam('groupId'),
@@ -226,28 +232,156 @@
             '&userId=' + userId + 
             '&contactId=' + contactId; */
     },
+    saveDocument : function(component, event, helper){
+
+        var userId 		= component.find('ourContact').get("v.value");
+        var contactId 	= component.find('quoteContact').get("v.value");
+
+        var saveDocument = component.get('c.saveDocumentApex');
+        saveDocument.setParams({
+            quoteId : component.get('v.quote.Id'),
+            oppId : component.get('v.recordId'),
+            userId : userId,
+            contactId : contactId
+        });
+        saveDocument.setCallback(this, function(response){
+            if (response.getState() === 'SUCCESS' && response.getReturnValue()){
+                component.set('v.previewing',false);
+            }
+        });
+        $A.enqueueAction(saveDocument);
+
+
+    },
     deleteQuote : function(component, event, helper){
 		helper.deleteQuote(component);        
     },
+    showCloneModal : function(component){
+
+        var modal = component.find("cloneQuoteModal");
+        $A.util.toggleClass(modal, "toggle");
+
+        if (component.get('v.opportunities').length === 0){
+            var getOpportunities = component.get('c.getOpportunitiesApex');
+            getOpportunities.setParams({
+                currentOppId : component.get('v.recordId')
+            });
+            getOpportunities.setCallback(this, function(response){
+                if (response.getState() === 'SUCCESS' && response.getReturnValue()){
+                    component.set('v.opportunities', response.getReturnValue());
+                }
+            });
+            $A.enqueueAction(getOpportunities);
+        }
+
+    },
+    clearOpportunity : function(component, event, helper){
+	    document.getElementById('opplistInput').value = null;
+        document.getElementById('thisOpportunity').checked = true;
+        document.getElementById('otherOpportunity').checked = false;
+        document.getElementById('cloneButton').style.display = 'block';
+    },
+    deselectThisOpportunity : function(component, event, helper){
+
+	    // console.log(document.getElementById('opplistInput').dataset);
+
+        if (document.getElementById('opplistInput').value ){
+            document.getElementById('thisOpportunity').checked = false;
+            document.getElementById('otherOpportunity').checked = true;
+            document.getElementById('cloneButton').style.display = 'block';
+        } else if (document.getElementById('otherOpportunity').checked === true){
+            document.getElementById('cloneButton').style.display = 'none';
+            document.getElementById('thisOpportunity').checked = false;
+        }
+    },
+
     cloneQuote : function(component, event, helper){
+
+        var modal = component.find("cloneQuoteModal");
+        $A.util.toggleClass(modal, "toggle");
+
+        var oppId;
+
+        if (document.getElementById('opplistInput').value){
+
+            var jobNumber = document.getElementById('opplistInput').value.toString().substring(0,5);
+
+            console.log('the value of the job number is ' + jobNumber);
+
+            console.log('job number is ' + jobNumber);
+            var opps = component.get('v.opportunities');
+            opps.forEach(function(element){
+                // console.log(Object.keys(element));
+                // console.log(Object.values(element));
+                // console.log(' processing opp with id ' + element.Filtered_Job_Number__c);
+
+               if (element.Filtered_Job_Number__c == jobNumber){
+
+                   console.log('assigning value to the id');
+                   oppId = element.Id;
+               }
+            });
+
+            // oppId = document.getElementById('opplistInput').value.dataset.oppId;
+        } else {
+            oppId = component.get('v.recordId');
+        }
+
+        console.log('the opp id is ' + oppId);
+
         component.set('v.responsePending',true);
         var cloneQuote = component.get('c.cloneEstimateApex');
-        cloneQuote.setParams({ 
+        cloneQuote.setParams({
             quote : component.get('v.quote'),
-            oppId : component.get('v.recordId')
+            oppId : oppId
         });
         cloneQuote.setCallback(this, function(response){
-			component.set('v.responsePending',false);
+            component.set('v.responsePending',false);
             if (response.getState() === 'SUCCESS' && response.getReturnValue() !== 'error'){
-        		helper.getQuote(component, response.getReturnValue());
-                helper.showToast('Success!', 'Quote cloned','success');
-                var refresh = $A.get("e.c:Refresh");
-                refresh.fire();
+                if (oppId !== component.get('v.recordId')){
+                    // document.getElementById('opplistInput').value = null;
+                    var navEvt = $A.get("e.force:navigateToSObject");
+                    navEvt.setParams({
+                        "recordId": oppId
+                    });
+                    navEvt.fire();
+                    $A.get('e.force:refreshView').fire();
+
+                } else {
+                    helper.getQuote(component, response.getReturnValue());
+                    helper.showToast('Success!', 'Quote cloned','success');
+                    var refresh = $A.get("e.c:Refresh");
+                    refresh.fire();
+                }
             } else {
-                helper.showToast('Error', 'There was an error cloning this quote', 'error');                
+                helper.showToast('Error', 'There was an error cloning this quote', 'error');
             }
         });
         $A.enqueueAction(cloneQuote);
+    },
+    hideCloneModal : function(component,event,helper){
+        var modal = component.find("cloneQuoteModal");
+        $A.util.toggleClass(modal, "toggle");
+    },
+    createNewEstimate : function(component, event, helper){
+        component.set('v.responsePending',true);
+        var newQuote = component.get('c.createNewEstimateApex');
+        newQuote.setParams({
+            oppId : component.get('v.recordId')
+        });
+        newQuote.setCallback(this, function(response){
+            component.set('v.responsePending',false);
+            if (response.getState() === 'SUCCESS' && response.getReturnValue() !== 'error'){
+                helper.getQuote(component, response.getReturnValue());
+                helper.showToast('Success!', 'New estimate created','success');
+                var refresh = $A.get("e.c:Refresh");
+                refresh.fire();
+            } else {
+                helper.showToast('Error', 'There was an error creating a new estimate', 'error');
+                // console.log(response.getState() + response.getReturnValue());
+            }
+        });
+        $A.enqueueAction(newQuote);
     },
     handleRefresh : function(component, event, helper){
         var getRefresh = component.get('c.getRefreshApex');
@@ -259,7 +393,15 @@
                 quote.Gross_Profit__c = response.getReturnValue().Gross_Profit__c;
                 quote.Gross_Margin__c = response.getReturnValue().Gross_Margin__c;                
                 quote.SBQQ__Primary__c = response.getReturnValue().SBQQ__Primary__c;
-                component.set('v.quote', component.get('v.quote'));                
+                component.set('v.quote', component.get('v.quote'));
+
+                var refresh = $A.get("e.c:Refresh");
+                refresh.setParams({
+                    id : component.get('v.quote.Id'),
+                    quote : component.get('v.quote')
+                });
+                refresh.fire();
+
             }
         });
         $A.enqueueAction(getRefresh);
@@ -338,8 +480,8 @@
         var isPrimary = (component.get('v.quote.SBQQ__Primary__c')) ? false : true;
 
 
-		console.log('the value of the quote primary is ' + component.get('v.quote.SBQQ__Primary__c') + ' and we ' +
-                    'want to set it to set it to ' + isPrimary);
+		// console.log('the value of the quote primary is ' + component.get('v.quote.SBQQ__Primary__c') + ' and we ' +
+         //            'want to set it to set it to ' + isPrimary);
         
         var togglePrimary = component.get('c.togglePrimaryApex');
         togglePrimary.setParams({
@@ -350,7 +492,8 @@
         togglePrimary.setCallback(this, function(response){
             component.set('v.responsePending',false);
             if (response.getState() === "SUCCESS" && response.getReturnValue()){
-                helper.showToast('Success!', 'Quote updated','success');        		
+                helper.showToast('Success!', 'Quote updated','success');
+                component.set('v.quote.SBQQ__Primary__c', isPrimary);
                 var refresh = $A.get("e.c:Refresh");
                 refresh.fire(); 
             } else {

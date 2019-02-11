@@ -4,6 +4,7 @@
     <aura:attribute name="cosTotal" type="decimal" />
     <aura:attribute name="revTotal" type="decimal" />    
     <aura:attribute name="editable" type="boolean" default="false"/>
+    <aura:attribute name="revEditable" type="boolean" default="false" />
     <aura:attribute name="customGroup" type="boolean" />
     <aura:attribute name="responsePending" type="boolean" default="false" />
     <aura:attribute name="reconciling" type="boolean" default="false" />
@@ -71,6 +72,7 @@
                         <div style="position:relative;">
                             <c:QuoteLine original="{#line}" 
                                          editable="{!v.editable}"
+                                         revEditable="{!v.revEditable}"
                                          expenses="{!v.expenses}"
                                          reconciling="{!v.reconciling}"/>
                         </div>

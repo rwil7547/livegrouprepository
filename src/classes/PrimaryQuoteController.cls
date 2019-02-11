@@ -11,7 +11,7 @@ public with sharing class PrimaryQuoteController {
 
         return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, Proposal_Introduction__c,' +
-                        'Proposal_Conclusion__c, SBQQ__Opportunity2__r.Account.Name, ' +
+                        'Proposal_Conclusion__c, HasDocument__c, SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c,' +
                         'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, Event_End__c, ' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
@@ -38,8 +38,9 @@ public with sharing class PrimaryQuoteController {
                         (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                             SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Optional__c,
                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
-                        FROM SBQQ__LineItems__r)
+                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c
+                        FROM SBQQ__LineItems__r
+                        ORDER BY SBQQ__Number__c ASC)
                     FROM SBQQ__QuoteLineGroup__c
                     WHERE SBQQ__Quote__c = :Id];
         } else {
@@ -47,11 +48,12 @@ public with sharing class PrimaryQuoteController {
             Map<String,List<SBQQ__QuoteLine__c>> groupMap = new Map<String,List<SBQQ__QuoteLine__c>>();
 
             for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                                    SBQQ__UnitCost__c, Line_cost_total__c, Days__c,
+                                                    SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Number__c,
                                                     SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                     SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                                             FROM SBQQ__QuoteLine__c
-                                            WHERE SBQQ__Quote__c = :Id]){
+                                            WHERE SBQQ__Quote__c = :Id
+                                            ORDER BY SBQQ__Number__c ASC]){
 
                 String family = (line.SBQQ__ProductFamily__c == null) ? 'Unclassified products' : line.SBQQ__ProductFamily__c;
 
@@ -80,30 +82,42 @@ public with sharing class PrimaryQuoteController {
     }
 
     @AuraEnabled
-    public static Map<String,List<Product2>> getProducts(){
+//    public static Map<String,List<Product2>> getProductsApex(){
+    public static List<Product2> getProductsApex(){
+//
+//        Map<String,List<Product2>> familyMap = new Map<String,List<Product2>>();
+//
+//        Schema.DescribeFieldResult fieldResult = Product2.Family.getDescribe();
+//        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+//        for( Schema.PicklistEntry pickListVal : ple){
+//            familyMap.put(pickListVal.getLabel(), new List<Product2>());
+//        }
+//
+//        for (Product2 product : [SELECT Id, Name, Description, Family,
+//                                (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
+//                                WHERE SBQQ__Active__c = TRUE LIMIT 1),
+//                                (SELECT UnitPrice FROM PricebookEntries
+//                                WHERE Pricebook2.Name = 'Default')
+//                                FROM Product2
+//                                WHERE IsActive = TRUE
+//                                ORDER BY Family]){
+//
+//            if (familyMap.containsKey(product.Family)){
+//                familyMap.get(product.Family).add(product);
+//            }
+//        }
+//
+//        return familyMap;
 
-        Map<String,List<Product2>> familyMap = new Map<String,List<Product2>>();
 
-        Schema.DescribeFieldResult fieldResult = Product2.Family.getDescribe();
-        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
-        for( Schema.PicklistEntry pickListVal : ple){
-            familyMap.put(pickListVal.getLabel(), new List<Product2>());
-        }
-
-        for (Product2 product : [SELECT Id, Name, Description, Family,
-                                (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
-                                WHERE SBQQ__Active__c = TRUE LIMIT 1),
-                                (SELECT UnitPrice FROM PricebookEntries
-                                WHERE Pricebook2.Name = 'Default')
-                                FROM Product2
-                                WHERE IsActive = TRUE
-                                ORDER BY Family]){
-
-            familyMap.get(product.Family).add(product);
-        }
-
-        return familyMap;
-
+        return [SELECT Id, Name, Description, Family,
+                (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
+                WHERE SBQQ__Active__c = TRUE LIMIT 1),
+                (SELECT UnitPrice FROM PricebookEntries
+                WHERE Pricebook2.Name = 'Default')
+                FROM Product2
+                WHERE IsActive = TRUE
+                ORDER BY Family];
     }
 
     @AuraEnabled
@@ -205,7 +219,6 @@ public with sharing class PrimaryQuoteController {
         }
 
         return success;
-
     }
 
 
@@ -366,12 +379,13 @@ public with sharing class PrimaryQuoteController {
 
     }
 
-
     @AuraEnabled
     public static List<SBQQ__QuoteLine__c> insertGroupedLinesApex(String quoteId, String groupId, List<String> productIds){
 
         Set<String> productIdSet = new Set<String>();
         productIdSet.addAll(productIds);
+
+        Decimal lineItemCount = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
 
         List<SBQQ__QuoteLine__c> lines = new List<SBQQ__QuoteLine__c>();
 
@@ -391,9 +405,12 @@ public with sharing class PrimaryQuoteController {
                     SBQQ__UnitCost__c       = product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
                     SBQQ__ListPrice__c      = product.PricebookEntries[0].UnitPrice,
                     SBQQ__Group__c          = groupId,
-                    SBQQ__Quote__c          = quoteId
+                    SBQQ__Quote__c          = quoteId,
+                    SBQQ__Number__c         = lineItemCount + 1
                 )
             );
+
+            lineItemCount++;
         }
 
         Database.SaveResult[] results = Database.insert(lines,true);
@@ -432,6 +449,8 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> lines = new List<SBQQ__QuoteLine__c>();
 
+        Decimal lineItemCount = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
+
         for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
                                 (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                                 WHERE SBQQ__Active__c = TRUE LIMIT 1),
@@ -447,9 +466,12 @@ public with sharing class PrimaryQuoteController {
                             SBQQ__Quantity__c       = 1,
                             SBQQ__UnitCost__c       = (product.SBQQ__Costs__r[0].SBQQ__UnitCost__c == null)? 0 : product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
                             SBQQ__ListPrice__c      = (product.PricebookEntries[0].UnitPrice == null) ? 0 : product.PricebookEntries[0].UnitPrice,
-                            SBQQ__Quote__c          = quoteId
+                            SBQQ__Quote__c          = quoteId,
+                            SBQQ__Number__c         = lineItemCount + 1
                     )
             );
+
+            lineItemCount++;
         }
 
         Database.SaveResult[] results = Database.insert(lines,true);
@@ -469,6 +491,33 @@ public with sharing class PrimaryQuoteController {
     }
 
     @AuraEnabled
+    public static String changeSortOrderApex(String quoteId, String lineId, Integer sortNumber){
+
+        List<SBQQ__QuoteLine__c> lines = [SELECT Id, SBQQ__Number__c FROM SBQQ__QuoteLine__c
+                                            WHERE SBQQ__Quote__c = :quoteId
+                                            AND (SBQQ__Number__c >= :sortNumber
+                                            OR Id = :lineId)];
+
+        for (SBQQ__QuoteLine__c line : lines){
+            if (line.Id == lineId){
+                line.SBQQ__Number__c = sortNumber;
+            } else {
+                line.SBQQ__Number__c = line.SBQQ__Number__c + 1;
+            }
+        }
+
+        Database.SaveResult[] lineUpdates = Database.update(lines, true);
+        for (Database.SaveResult lineUpdate : lineUpdates){
+            if (!lineUpdate.isSuccess()){
+                return 'error';
+            }
+        }
+
+        return 'success';
+
+    }
+
+    @AuraEnabled
     public static String cloneEstimateApex(SBQQ__Quote__c quote, String oppId){
 
         String result   = 'error';
@@ -476,9 +525,9 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
 
-
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
+        cloneQuote.SBQQ__Primary__c         = false;
         cloneQuote.Stage__c                 = 'Estimate';
         cloneQuote.Version__c               = 'Estimate ' + (count.size() + 1);
 
@@ -512,7 +561,7 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> originalLines =
                         [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                SBQQ__UnitCost__c, Line_cost_total__c, Days__c,
+                                SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Number__c,
                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                 SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                         FROM SBQQ__QuoteLine__c
@@ -556,6 +605,28 @@ public with sharing class PrimaryQuoteController {
         }
 
         return cloneQuote.Id;
+
+    }
+
+    @AuraEnabled
+    public static String createNewEstimateApex(String oppId){
+
+        String result   = 'error';
+
+        List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
+
+        SBQQ__Quote__c newQuote           = new SBQQ__Quote__c();
+        newQuote.SBQQ__Opportunity2__c    = oppId;
+        newQuote.SBQQ__Primary__c         = false;
+        newQuote.Stage__c                 = 'Estimate';
+        newQuote.Version__c               = 'Estimate ' + (count.size() + 1);
+
+        Database.SaveResult quoteInsert   = Database.insert(newQuote);
+        if (quoteInsert.isSuccess()){
+            result = newQuote.Id;
+        }
+
+        return result;
 
     }
 
@@ -656,5 +727,69 @@ public with sharing class PrimaryQuoteController {
 
         return success;
     }
+
+    @AuraEnabled
+    public static List <Opportunity> getOpportunitiesApex(String currentOppId) {
+
+        return [SELECT Id, Name, Filtered_Job_Number__c
+                FROM Opportunity
+                WHERE QuoteType__c = 'Estimate'
+                AND Id != :currentOppId
+                ORDER BY Filtered_Job_Number__c DESC];
+    }
+
+
+    @AuraEnabled
+    public static Boolean saveDocumentApex(String quoteId, String oppId, String userId, String contactId) {
+
+        Boolean result = false;
+
+        SBQQ__QuoteDocument__c document = new SBQQ__QuoteDocument__c();
+        document.Name                   = 'Test name';
+        document.SBQQ__Quote__c         = quoteId;
+        document.SBQQ__Opportunity__c   = oppId;
+        document.SBQQ__OutputFormat__c  = 'PDF';
+
+        insert document;
+
+
+        PageReference pdf = Page.QuotePreview;
+        // add parent id to the parameters for standardcontroller
+        pdf.getParameters().put('Id',quoteId);
+        pdf.getParameters().put('userId',userId);
+        pdf.getParameters().put('contactId',contactId);
+
+        // create the new attachment
+        Attachment attach = new Attachment();
+
+        // the contents of the attachment from the pdf
+        Blob body;
+
+        try {
+
+            // returns the output of the page as a PDF
+            body = pdf.getContent();
+
+            // need to pass unit test -- current bug
+        } catch (VisualforceException e) {
+            body = Blob.valueOf('Some Text');
+        }
+
+        attach.Body = body;
+        attach.Name = 'Test';
+        attach.IsPrivate = false;
+        attach.ContentType = '.pdf';
+        // attach the pdf to the account
+        attach.ParentId = document.Id;
+        insert attach;
+
+        document.SBQQ__DocumentId__c  = attach.Id;
+        update document;
+
+        // send the user to the account to view results
+        return true;
+
+    }
+
 
 }

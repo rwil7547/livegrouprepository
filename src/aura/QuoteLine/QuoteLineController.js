@@ -85,7 +85,7 @@
         helper.fireLineChange(component, component.get('v.line'),'delete');
     },
     processChangeResponse : function(component, event, helper){
-        if (component.get('v.line.Id') == event.getParam('originalId')){
+        if (component.get('v.line.Id') === event.getParam('originalId')){
             component.set('v.responsePending',false);
             var operation = event.getParam('operation');
             var response = event.getParam('response');
@@ -125,15 +125,31 @@
     },
     dragOver : function(component, event, helper){
         event.preventDefault();
+        component.find('line').getElement().classList.add('dragOver');
     },
     dragLeave : function(component, event, helper){
         //console.log('dragg leave');
+        component.find('line').getElement().classList.remove('dragOver');
     },
     drop : function(component, event, helper){
+
+        var data = event.dataTransfer.getData("text");
+        console.log('data is ' + data);
+
+        // todo: if the thing dropped is another line, send an event to group parent,
+        // and get the parent to call the server to reorder the lines
+
+
+        component.find('line').getElement().classList.remove('dragOver');
         var dropEvent = $A.get("e.c:ExpenseDrop");
         var line = component.get('v.line');
         dropEvent.setParams({ lineId : line.Id});
         dropEvent.fire(); 
+    },
+    startLineDrag : function(component, event, helper){
+        event.dataTransfer.setData("text/plain", component.get('v.line.Id'));
+
+        // component.find('line').getElement().style.cursor = 'all-scroll';
     },
     calculateTotal : function(component, event, helper){ 
         helper.calculateTotal(component, event);

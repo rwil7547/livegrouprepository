@@ -1,17 +1,22 @@
 <aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="PrimaryQuoteController">
 
+    <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+
     <aura:attribute name="ready" type="boolean" default="false"/>
     <aura:attribute name="quote" type="SBQQ__Quote__c" />
+    <aura:attribute name="opportunities" type="Opportunity[]" />
     <aura:attribute name="groups" type="SBQQ__QuoteLineGroup__c[]" />
     <aura:attribute name="products" type="Product2[]" />
     <aura:attribute name="expenses" type="Expense__c[]" />
     <aura:attribute name="activeGroupId" type="string" />
     <aura:attribute name="previewing" type="boolean" default="false"/>
+    <aura:attribute name="cloneDisabled" type="boolean" default="true"/>
     <aura:attribute name="pdf" type="string" default=""/>
     <aura:attribute name="word" type="string"  default=""/>
     <aura:attribute name="users" type="Object[]" />
     <aura:attribute name="contacts" type="Object[]" />
     <aura:attribute name="editable" type="boolean" default="false" />
+    <aura:attribute name="revEditable" type="boolean" default="false" />
     <aura:attribute name="customGroups" type="boolean" />
     <aura:attribute name="responsePending" type="boolean" default="false" />
     <aura:attribute name="pendingChanges" type="SBQQ__QuoteLine__c[]" />
@@ -58,11 +63,17 @@
                     <lightning:button variant="brand" label="UNDO ALL CHANGES" onclick="{!c.undoAll}" />
                     <lightning:button variant="brand" label="{!('SAVE ALL (' + v.pendingChanges.length) + ')'}" onclick="{!c.saveAll}" />
                     <aura:set attribute="else">
-                        
-                        <lightning:button variant="neutral" label="CLONE" onclick="{!c.cloneQuote}" class="slds-truncate"/>
-                        <lightning:button variant="neutral" label="RECONCILE" onclick="{!c.openReconcile}" class="slds-truncate"/>
-                        
-                        <aura:if isTrue="{!v.editable}">
+
+                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate'}">
+                            <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
+                        </aura:if>
+
+                        <lightning:button variant="neutral" label="CLONE" onclick="{!c.showCloneModal}" class="slds-truncate"/>
+
+                        <aura:if isTrue="{!v.quote.Stage__c != 'Estimate'}">
+                            <lightning:button variant="neutral" label="RECONCILE" onclick="{!c.openReconcile}" class="slds-truncate"/>
+                        </aura:if>
+                        <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
                             <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
                                 <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
                                 <lightning:button variant="neutral" label="GROUP" onclick="{!c.groupQuote}" class="slds-truncate"/>
@@ -130,7 +141,8 @@
     <aura:iteration items="{!v.groups}" var="group">
         <div style="position:relative;margin-bottom:30px;">
             <c:QuoteLineGroup group="{!group}" 
-                              editable="{!v.editable}" 
+                              editable="{!v.editable}"
+                              revEditable="{!v.revEditable}"
                               customGroup="{!v.quote.SBQQ__LineItemsGrouped__c}"
                               reconciling="{!v.reconciling}"
                               expenses="{!v.expenses}"/>
@@ -149,12 +161,14 @@
             <div class="slds-grid slds-p-around_medium" style="width:100%;height:100%;position:relative;">
                 <div class="slds-col slds-size_8-of-12" style="position:relative;" >
                     <div style="width:100%;height:100%;position:relative;">
-                    	<iframe src="{!$Site.BaseUrl + '/apex/QuotePreview?id=' +  v.quote.Id}" style="position:relative;" 
+                    	<!--<iframe src="{!$Site.BaseUrl + '/apex/QuotePreview?id=' +  v.quote.Id}" style="position:relative;" -->
+                    	<iframe src="{!$Site.BaseUrl + '/apex/QuotePreview?'}" style="position:relative;"
                             	width="100%" height="100%" framebroder="0" id="quotePreviewIFrame"/>
                     </div>
                 </div>
                 <div class="slds-col slds-size_4-of-12">
                         <div style="display:flex;justify-content: flex-end;">
+                            <lightning:button variant="neutral" label="SAVE" onclick="{!c.saveDocument}" />
                             <lightning:button variant="neutral" label="UPDATE PREVIEW" onclick="{!c.reloadPreview}" />
                             <!--<lightning:button variant="neutral" label="GENERATE" onclick="{!c.reloadPreview}" />-->
                             <lightning:button variant="neutral" label="CANCEL" onclick="{!c.hidePreview}" />
@@ -216,14 +230,63 @@
                 </div>    
             </div>        
     	</div>    
-    </aura:if> 
+    </aura:if>
 
-    <div class="cloneModal" id="cloneModal" style="display:none;">    
-        <div>SELECT A PARENT FOR THE CLONE:</div><br/>
-        <input type="radio" name="quoteclone" value="this" label="this" checked="true"></input> This opportunity<br/>
-        <input type="radio" name="quoteclone" value="another"></input> Another opportunity<br/>  
-        <lightning:button variant="neutral" label="CLONE" onclick="{!c.reloadPreview}" />
-    </div>    
+
+    <div aura:id="cloneQuoteModal" id="cloneQuoteModal" class="toggle" style="position: relative;">
+        <div class="backdrop" onclick="{!c.hideCloneModal}"></div>
+
+        <div class="cloneModal" >
+
+            <div style="text-align: center;width: 100%;font-size: 20px;">
+                SELECT A DESTINATION FOR THE CLONE:
+            </div>
+
+            <div class="cloneBlock">
+                <div class="cloneRadio">
+                    <!--<input type="radio" name="quoteclone" id="thisOpportunity" disabled="{!v.cloneDisabled}" onclick="{!c.clearOpportunity}"/>-->
+                    <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}"/>
+                </div>
+                <!--<div class="cloneText" style="{!(v.cloneDisabled ? 'color:grey;' : '')}">-->
+                <div class="cloneText" >
+                    Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c} for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
+                </div>
+            </div>
+
+            <div style="text-align: center;width: 100%;font-size: 16px;margin-top: 10px;">
+                ------ OR ------
+            </div>
+
+            <div class="cloneBlock">
+                <div class="cloneRadio">
+                    <input type="radio" id="otherOpportunity" checked="{!v.cloneDisabled}" onclick="{!c.deselectThisOpportunity}"/>
+                </div>
+                <div class="cloneText">
+                    Clone this quote for another opportunity:<br/>
+                    <!--<c:OpportunityLookup opportunities="{!v.opportunities}" aura:id="opportunityLookup"/>-->
+                    <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup"
+                           onchange="{!c.deselectThisOpportunity}"/>
+                    <datalist id="opplist" >
+                        <aura:iteration items="{!v.opportunities}" var="opportunity">
+                            <option value="{!opportunity.Filtered_Job_Number__c + ' ' + opportunity.Name}"
+                                    data-oppId="{!opportunity.Id}" onclick="{!c.selectOtherOpportunity}">
+                            </option>
+                        </aura:iteration>
+                    </datalist>
+
+                </div>
+            </div>
+            <div style="text-align: center;width: 100%;margin-top: 10px;">
+                <div style="display: flex;justify-content: center;">
+                    <span id="cloneButton" style="margin-right:5px;">
+                        <lightning:button variant="neutral" label="CLONE" onclick="{!c.cloneQuote}" />
+                    </span>
+                    <lightning:button variant="neutral" label="CANCEL" onclick="{!c.hideCloneModal}" />
+                </div>
+            </div>
+
+        </div>
+    </div>
 	
         
     <aura:renderIf isTrue="{!v.reconciling}" >    

@@ -21,12 +21,13 @@
                             <lightning:input
                                 aura:id="enter-search"
                                 name="enter-search"
-                                type="search"/>
+                                type="search"
+                                label="enter-search"/>
                         </div>
                     </div>
                     <div class="slds-col--padded slds-size_2-of-8" >
                         <div style="font-weight:bold;font-size:15px;">Filter by product family:</div>
-                        <lightning:select onchange="{!c.filterFamily}" aura:id="families">
+                        <lightning:select onchange="{!c.filterFamily}" aura:id="families" label="test">
                             <option value="">All</option>
                             <aura:iteration items="{!v.families}" var="family">
                             	<option value="{!family}">{!family}</option>

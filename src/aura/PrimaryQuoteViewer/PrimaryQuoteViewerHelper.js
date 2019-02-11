@@ -24,7 +24,12 @@
                         component.set('v.editable',true);
                         this.getDocumentInfo(component);
                     }
-                    
+
+                    if (!response.getReturnValue()[0].HasDocument__c){
+                        component.set('v.revEditable',true);
+                        this.getDocumentInfo(component);
+                    }
+
                     this.getGroups(component, response.getReturnValue()[0].Id, response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
                     // need to add more conditions to determine if quote is editable 
                     if (component.get("v.quote.SBQQ__R00N70000001lX7YEAU__r")){
@@ -38,6 +43,15 @@
                             }    
                         }
                     }
+
+                    // clear the value of the quote clone opportunity data set
+                    if (document.getElementById('opplistInput')){
+                        document.getElementById('opplistInput').value = null;
+                    }
+
+                    console.log('when initialising the value of the dataset is ' + document.getElementById('opplistInput').value);
+
+
                 } else {
                     component.set('v.quote',null);
                 }
@@ -65,8 +79,8 @@
         $A.enqueueAction(getGroups);
 	},
     getProducts : function(component){
-                
-        var getProducts = component.get("c.getProducts"); 
+
+        var getProducts = component.get("c.getProductsApex");
         getProducts.setCallback(this, function(response){
             if (response.getState() === "SUCCESS"){
                 component.set("v.products", response.getReturnValue());
@@ -123,8 +137,6 @@
         var groupResponsePending = $A.get("e.c:GroupResponsePending");
         groupResponsePending.setParams({groupId : groupId});
         groupResponsePending.fire();
-        
-        console.log('pending event fired');
         
         var modal = component.find("selectorModal");
         $A.util.toggleClass(modal, "toggle");
@@ -204,12 +216,14 @@
         $A.enqueueAction(getDocumentInfo);
     },
     loadPreview : function(component, event){
-        var userId 		= component.find('ourContact').get("v.value");
-        var contactId 	= component.find('quoteContact').get("v.value");
+        var quoteId     = component.get('v.quote.Id');
+        var userId      = component.find('ourContact').get("v.value");
+        var contactId   = component.find('quoteContact').get("v.value");
         
         console.log('user id is ' + userId + ' contact id is ' + contactId);
         
-        document.getElementById('quotePreviewIFrame').src = document.getElementById('quotePreviewIFrame').src + 
+        document.getElementById('quotePreviewIFrame').src = document.getElementById('quotePreviewIFrame').src +
+            'id=' + quoteId +
             '&userId=' + userId + 
             '&contactId=' + contactId;
     }

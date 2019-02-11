@@ -1,0 +1,16 @@
+<!--
+ - Created by Ronan Williams on 07/02/2019.
+ -->
+
+<aura:component description="OpportunityLookup">
+    <aura:method name="clearValue" action="{!c.clear}" access="PUBLIC"/>
+    <aura:attribute name="opportunities" type="Opportunity[]" />
+
+    <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup" />
+        <datalist id="opplist" >
+            <aura:iteration items="{!v.opportunities}" var="opportunity">
+                <option value="{!opportunity.Filtered_Job_Number__c + ' ' + opportunity.Name}" data-oppId="{!opportunity.Id}"></option>
+            </aura:iteration>
+        </datalist>
+
+</aura:component>

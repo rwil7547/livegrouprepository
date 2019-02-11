@@ -29,3 +29,7 @@
     font-style: italic;
     color: grey;
 }
+
+.THIS.dragOver {
+    background-color: #e6eff6;
+}

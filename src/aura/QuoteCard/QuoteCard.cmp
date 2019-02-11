@@ -10,6 +10,7 @@
 
     <aura:handler event="c:SelectQuoteEvent" action="{!c.deselect}" />   
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <!--<aura:handler event="c:Refresh" action="{!c.refresh}" />-->
 
     <lightning:layout class="{!v.selected ? 'slds-p-around_small quoteCard selectedQuote' : 'slds-p-around_small quoteCard'}" >
         <div class="slds-grid" style="width: 100%;" onclick="{!c.selectQuote}" id="{!(v.quote.Id + 'card')}">
@@ -17,7 +18,7 @@
                 <div style="display:flex;font-weight:bold;font-size:16px;">
                     <div >{!v.quote.Version__c}</div>
                     <div hidden="{!!v.primary}" class="primary">PRIMARY</div>
-                    <aura:if isTrue="{!not(v.editable)}">
+                    <aura:if isTrue="{!v.quote.Locked__c}">
                     	<div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="x-small"/></div>
                     </aura:if>
                     <!--<input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="true"/>-->
@@ -39,20 +40,40 @@
             </div>
             <div class="slds-col slds-size_4-of-12" style="position:relative;">
                 <div style="float:right;">
+
                     <aura:renderIf isTrue="{!v.pdf != ''}">
-                        <span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;" 
+
+                        <span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;"
                               onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="pdf">
                             <lightning:icon iconName="doctype:pdf" size="large" alternativeText="document"/>
                         </span>
                     </aura:renderIf>
-                    <aura:renderIf isTrue="{!v.word != ''}">
-                        <span id="{!v.word}" style="top:10px;right:1px;position:absolute;z-index:1;" 
-                              onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="word">
-                            <lightning:icon iconName="doctype:word" size="large" alternativeText="word"/>
-                        </span>                
-                    </aura:renderIf>
+
+                    <!--<aura:renderIf isTrue="{!v.pdf != ''}">-->
+                        <!--<span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;" -->
+                              <!--onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="pdf">-->
+                            <!--<lightning:icon iconName="doctype:pdf" size="large" alternativeText="document"/>-->
+                        <!--</span>-->
+                    <!--</aura:renderIf>-->
+                    <!--<aura:renderIf isTrue="{!v.word != ''}">-->
+                        <!--<span id="{!v.word}" style="top:10px;right:1px;position:absolute;z-index:1;" -->
+                              <!--onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="word">-->
+                            <!--<lightning:icon iconName="doctype:word" size="large" alternativeText="word"/>-->
+                        <!--</span>                -->
+                    <!--</aura:renderIf>-->
                 </div>
             </div>
+        </div>
+
+        <div id="{!v.quote.Id}" style="display:none;position:fixed;" class="quotePreview">
+
+            <aura:if isTrue="{!v.pdf != ''}">
+                <div style="width:100%;height:100%;">
+                    <!--<iframe src="{!($Site.BaseUrl + '/servlet/servlet.FileDownload?file=' + v.pdf)}" style="position:relative;"-->
+                            <!--width="100%" height="100%" framebroder="0" />-->
+                    <a href="{!'/servlet/servlet.FileDownload?file='+ v.pdf}">{!v.quote.Name}</a>
+                </div>
+            </aura:if>
         </div>
     </lightning:layout>
     

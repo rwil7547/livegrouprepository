@@ -1,1 +1,4 @@
-<aura:event type="APPLICATION" description="Refresh" />
+<aura:event type="APPLICATION" description="Refresh" >
+    <aura:attribute type="string" name="id"/>
+    <aura:attribute type="SBQQ__Quote__c" name="quote"/>
+</aura:event>
