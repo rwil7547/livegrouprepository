@@ -12,9 +12,9 @@
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
     <!--<aura:handler event="c:Refresh" action="{!c.refresh}" />-->
 
-    <lightning:layout class="{!v.selected ? 'slds-p-around_small quoteCard selectedQuote' : 'slds-p-around_small quoteCard'}" >
+    <lightning:layout class="{!v.quote.selected ? 'slds-p-around_small quoteCard selectedQuote' : 'slds-p-around_small quoteCard'}" >
         <div class="slds-grid" style="width: 100%;" onclick="{!c.selectQuote}" id="{!(v.quote.Id + 'card')}">
-            <div class="slds-col slds-size_8-of-12">
+            <div class="slds-col slds-size_10-of-12">
                 <div style="display:flex;font-weight:bold;font-size:16px;">
                     <div >{!v.quote.Version__c}</div>
                     <div hidden="{!!v.primary}" class="primary">PRIMARY</div>
@@ -38,43 +38,54 @@
                     </span>
                 </div> 
             </div>
-            <div class="slds-col slds-size_4-of-12" style="position:relative;">
+            <div class="slds-col slds-size_2-of-12" style="position:relative;">
                 <div style="float:right;">
 
                     <aura:renderIf isTrue="{!v.pdf != ''}">
-
                         <span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;"
-                              onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="pdf">
-                            <lightning:icon iconName="doctype:pdf" size="large" alternativeText="document"/>
+                              onclick="{!c.showDocument}" data-type="pdf">
+                            <lightning:icon iconName="doctype:pdf" size="large" zoom="1.5" alternativeText="document"/>
                         </span>
                     </aura:renderIf>
-
-                    <!--<aura:renderIf isTrue="{!v.pdf != ''}">-->
-                        <!--<span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;" -->
-                              <!--onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="pdf">-->
-                            <!--<lightning:icon iconName="doctype:pdf" size="large" alternativeText="document"/>-->
-                        <!--</span>-->
-                    <!--</aura:renderIf>-->
-                    <!--<aura:renderIf isTrue="{!v.word != ''}">-->
-                        <!--<span id="{!v.word}" style="top:10px;right:1px;position:absolute;z-index:1;" -->
-                              <!--onmouseover="{!c.showDoc}" onmouseout="{!c.resetZ}" data-type="word">-->
-                            <!--<lightning:icon iconName="doctype:word" size="large" alternativeText="word"/>-->
-                        <!--</span>                -->
-                    <!--</aura:renderIf>-->
                 </div>
             </div>
         </div>
 
-        <div id="{!v.quote.Id}" style="display:none;position:fixed;" class="quotePreview">
+        <div aura:id="document" style="position:fixed;display: none;" class="quotePreview slds-p-around_medium">
+
+            <div style="display:flex;justify-content: flex-end;">
+                <div class="slds-p-around_medium" style="width:100%;">
+                    <lightning:card  title="{!v.quote.SBQQ__R00N70000001lX7YEAU__r[0].Name}"
+                                     iconName="standard:document">
+                    </lightning:card>
+                    <div style="margin-left: 50px;">
+                        Created by {!v.quote.SBQQ__R00N70000001lX7YEAU__r[0].CreatedBy.Name} on
+                        <lightning:formattedDateTime value="{!v.quote.SBQQ__R00N70000001lX7YEAU__r[0].CreatedDate}" />
+                    </div>
+                </div>
+                <aura:if isTrue="{!not(v.quote.Locked__c)}">
+                    <div style="margin-right: 5px;">
+                        <lightning:card>
+                                <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteDocument}" />
+                        </lightning:card>
+                    </div>
+                </aura:if>
+
+                <div>
+                    <lightning:card>
+                        <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeDocument}" />
+                    </lightning:card>
+                </div>
+            </div>
 
             <aura:if isTrue="{!v.pdf != ''}">
-                <div style="width:100%;height:100%;">
-                    <!--<iframe src="{!($Site.BaseUrl + '/servlet/servlet.FileDownload?file=' + v.pdf)}" style="position:relative;"-->
-                            <!--width="100%" height="100%" framebroder="0" />-->
-                    <a href="{!'/servlet/servlet.FileDownload?file='+ v.pdf}">{!v.quote.Name}</a>
+                <div style="width:100%;height:84%;">
+                    <iframe src="{!($Site.BaseUrl + '/servlet/servlet.FileDownload?file=' + v.pdf)}" style="position:relative;"
+                            width="100%" height="100%" framebroder="0" />
                 </div>
             </aura:if>
         </div>
+
     </lightning:layout>
     
 

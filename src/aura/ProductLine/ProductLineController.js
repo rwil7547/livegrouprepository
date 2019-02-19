@@ -1,6 +1,6 @@
 ({
 	toggleSelect : function(component, event, helper) {
-        helper.toggleSelect(component);
+        helper.toggleSelect(component, false);
 	},
     forceDeselect : function(component, event, helper){
         var productId = component.get('v.productId');
@@ -10,6 +10,7 @@
     },
     stopPropagation : function(component, event, helper){
         event.stopPropagation();
-        helper.toggleSelect(component);
+        // event.preventDefault();
+        helper.toggleSelect(component, true);
     }
 })

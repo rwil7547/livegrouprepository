@@ -87,8 +87,7 @@ global class SalesDashboardRemoter {
 
             if (opp.Committed__c){
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
-            } else
-                    if (opp.StageName == 'Closed Won') {
+            } else if (opp.StageName == 'Closed Won') {
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
             } else {
                 revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Calder__c * opp.Probability) / 100;

@@ -13,7 +13,8 @@
 }
 
 .THIS .lineHolder {
-    max-height: 80%;
+    /*max-height: 80%;*/
+    height: calc(95% - 65px);
     width: 100%;
     overflow-y:scroll;
 }
@@ -32,4 +33,12 @@
 }
 .THIS .quoteLine:hover {
     background-color: #f4f4f4;
+}
+
+.THIS .familyBlock {
+    padding: 6px;
+    border:0.5px solid grey;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    margin-top:4px;
 }

@@ -1,7 +1,21 @@
-<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="QuoteListViewController" >
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId"
+                access="global" controller="QuoteListViewController" >
+
     <aura:attribute name="quotes" type="SBQQ__Quote__c[]" />
+    <aura:attribute name="opportunity" type="Opportunity" />
+
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>    
-    <aura:handler event="c:Refresh" action="{!c.doInit}" />
+    <aura:handler event="c:Refresh" action="{!c.refresh}" />
+    <aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />
+
+    <force:recordData aura:id="forceRecordCmp"
+                      recordId="{!v.recordId}"
+                      layoutType="FULL"
+                      fields="StageName,QuoteType__c,SBQQ__Contracted__c"
+                      targetFields="{!v.opportunity}"
+                      mode="VIEW"
+                      targetError="{!v.error}" />
+
     <lightning:card class="slds-p-around_medium">
     
         <lightning:layout class="slds-m-bottom_small">

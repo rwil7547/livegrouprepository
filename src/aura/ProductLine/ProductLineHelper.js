@@ -1,5 +1,6 @@
 ({
-	toggleSelect : function(component) {      
+	toggleSelect : function(component) {
+
         var productId = component.get('v.productId');
         if (document.getElementById(productId).checked === true){
             component.set('v.selected', false);

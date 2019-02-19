@@ -1,15 +1,17 @@
 ({
-    getQuote : function(component, quoteId) {
+    getQuote : function(component, quoteId, refreshPanel) {
         var action = component.get("c.getQuote"); 
         action.setParams({ 
             oppId : component.get("v.recordId"),
             quoteId : quoteId
         });
         action.setCallback(this, function(response){
+
             if (response.getState() === "SUCCESS"){
                 if (response.getReturnValue()[0]){
                     component.set("v.quote", response.getReturnValue()[0]);
                     
+                    // if (quoteId === "default" || refreshPanel){
                     if (quoteId === "default"){
                         var selectEvent = $A.get("e.c:SelectQuoteEvent");
                         selectEvent.setParams({
@@ -17,23 +19,44 @@
                         });
                         selectEvent.fire();
                     }
-                    
-                    //if (response.getReturnValue()[0].SBQQ__Primary__c &&
-                    //    !response.getReturnValue()[0].SBQQ__R00N70000001lX7YEAU__r){
-                    if (!response.getReturnValue()[0].Locked__c){
-                        component.set('v.editable',true);
-                        this.getDocumentInfo(component);
+
+                    if (refreshPanel){
+                        console.log('refresh fired');
+
+                        var refresh = $A.get("e.c:Refresh");
+                        refresh.setParams({
+                            id : component.get('v.quote.Id')
+                        });
+                        refresh.fire();
                     }
+                    
+                    if (!response.getReturnValue()[0].Locked__c){
+                        console.log('unlocking quote');
+                        component.set('v.editable',true);
+                    } else {
+                        component.set('v.editable',false);
+                    }
+
+                    console.log('has doc ' + response.getReturnValue()[0].HasDocument__c);
 
                     if (!response.getReturnValue()[0].HasDocument__c){
+
+                        console.log('setting rev editable');
+
                         component.set('v.revEditable',true);
                         this.getDocumentInfo(component);
+                    } else {
+                        component.set('v.revEditable',false);
                     }
 
-                    this.getGroups(component, response.getReturnValue()[0].Id, response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
+                    console.log('rev editable ' + component.get('v.revEditable'));
+
+
+                    this.getGroups(component, response.getReturnValue()[0].Id,
+                        response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
                     // need to add more conditions to determine if quote is editable 
                     if (component.get("v.quote.SBQQ__R00N70000001lX7YEAU__r")){
-                        component.set('v.editable', false);
+                        // component.set('v.editable', false);
                         var quoteDocs = component.get("v.quote.SBQQ__R00N70000001lX7YEAU__r");
                         for (var x = 0; x < quoteDocs.length; x++){
                             if (quoteDocs[x].SBQQ__OutputFormat__c === 'PDF'){
@@ -48,14 +71,17 @@
                     if (document.getElementById('opplistInput')){
                         document.getElementById('opplistInput').value = null;
                     }
-
-                    console.log('when initialising the value of the dataset is ' + document.getElementById('opplistInput').value);
-
-
                 } else {
                     component.set('v.quote',null);
+                    component.set('v.groups',null);
+                    var refresh = $A.get("e.c:Refresh");
+                    refresh.setParams({
+                        id : ''
+                    });
+                    refresh.fire();
+
                 }
-            } 
+            }
         });
         $A.enqueueAction(action);  
         
@@ -120,6 +146,9 @@
         insertGroupedLines.setCallback(this, function(response){
             if (response.getState() === "SUCCESS"){      
                 var refresh = $A.get("e.c:Refresh");
+                refresh.setParams({
+                    id : component.get('v.quote.Id')
+                });
                 refresh.fire();
                 var responseEvent = $A.get("e.c:InsertProductsResponse");
                 responseEvent.setParams({
@@ -153,6 +182,9 @@
         	component.set('v.responsePending', false);
             if (response.getState() === "SUCCESS" && response.getReturnValue()){ 
                 var refresh = $A.get("e.c:Refresh");
+                refresh.setParams({
+                    id : component.get('v.quote.Id')
+                });
                 refresh.fire();
 				this.getGroups(component, component.get('v.quote.Id'), false);	
                 this.showToast('Success!', 'New lines inserted.','success');                
@@ -174,9 +206,9 @@
         	component.set('v.responsePending', false);
             if(response.getState() === 'SUCCESS' && response.getReturnValue()){
                 this.showToast('Success!', 'Quote deleted','success');
-                this.getQuote(component, 'default'); 
-                var refresh = $A.get("e.c:Refresh");
-                refresh.fire();
+                // this.getQuote(component, 'default', true);
+                component.set('v.quote',null);
+                this.getQuote(component, response.getReturnValue(), true);
             } else {
                 this.showToast('Error', 'There was an error deleting the quote', 'error');
             }    
@@ -189,7 +221,7 @@
         getDocumentInfo.setCallback(this, function(response){
             if (response.getState() === 'SUCCESS' && response.getReturnValue()){
             	component.set('v.users',response.getReturnValue()['users']);
-                var contacts = new Array();
+                var contacts = [];
             	var oppContacts = response.getReturnValue()['oppContacts'];
                 if (oppContacts){
                     for (var x = 0; x < oppContacts.length; x++){
@@ -219,13 +251,75 @@
         var quoteId     = component.get('v.quote.Id');
         var userId      = component.find('ourContact').get("v.value");
         var contactId   = component.find('quoteContact').get("v.value");
+
+        // var optionals   = component.find('optional').getElement().checked;
+        var optionals   = document.getElementById('optionalCheckbox').checked;
+        // var invoices    = component.find('invoices').getElement().checked;
+        var invoices   = document.getElementById('invoicesCheckbox').checked;
+
+        console.log(optionals);
+
+        console.log('quote id is ' + quoteId);
+        console.log('user id is ' + userId);
+        console.log('contact id is ' + contactId);
         
-        console.log('user id is ' + userId + ' contact id is ' + contactId);
-        
-        document.getElementById('quotePreviewIFrame').src = document.getElementById('quotePreviewIFrame').src +
+        // document.getElementById('quotePreviewIFrame').src = document.getElementById('quotePreviewIFrame').src +
+        document.getElementById('quotePreviewIFrame').src = '/apex/QuotePreview?' +
             'id=' + quoteId +
             '&userId=' + userId + 
-            '&contactId=' + contactId;
+            '&contactId=' + contactId +
+            '&optionals=' + optionals +
+            '&invoices=' + invoices;
+
+        console.log('should be loading the preview');
+
+    },
+    exportQuoteData : function(component){
+
+        var groups = component.get('v.groups');
+
+        var reportData = [];
+
+        groups.forEach(function(element){
+
+            var lines = element.SBQQ__LineItems__r;
+
+            lines.forEach(function(element){
+                reportData.push({Name : element.Id});
+            });
+        });
+
+        return reportData;
+    },
+    convertArrayOfObjectsToCSV : function(args){
+        var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+
+        data = args.data || null;
+        if (data == null || !data.length) {
+            return null;
+        }
+
+        columnDelimiter = args.columnDelimiter || ',';
+        lineDelimiter = args.lineDelimiter || '\n';
+
+        keys = Object.keys(data[0]);
+
+        result = '';
+        result += keys.join(columnDelimiter);
+        result += lineDelimiter;
+
+        data.forEach(function(item) {
+            ctr = 0;
+            keys.forEach(function(key) {
+                if (ctr > 0) result += columnDelimiter;
+
+                result += item[key];
+                ctr++;
+            });
+            result += lineDelimiter;
+        });
+
+        return result;
     }
     
  

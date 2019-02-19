@@ -1,0 +1,8 @@
+<!--
+ - Created by Ronan Williams on 14/02/2019.
+ -->
+
+<aura:event type="APPLICATION" description="LineGroupChange">
+    <aura:attribute name="groupId" type="String"/>
+    <aura:attribute name="line" type="SBQQ__QuoteLine__c"/>
+</aura:event>

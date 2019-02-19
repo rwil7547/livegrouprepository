@@ -8,13 +8,13 @@
 	
     <div class="slds-grid quoteLine product" onclick="{!c.toggleSelect}"
          data-family="{!v.product.Family}" data-name="{!v.product.Name}" style="z-index:1;">
-        <div class="slds-col slds-size_1-of-12" style="padding-left:20px;" >
+        <div class="slds-col slds-size_1-of-12" style="padding-left:20px;position:relative;" >
+            <div style="position: absolute;height: 100%; width: 100%;z-index: 2;"></div>
             <input type="checkbox" checked="{!v.selected}" id="{!v.productId}" onclick="{!c.stopPropagation}"
-                   style="cursor:pointer;zoom:1.2;z-index:0;"/>
+                   style="cursor:pointer;zoom:1.2;z-index:0;" />
         </div>
         <div class="slds-col slds-size_3-of-12" data-productid="{!v.product.Id}">{!v.product.Name}</div>
         <div class="slds-col slds-size_4-of-12"  data-productid="{!v.product.Id}">
-            <!--<aura:unescapedHtml value="{!v.product.Description}" />-->
             {!v.product.Description}
         </div>
         <div class="slds-col slds-size_2-of-12" style="text-align:right;padding-right:5px;"

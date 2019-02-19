@@ -216,4 +216,30 @@ public class OpportunityTriggerHandler {
 		}
 
 	}
+
+	// METHOD PURPOSE: Create a contract document when the Opportunity is set to closed won, if the
+	// Opportunity does not already have a contract
+	public static void createContracts(Set<Id> oppIds){
+
+		List<SBQQ__Quote__c> quotesToConvert = new List<SBQQ__Quote__c>();
+
+		for (Opportunity opp : [SELECT Id,
+									(SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
+											Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
+											Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c
+									FROM SBQQ__Quotes2__r
+									WHERE SBQQ__Primary__c = TRUE)
+								FROM Opportunity
+								WHERE Id IN : oppIds]){
+			if (!opp.SBQQ__Quotes2__r.isEmpty() && opp.SBQQ__Quotes2__r[0].Stage__c != 'Contract'
+					&& opp.SBQQ__Quotes2__r[0].Stage__c != 'Reconciliation'){
+				quotesToConvert.add(opp.SBQQ__Quotes2__r[0]);
+			}
+		}
+
+		String result = PrimaryQuoteController.createContractsApex(quotesToConvert);
+
+	}
+
+
 }

@@ -1,17 +1,59 @@
 ({
     doInit : function(component, event, helper){
-        if (component.get('v.group.SBQQ__LineItems__r')){
-            component.set('v.lines', component.get('v.group.SBQQ__LineItems__r'));
+        // if (component.get('v.group.SBQQ__LineItems__r')){
+        //     component.set('v.lines', component.get('v.group.SBQQ__LineItems__r'));
+        // } else {
+        //     component.set('v.lines', new Array());
+        // }
+        //     //helper.getTotals(component);
+
+        if (component.get('v.lines')){
+            helper.getTotals(component);
         } else {
             component.set('v.lines', new Array());
+            var group = component.get('v.group');
+            group.revTotal = 0;
+            group.cosTotal = 0;
+            component.set('v.group',group);
         }
-        helper.getTotals(component);
     },
-    showProducts : function(component, event, helper) {
-        
+    dragOver : function(component, event, helper){
+        if (component.get('v.customGroup') && !component.get('v.reconciling') &&
+            !component.get('v.lines').length > 0){
+            event.preventDefault();
+            document.getElementById(component.get('v.group.Id')).classList.add('dragOver');
+        }
+    },
+    dragLeave : function(component, event, helper){
+        document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
+    },
+    drop : function(component, event, helper){
+
+        console.log('dropped on group');
+
+        document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
+        if (component.get('v.customGroup') && !component.get('v.reconciling') &&
+            !component.get('v.lines').length > 0){
+
+            var data = JSON.parse(event.dataTransfer.getData("text"));
+
+            if (data.type === 'Line'){
+
+                var lineOrderChange = component.getEvent('lineOrderChange');
+                lineOrderChange.setParams({
+                    id : data.id,
+                    oldPosition : data.origin,
+                    newPosition : component.get('v.line.SBQQ__Number__c'),
+                    targetGroupId : component.get('v.group.Id')
+                });
+
+                lineOrderChange.fire();
+
+            }
+        }
     },
     editGroupName : function(component, event, helper){
-        if (component.get('v.editable') && component.get('v.customGroup')){
+        if (component.get('v.editable') && component.get('v.customGroup') && !component.get('v.hasDocument')){
         	document.getElementById(component.get('v.group.Id') + 'name').style.display = 'none';
         	document.getElementById(component.get('v.group.Id') + 'nameEdit').style.display = 'block';    
         }
@@ -64,20 +106,53 @@
     handleLineCloned : function(component, event, helper){
     	var lines = component.get('v.lines');
         var newLines = [];
-        
-        console.log('oringal id is ' + event.getParam('originalId'));
-        console.log('new line is ' + event.getParam('line'));
-        
+
         for (var x = 0; x < lines.length; x++){
             newLines.push(lines[x]);
-            console.log('line id ' + lines[x].Id + ' original id ' + event.getParam('originalId'));
             if (lines[x].Id === event.getParam('originalId')){
-                console.log('should be adding in the line');
                 newLines.push(event.getParam('line'));
             }
         }
         component.set('v.lines', newLines);
     },
+    handleLineChange : function(component, event, helper){
+        if (event.getParam('operation') === 'update'){
+            var lines = component.get('v.lines');
+            var lineUpdate = event.getParam('line');
+            lines.forEach(function(element){
+               if (element.Id === lineUpdate.Id){
+                   element = lineUpdate;
+               }
+            });
+            component.set('v.lines',lines);
+
+        } else if (event.getParam('operation') === 'delete'){
+            if (!component.get('v.customGroup')){
+                if (component.get('v.lines').length === 0){
+                    component.destroy();
+                }
+            }
+        }
+    },
+    checkGroupSize : function(component, event, helper){
+        helper.getTotals(component);
+
+        if (!component.get('v.customGroup')){
+            if (event.getParam('operation') === 'delete' && component.get('v.lines').length === 1){
+                if (component.get('v.lines')[0].Id = event.getParam('originalId')){
+                    component.destroy();
+                }
+            }
+        }
+    },
+    // dragOver : function(component, event, helper){
+    //
+    //     if (!component.get('v.lines') || component.get('v.lines').length === 0){
+    //         event.preventDefault();
+    //         document.getElementById('group').classList.add('dragOver');
+    //         // component.find('group').classList.add('dragOver');
+    //     }
+    // },
     responsePending : function(component, event, helper){
         if (event.getParam('groupId') === component.get('v.group.Id')){
             component.set('v.responsePending',true);
@@ -91,5 +166,37 @@
     calculateTotals : function(component, event, helper){
         console.log('calculating totals');
         helper.getTotals(component);
+    },
+    orderLines : function(component, event, helper){
+
+        var lines = component.get('v.lines');
+        var oldPosition = event.getParam('oldPosition');
+        var newPosition = event.getParam('newPosition');
+        var changeId = event.getParam('id');
+
+        if (oldPosition > newPosition) {
+            lines.forEach(function(element){
+                if (element.Id === changeId){
+                    element.SBQQ__Number__c = newPosition;
+                } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
+                    element.SBQQ__Number__c = element.SBQQ__Number__c +1;
+                }
+            });
+        } else {
+            lines.forEach(function(element){
+                if (element.Id === changeId){
+                    element.SBQQ__Number__c = newPosition;
+                } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
+                    element.SBQQ__Number__c = element.SBQQ__Number__c -1;
+                }
+            });
+        }
+
+        lines.sort(function (a, b) {
+            return a.SBQQ__Number__c - b.SBQQ__Number__c;
+        });
+
+        component.set('v.lines', lines);
+
     }
 })

@@ -10,16 +10,27 @@
     },
     filterFamily : function(component, event, helper) {
         
-        var products = document.getElementsByClassName('product');
+        // var products = document.getElementsByClassName('product');
         var family = component.find('families').get("v.value");
         
-        for (var x = 0; x < products.length; x++){
-            if (!family || products[x].dataset.family === family){
-                products[x].style.display = 'flex';
-            } else {
-                products[x].style.display = 'none';
+        // for (var x = 0; x < products.length; x++){
+        //     if (!family || products[x].dataset.family === family){
+        //         products[x].style.display = 'flex';
+        //     } else {
+        //         products[x].style.display = 'none';
+        //     }
+        // }
+        //
+        var familyBlocks = document.getElementsByClassName('familyBlock');
+
+        for (var x = 0; x < familyBlocks.length; x++){
+            if (family === 'All' || familyBlocks[x].id === family){
+                familyBlocks[x].style.display = 'block';
+            } else{
+                familyBlocks[x].style.display = 'none';
             }
         }
+
     },
     handleKeyUp : function(component,event,helper){
         var input   = component.find('enter-search').get('v.value').toUpperCase();

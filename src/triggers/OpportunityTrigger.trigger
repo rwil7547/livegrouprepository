@@ -4,6 +4,7 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 
 		// 1. shipment lists to be sent to trigger handler methods  
 		List<Opportunity> createInvoiceSchedules 		= new List<Opportunity>();
+		Set<Id> createContracts 						= new Set<Id>();
 		Map<Id,Opportunity> deleteInvoiceSchedules 		= new Map<Id,Opportunity>();
 		Map<Id,Opportunity> updateScheduleAmounts		= new Map<Id,Opportunity>();
 		Map<Id,Opportunity> updateScheduleDates			= new Map<Id,Opportunity>();
@@ -57,6 +58,7 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 	            	if (opp.StageName == 'Closed Won' && opp.StageName != Trigger.oldMap.get(opp.Id).StageName &&
 	            		opp.Invoice_Schedule__c != null) {
 	            		createInvoiceSchedules.add(opp);
+						createContracts.add(opp.Id);
 	            	}
 		    		// Opportunity set to closed won on update and parent account does not have Quickbooks Id            	
 	            	if (opp.StageName == 'Closed Won' && opp.StageName != Trigger.oldMap.get(opp.Id).StageName &&
@@ -153,6 +155,9 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 		}
 		if (!reservationStartChange.isEmpty()){
 			OpportunityTriggerHandler.updateReservationDates(reservationStartChange, reservationEndChange);
+		}
+		if (!createContracts.isEmpty()){
+			OpportunityTriggerHandler.createContracts(createContracts);
 		}
 
 	}

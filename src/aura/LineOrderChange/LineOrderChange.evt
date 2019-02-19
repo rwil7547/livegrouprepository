@@ -1,0 +1,10 @@
+<!--
+ - Created by Ronan Williams on 11/02/2019.
+ -->
+
+<aura:event type="COMPONENT" description="LineOrderChange">
+    <aura:attribute name="id" type="string"/>
+    <aura:attribute name="oldPosition" type="integer"/>
+    <aura:attribute name="newPosition" type="integer"/>
+    <aura:attribute name="targetGroupId" type="string"/>
+</aura:event>

@@ -3,6 +3,7 @@
     border: 1px solid #ccc9c9;
     cursor: pointer;
 	margin-bottom: 12px;
+    position:relative;
 }
 
 .THIS .lineHeaderGrid {
@@ -61,3 +62,12 @@
     -webkit-filter: drop-shadow( -5px -5px 5px #bfc0c1 );
     filter: drop-shadow( -5px -5px 5px #bfc0c1 );
 }
+
+.THIS.dragOver {
+    background-color: #e6eff6;
+}
+
+/*.THIS.c-container {*/
+    /*border: 1px solid #d8dde6;*/
+    /*margin: 10px 0 20px 0;*/
+/*}*/

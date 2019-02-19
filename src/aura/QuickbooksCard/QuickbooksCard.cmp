@@ -4,9 +4,13 @@
     <aura:attribute name="reconciling" type="boolean" />
     
 	<div class="expenseHolder">
-        <div style="height:50px;position:relative;display:flex;">
+        <div style="height:50px;position:relative;display:grid;grid-template-columns: 80% 20%;">
         	<img src="{!$Resource.QuickbooksLogo}" style="height:50px;" />
-            <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeRec}"/> 
+
+            <div>
+                <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeRec}"/>
+
+            </div>
 		</div>
         <br/>
         <div style="height:calc(95% - 50px); overflow-y:scroll;"  ondragover="{!c.dragOver}" 
