@@ -3,6 +3,7 @@
     <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
 
     <aura:attribute name="ready" type="boolean" default="false"/>
+    <aura:attribute name="creatAllowed" type="boolean" default="false"/>
     <aura:attribute name="quote" type="SBQQ__Quote__c" />
     <aura:attribute name="opportunity" type="Opportunity" />
     <aura:attribute name="opportunities" type="Opportunity[]" />
@@ -39,14 +40,15 @@
     <aura:handler event="c:ExpenseDrag" action="{!c.setActiveExpenseId}" />
     <aura:handler event="c:ExpenseDrop" action="{!c.updateLineId}" />
     <aura:handler name="lineOrderChange" event="c:LineOrderChange" action="{!c.orderLines}" />
-    <aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />
+    <!--<aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />-->
 
     <aura:registerEvent name="lineChangeResponse" type="c:LineChangeResponse" />
     <aura:registerEvent name="insertProductsResponse" type="c:InsertProductsResponse" />
     <aura:registerEvent name="groupResponsePending" type="c:GroupResponsePending" />
     <aura:registerEvent name="multipleLineUpdate" type="c:MultipleLineUpdate" />
     <aura:registerEvent name="Refresh" type="c:Refresh" />
-    
+    <aura:registerEvent name="ShowDocument" type="c:ShowDocument" />
+
     <force:recordData aura:id="forceRecordCmp"
         recordId="{!v.recordId}"
         layoutType="FULL"
@@ -78,7 +80,7 @@
                                     <lightning:button variant="neutral" label="RECONCILE" onclick="{!c.openReconcile}" class="slds-truncate"/>
                                 </aura:if>
                                 <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
-                                    <lightning:button variant="neutral" label="IMPORT" class="slds-truncate"/>
+                                    <lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>
                                     <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
                                         <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
                                         <lightning:button variant="neutral" label="GROUP" onclick="{!c.groupQuote}" class="slds-truncate"/>
@@ -102,7 +104,7 @@
                 <lightning:layoutItem size="12">
                     <div style="width:100%;">
                             <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
-                                <div >{!v.quote.Version__c} {!v.revEditable}</div>
+                                <div >{!v.quote.Version__c}</div>
                                 <aura:if isTrue="{!not(v.editable)}">
                                     <div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="small"/></div>
                                 </aura:if>
@@ -138,6 +140,11 @@
                                                style="{!v.editable ? 'zoom:1.5;cursor:pointer;' : 'zoom:1.5;'}" onclick="{!c.togglePrimary}"/>
                                     </div>
                                 </span>
+                                <aura:if isTrue="{!v.quote.HasDocument__c}">
+                                    <span style="margin-left: 25px;cursor:pointer;" onclick="{!c.showDocument}" >
+                                        <lightning:icon iconName="doctype:pdf" size="large" zoom="1.5" alternativeText="document"/>
+                                    </span>
+                                </aura:if>
 
 
                         </div>
@@ -146,17 +153,21 @@
             </lightning:layout>
         </aura:renderIf>
 
-        <aura:renderIf isTrue="{!not(v.quote)}">
-            <lightning:layout class="slds-p-around_small quoteCardPrimary" multipleRows="true">
-                <lightning:layoutItem size="12">
-                    <div class="slds-truncate buttonHolder">
-                        <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
-                    </div>
-                </lightning:layoutItem>
-                <lightning:layoutItem size="12">
-                </lightning:layoutItem>
-            </lightning:layout>
-    </aura:renderIf>
+
+        <aura:if isTrue="{!v.creatAllowed}">
+            <aura:if isTrue="{!not(v.quote)}">
+                <lightning:layout class="slds-p-around_small quoteCardPrimary" multipleRows="true">
+                    <lightning:layoutItem size="12">
+                        Ready: {!v.ready}
+                        <div class="slds-truncate buttonHolder">
+                            <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
+                        </div>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12">
+                    </lightning:layoutItem>
+                </lightning:layout>
+            </aura:if>
+        </aura:if>
 
         <aura:iteration items="{!v.groups}" var="group">
             <div style="position:relative;margin-bottom:30px;">
@@ -178,7 +189,6 @@
          </div>
 
 
-        <!--<aura:if isTrue="{!v.previewing}" >-->
         <aura:if isTrue="{!not(v.quote.HasDocument__c)}" >
             <div aura:id="clonePreviewModal" id="clonePreviewModal" class="toggle">
             <div class="backdrop" onclick="{!c.hidePreview}" aura:id="previewBackdrop"></div>
@@ -240,19 +250,22 @@
                                         <div>Introduction text:</div>
                                         <lightning:textarea type="text" value="{!v.quote.Proposal_Introduction__c}"/>
                                     </div><br/>
-                                    <div>
-                                        <div>Conclusion text:</div>
-                                        <lightning:textarea type="text" label="hello" value="{!v.quote.Proposal_Conclusion__c}"/>
-                                    </div><br/>
                                 </div>
 
-                                <div style="font-size:16px;display: none;" id="three" class="previewTab">
+                                <div style="font-size:16px;display: none;cursor:pointer;" id="three" class="previewTab">
                                     <div>Include:</div>
-                                    <input type="checkbox" aura:id="optionals" id="optionalCheckbox"/>	&nbsp;Optional line items<br/>
-                                    <input type="checkbox"  />	&nbsp;Delegate fee disclaimer<br/>
-                                    <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}"/> &nbsp;Invoice schedule<br/>
-                                    <input type="checkbox" /> &nbsp;Payment terms &amp; conditions<br/>
-                                    <input type="checkbox" /> &nbsp;Service Level Agreement<br/>
+                                    <input type="checkbox" aura:id="optionals" id="optionalCheckbox" />
+                                        <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
+                                    <input type="checkbox" aura:id="vat" id="vatCheckbox"/>
+                                        <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
+                                    <input type="checkbox" aura:id="fees" id="feesCheckbox" />
+                                        <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
+                                    <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}"/>
+                                        <span onclick="{!c.selectOption}" id="invoices"> &nbsp;Invoice schedule</span><br/>
+                                    <input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox"/>
+                                    <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
+                                    <input type="checkbox" aura:id="sla" id="slaCheckbox"/>
+                                        <span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>
                                 </div>
 
                             </div>
@@ -273,7 +286,7 @@
                     <div class="cloneRadio">
                         <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}"/>
                     </div>
-                    <div class="cloneText" >
+                    <div class="cloneText" onclick="{!c.clearOpportunity}">
                         Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c} for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
                     </div>
                 </div>
@@ -285,7 +298,8 @@
                         <input type="radio" id="otherOpportunity" checked="{!v.cloneDisabled}" onclick="{!c.deselectThisOpportunity}"/>
                     </div>
                     <div class="cloneText">
-                        Clone this record as an Estimate for another opportunity:<br/>
+                        <div onclick="{!c.deselectThisOpportunity}">Clone this record as an Estimate for another opportunity:</div>
+                        <br/>
                         <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup"
                                onchange="{!c.deselectThisOpportunity}"/>
                         <datalist id="opplist" >
@@ -300,7 +314,7 @@
                 </div>
                 <div style="text-align: center;width: 100%;margin-top: 10px;">
                     <div style="display: flex;justify-content: center;">
-                        <span id="cloneButton" style="margin-right:5px;">
+                        <span id="cloneButton" style="margin-right:5px;display:none;">
                             <lightning:button variant="neutral" label="CLONE" onclick="{!c.cloneQuote}" />
                         </span>
                         <lightning:button variant="neutral" label="CANCEL" onclick="{!c.hideCloneModal}" />

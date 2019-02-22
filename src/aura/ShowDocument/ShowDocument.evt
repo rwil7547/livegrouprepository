@@ -1,0 +1,7 @@
+<!--
+ - Created by Ronan Williams on 21/02/2019.
+ -->
+
+<aura:event type="APPLICATION" description="ShowDocument">
+    <aura:attribute name="quoteId" type="string"/>
+</aura:event>

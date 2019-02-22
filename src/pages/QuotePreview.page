@@ -3,59 +3,186 @@
  -->
 
 <apex:page id="QuotePreview" renderAs="pdf" controller="QuotePreviewController" applyBodyTag="false" standardStylesheets="false" showHeader="false">
-    <link href="{!URLFOR($Resource.Poppins, '/root/Poppins-Black.ttf')}" rel="stylesheet"/>
     <!--<html>-->
     <head>
-        <style>
+        <style type="text/css" media="print">
             @font-face{
                 font-family: "sans-serif";
             }
             body { font-family: 'sans-serif'; }
+
+            @page {
+                @top-center {
+                    content: element(header);
+                }
+                @bottom-right {
+                    content: element(footer);
+                }
+                margin-bottom: 100px;
+                margin-top: 90px;
+            }
+            @page :first {
+                @top-center {
+                }
+                @bottom-right {
+                }
+            }
+            @page :second {
+                @top-center {
+                }
+                @bottom-right {
+                }
+            }
+            div.header {
+                padding: 10px;
+                position: running(header);
+            }
+            div.footer {
+                display: block;
+                padding: 5px;
+                position: running(footer);
+            }
+            .pagenumber:before {
+                content: counter(page);
+            }
+            .pagecount:before {
+                content: counter(pages);
+            }
+
+            .showBorder {
+                border : 1px solid red;
+            }
+
         </style>
     </head>
 
     <body>
+
+
+
+
+
     <div >
 
 
 
-        <!--intro page version 1 -->
+        <!--COVER PAGE -->
 
-        <div style="text-align: right;width:100%;">
-            <!--<img src="{!$Resource.LiveGroupNewLogo}" width="25%"/>-->
-            <img src="{!$Resource.LGLogoText}" width="30%"/>
+        <div style="height:240px;" class="showBorder">
+            <div style="text-align: right;width:100%;">
+                <img src="{!$Resource.LGLogoText}" width="30%"/>
+            </div>
         </div>
 
 
-        <div style="width: 100%;margin-top: 200px;font-family: sans-serif;">
-
-            <div style="width: 100%;color:{!theme};font-size: 25px;font-weight: bold;padding-left: 3px;">
-                {!quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c} {!quote.SBQQ__Opportunity2__r.Name}
+        <div style="width: 100%;font-family: sans-serif;height:170px;" class="showBorder">
+            <div style="width: 90%;color:{!theme};font-size: 25px;font-weight: bold;padding-left: 3px;">
+                {!quote.SBQQ__Opportunity2__r.Name}
             </div>
             <div style="width: 100%;color:{!theme};font-size: 95px;font-weight: bold;">
-                {!docType}
+                {!quote.Version__c}
             </div>
+        </div>
 
-            <div style="width: 100%;color:{!theme2};font-size: 35px;font-style: italic;padding-left: 3px;">
-               <span style="font-weight: bold;">{!contact.FirstName}</span> {!contact.LastName}
+        <div style="width: 100%;font-family: sans-serif;height:430px;" class="showBorder">
+
+
+                <div class="showBorder">
+                    <div style="margin-top: 30px;padding-left:2px;">
+                        <div style="padding-left:2px;color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Project details</div>
+
+
+                        <table style="width: 210px;">
+                            <tr>
+                                <td style="margin-left:-2px;width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Job number:</td>
+                                <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c}</td>
+                            </tr>
+                            <tr>
+                                <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;vertical-align: top;">Event name:</td>
+                                <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Name}</td>
+                            </tr>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Location__c != null}" layout="none">
+                                <tr>
+
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Location:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Location__c}</td>
+                                </tr>
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Venue__c != null}" layout="none">
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Venue:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Venue__c}</td>
+                                </tr>
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c != quote.SBQQ__Opportunity2__r.Event_end__c}" layout="none">
+                                <tr>
+                                    <td style="margin-left:-2px;width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Start date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_start__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">End date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c == quote.SBQQ__Opportunity2__r.Event_end__c}">
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Event date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+                            </apex:outputPanel>
+
+                        </table>
+
+                    </div>
+                </div>
+
+
+            <div class="showBorder">
+                <div style="margin-top: 30px;width: 210px;padding-left: 2px;">
+                    <div style="padding-left:2px;color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Document details</div>
+
+                    <table style="width: 100%;">
+                        <tr>
+                            <td style="margin-left:-2px;width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Version:</td>
+                            <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.Version__c}</td>
+                        </tr>
+                        <tr>
+                            <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Created on:</td>
+                            <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                    <apex:param value="{!TODAY()}"/>
+                                </apex:outputText>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
-
-
-
-            <div >
-
-                <div style="margin-top: 270px;">
+            <div class="showBorder">
+                <div style="padding-left: 4px;margin-top: 30px;">
                     <div style="color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Get in touch</div>
-                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 3px;">
                         Units 2-3 Princess Mews
                     </div>
-                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">
                         Horace Road
                     </div>
-                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">
                         Kingston upon Thames
                     </div>
-                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                    <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 10px;">
                         KT1 2SZ
                     </div>
                     <div><span style="width:5px;color:{!theme2};font-size: 11px;">e&nbsp;</span>
@@ -65,12 +192,15 @@
                         <span style="font-size: 11px;font-weight: lighter;">(+44)208 481 2000</span>
                     </div>
                 </div>
-
-
             </div>
 
 
+
+
         </div>
+
+        <!-- END COVER PAGE -->
+
         <!---->
         <!--<table style="font-family: sans-serif;width: 100%;height:880px;">-->
 
@@ -91,14 +221,21 @@
         <div style="page-break-after:always;"/>
 
 
-        <!--intro page version 2 -->
+        <!-- CONTENTS SUMMARY PAGE -->
+
+        <div class="header">
+        </div>
+
+        <div class="footer" >
+        </div>
+
 
         <table style="font-family: sans-serif;width: 100%;height:780px;">
 
             <th style="width:68%;height:780px;">
 
                 <div style="font-family: sans-serif;width: 100%;height:40px;color:{!theme};font-size: 60px;margin-bottom: 75px;">
-                    {!docType}
+                    {!quote.Version__c}
                 </div>
 
                 <div style="height: 800px;margin-top: 20px;border-right: 0.5px solid {!theme};">
@@ -193,62 +330,98 @@
 
 
             </th>
-            <th style="width:29%;height:780px;">
+            <!--<th style="width:29%;height:780px;">-->
+            <th style="width:29%;height:720px;" class="showBorder">
 
                 <div style="width: 100%;text-align: right;height:10%;margin-bottom: 45px;padding-left:10px;">
                     <img src="{!$Resource.LGLogoText}" width="100%"/>
                 </div>
 
+                <!--<div style="height: 680px;margin-top: 35px;">-->
                 <div style="height: 680px;margin-top: 35px;">
 
                     <div style="padding-left:10px;">
-                        <div style="color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">This one's for you</div>
-                        <div style="color:{!theme2};font-style:sans-serif;font-size: 11px;">{!contact.Name}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.MailingStreet}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.MailingCity}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.MailingCountry}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.MailingPostalCode}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.Email}</div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!contact.Phone}</div>
+                        <div style="color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Contact information</div>
+                        <div style="color:{!theme2};font-style:sans-serif;font-size: 11px;margin-bottom: 4px;">{!contact.Name}</div>
+                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">{!contact.Account.Name}</div>
+                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">{!contact.MailingStreet}</div>
+                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">{!contact.MailingCity}</div>
+                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">{!contact.MailingCountry}</div>
+                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 10px;">{!contact.MailingPostalCode}</div>
+
+                        <apex:outputPanel  rendered="{!contact.Email != null}" layout="none">
+                            <span style="width:5px;color:{!theme2};font-size: 11px;">e&nbsp;</span>
+                            <span style="font-size: 11px;font-weight: lighter;"> {!contact.Email}</span>
+                        </apex:outputPanel>
+                        <apex:outputPanel  rendered="{!contact.Phone != null}" layout="none">
+                            <span style="width:5px;color:{!theme2};font-size: 11px;">d&nbsp;</span>
+                            <span style="font-size: 11px;font-weight: lighter;"> {!contact.Phone}</span>
+                        </apex:outputPanel>
+                        <apex:outputPanel  rendered="{!contact.MobilePhone != null}" layout="none">
+                            <span style="width:5px;color:{!theme2};font-size: 11px;">m&nbsp;</span>
+                            <span style="font-size: 11px;font-weight: lighter;"> {!contact.MobilePhone}</span>
+                        </apex:outputPanel>
+
                     </div>
 
-                    <div style="margin-top: 30px;padding-left:10px;">
-                        <div style="color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Project details</div>
-                        <div style="color:{!theme2};font-style:sans-serif;font-size: 11px;">
-                            Job number: {!quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c}
-                        </div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
-                            {!quote.SBQQ__Opportunity2__r.Name}
-                        </div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
-                            {!quote.SBQQ__Opportunity2__r.Location__c}
-                        </div>
-                        <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;">
-                            {!quote.SBQQ__Opportunity2__r.Venue__c}
-                        </div>
+                    <div style="margin-top: 30px;padding-left:8px;">
+                        <div style="padding-left:2px;color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Project details</div>
 
-                        <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c != quote.SBQQ__Opportunity2__r.Event_end__c}">
-                            <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;margin-bottom: 4px;">
-                                From:
-                                <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
-                                    <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_start__c}"/>
-                                </apex:outputText>
-                            </div>
-                            <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;" rendered="true">
-                                To:
-                                <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
-                                    <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
-                                </apex:outputText>
-                            </div>
-                        </apex:outputPanel>
 
-                        <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c == quote.SBQQ__Opportunity2__r.Event_end__c}">
-                            <div style="font-style:sans-serif;font-size: 11px;font-weight: lighter;" rendered="true">
-                                <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
-                                    <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
-                                </apex:outputText>
-                            </div>
-                        </apex:outputPanel>
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="margin-left:-2px;width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Job number:</td>
+                                <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c}</td>
+                            </tr>
+                            <tr>
+                                <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;vertical-align: top;">Event name:</td>
+                                <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Name}</td>
+                            </tr>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Location__c != null}" layout="none">
+                                <tr>
+
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Location:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Location__c}</td>
+                                </tr>
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Venue__c != null}" layout="none">
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Venue:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">{!quote.SBQQ__Opportunity2__r.Venue__c}</td>
+                                </tr>
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c != quote.SBQQ__Opportunity2__r.Event_end__c}" layout="none">
+                                <tr>
+                                    <td style="margin-left:-2px;width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Start date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_start__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">End date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+
+                            </apex:outputPanel>
+                            <apex:outputPanel rendered="{!quote.SBQQ__Opportunity2__r.Event_start__c == quote.SBQQ__Opportunity2__r.Event_end__c}">
+                                <tr>
+                                    <td style="width:40%;color:{!theme2};font-style:sans-serif;font-size: 11px;">Event date:</td>
+                                    <td style="width:60%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
+                                        <apex:outputText value=" {0,date,EEE MMM d, yyyy}">
+                                            <apex:param value="{!quote.SBQQ__Opportunity2__r.Event_end__c}"/>
+                                        </apex:outputText>
+                                    </td>
+                                </tr>
+                            </apex:outputPanel>
+
+                        </table>
+
                     </div>
 
                     <div style="margin-top: 30px;width: 100%;padding-left: 8px;">
@@ -268,7 +441,6 @@
                                 </td>
                             </tr>
                         </table>
-
                     </div>
 
 
@@ -277,18 +449,14 @@
                             <div style="padding-left:2px;color:{!theme};font-size: 18px;font-weight: lighter;margin-bottom: 4px;">Invoicing schedule</div>
 
                             <table style="width: 100%;font-style:sans-serif;font-size: 11px;font-weight: lighter;">
-
                                 <tr>
                                     <td>Due date</td>
                                     <td>Amount</td>
                                     <td>Status</td>
                                 </tr>
-
                                 <apex:repeat value="{!invoices}" var="invoice">
-
                                     <tr>
                                         <td>
-                                            <!--<apex:outputText value=" {0,date,EEE MMM d, yyyy}">-->
                                             <apex:outputText value=" {0,date,d MMM, yyyy}">
                                                 <apex:param value="{!invoice.Send_Date__c}"/>
                                             </apex:outputText>
@@ -348,14 +516,36 @@
 
 
 
+        <!-- END CONTENTS SUMMARY PAGE -->
 
         <div style="page-break-after:always;"/>
 
 
 
-        <!--intro page version 2 -->
+        <!-- QUOTE LINES PAGE -->
 
+        <div class="header">
+            <table style="width: 100%;font-style: sans-serif;font-weight: bold;font-size: 12px;">
+                <tr>
+                    <td style="width: 90%;font-weight: lighter;font-style: italic;">
+                        {!quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c}
+                        <span style="font-weight: bold;color:{!theme}">+</span>
+                        {!quote.SBQQ__Opportunity2__r.Name}
+                        <span style="font-weight: bold;color:{!theme}">+</span>
+                        {!quote.Version__c}
+                    </td>
+                    <td style="with:10%;text-align:right;color:{!theme2};"><span class="pagenumber"/></td>
+                </tr>
+            </table>
+        </div>
 
+        <div class="footer" style="width: 100%;text-align: right;">
+            <img src="{!$Resource.LiveGroupNewLogo}" height="50px"/>
+        </div>
+
+        <div style="font-family: sans-serif;width: 100%;height:40px;color:{!theme};font-size: 60px;margin-bottom: 75px;">
+            Line item breakdown
+        </div>
 
 
         <apex:repeat value="{!groupMap}" var="group">
@@ -364,13 +554,13 @@
             <div style="font-family:Helvetica,sans-serif;font-weight: bold;font-size: 30px;color:{!theme};">{!group}</div>
             <br/>
 
-            <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">
+            <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;font-weight: lighter;">
                 <tr>
-                    <th style="background-color: {!theme};color:white;text-align: left;padding: 8px;width: 55%;font-size: 12px;">DESCRIPTION</th>
-                    <th style="background-color: {!theme};color:white;text-align: right;padding: 8px;width: 8%;font-size: 12px;">DAYS</th>
-                    <th style="background-color: {!theme};color:white;text-align: right;padding: 8px;width: 8%;font-size: 12px;">QTY</th>
-                    <th style="background-color: {!theme};color:white;text-align: right;padding: 8px;width: 16%;font-size: 12px;">UNIT PRICE</th>
-                    <th style="background-color: {!theme};color:white;text-align: right;padding: 8px;width: 16%;font-size: 12px;">TOTAL</th>
+                    <th style="background-color: {!theme};color:white;text-align: left;font-weight: lighter;padding: 8px;width: 55%;font-size: 12px;">Item</th>
+                    <th style="background-color: {!theme};color:white;text-align: right;font-weight: lighter;padding: 8px;width: 8%;font-size: 12px;">Days</th>
+                    <th style="background-color: {!theme};color:white;text-align: right;font-weight: lighter;padding: 8px;width: 8%;font-size: 12px;">QTY</th>
+                    <th style="background-color: {!theme};color:white;text-align: right;font-weight: lighter;padding: 8px;width: 16%;font-size: 12px;">Item Price</th>
+                    <th style="background-color: {!theme};color:white;text-align: right;font-weight: lighter;padding: 8px;width: 16%;font-size: 12px;">Total</th>
                 </tr>
 
             </table>
@@ -378,136 +568,144 @@
             <apex:variable var = "count" value="{!0}"/>
             <!--<apex:repeat value="{!groupMap[group]}" var="lineType">-->
 
-            <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">
 
-                <apex:repeat value="{!groupMap[group]['Default']}" var="line" >
+
+            <apex:repeat value="{!groupMap[group]}" var="lineType">
+
+            <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;vertical-align: top;">
+
+                <apex:repeat value="{!groupMap[group][lineType]}" var="line" >
                     <apex:variable var="color" value="{!IF(MOD(count,2)==0, '#ffffff','#f4f4f4')}"/>
 
                     <tr>
                         <td style="font-family:Helvetica,sans-serif;text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 12px;color:black; background-color: {!color};">
-                            <apex:outputText value="{!line.SBQQ__Description__c}" escape="true"></apex:outputText>
+                            <apex:outputText value="{!line.SBQQ__Description__c}" escape="false"></apex:outputText>
                         </td>
-                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">{!line.SBQQ__SubscriptionTerm__c}</td>
-                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">
+                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};vertical-align: top;">{!line.SBQQ__SubscriptionTerm__c}</td>
+                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};vertical-align: top;">
                             <apex:outputText value="{0, number,###,###,##0}"><apex:param value="{!line.SBQQ__Quantity__c}" /></apex:outputText>
                             <!--{!line.SBQQ__Quantity__c}-->
                         </td>
-                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">
+                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};vertical-align: top;">
                             <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__ListPrice__c}" /></apex:outputText>
                         </td>
-                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">
+                        <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};vertical-align: top;">
                             <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__NetTotal__c}" /></apex:outputText>
                         </td>
                     </tr>
                     <apex:variable var="count" value="{!count+1}"/>
                 </apex:repeat>
-                <!--</apex:repeat>-->
 
-                <!--<tr>-->
-                <!--<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>-->
-                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                <!--<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">-->
-                <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>-->
-                <!--</td>-->
-
-                <!--</tr>-->
-
-            </table>
-            <br/>
-
-
-            <apex:outputPanel  >
-                <div style="font-family: sans-serif;background-color: green;width:80px;color:white;padding:3px;">ADDED >></div>
-                <div style="border: 1px solid green;">
-                    <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">
-
-                        <apex:repeat value="{!groupMap[group]['Added']}" var="line">
-                            <apex:variable var="color" value="{!IF(MOD(count,2)==0, '#ffffff','#f4f4f4')}"/>
-
-                            <tr>
-                                <td style="font-family:Helvetica,sans-serif;text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 12px;color:black; background-color: {!color};">
-                                    <apex:outputText value="{!line.SBQQ__Description__c}" escape="true"></apex:outputText>
-                                </td>
-                                <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">{!line.SBQQ__SubscriptionTerm__c}</td>
-                                <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">
-                                    <apex:outputText value="{0, number,###,###,##0}"><apex:param value="{!line.SBQQ__Quantity__c}" /></apex:outputText>
-                                    <!--{!line.SBQQ__Quantity__c}-->
-                                </td>
-                                <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">
-                                    <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__ListPrice__c}" /></apex:outputText>
-                                </td>
-                                <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">
-                                    <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__NetTotal__c}" /></apex:outputText>
-                                </td>
-                            </tr>
-                            <apex:variable var="count" value="{!count+1}"/>
-                        </apex:repeat>
-                        <!--</apex:repeat>-->
-
-                        <!--<tr>-->
-                        <!--<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>-->
-                        <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                        <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                        <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                        <!--<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">-->
-                        <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>-->
-                        <!--</td>-->
-
-                        <!--</tr>-->
-
-                    </table>
-                </div>
-                <br/>
-            </apex:outputPanel>
-
-
-            <div style="font-family: sans-serif;background-color: #838b99;width:80px;color:white;padding:3px;"><< REMOVED</div>
-            <div style="font-family: sans-serif;border: 1px solid #838b99;">
-                <table style="font-family: sans-serif;border-collapse: collapse;width: 100%;">
-
-                    <apex:repeat value="{!groupMap[group]['Removed']}" var="line">
-                        <apex:variable var="color" value="{!IF(MOD(count,2)==0, '#ffffff','#f4f4f4')}"/>
-
-                        <tr>
-                            <td style="font-family:Helvetica,sans-serif;text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 12px;color:#838b99; background-color: {!color};">
-                                <apex:outputText value="{!line.SBQQ__Description__c}" escape="true"></apex:outputText>
-                            </td>
-                            <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:#838b99; background-color: {!color};">{!line.SBQQ__SubscriptionTerm__c}</td>
-                            <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:#838b99; background-color: {!color};">
-                                <apex:outputText value="{0, number,###,###,##0}"><apex:param value="{!line.SBQQ__Quantity__c}" /></apex:outputText>
-                                <!--{!line.SBQQ__Quantity__c}-->
-                            </td>
-                            <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:#838b99; background-color: {!color};">
-                                <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__ListPrice__c}" /></apex:outputText>
-                            </td>
-                            <td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:#838b99; background-color: {!color};">
-                                <apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__NetTotal__c}" /></apex:outputText>
-                            </td>
-                        </tr>
-                        <apex:variable var="count" value="{!count+1}"/>
-                    </apex:repeat>
+                <!--</apex:outputPanel>-->
                     <!--</apex:repeat>-->
 
-                    <!--<tr>-->
-                    <!--<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>-->
-                    <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                    <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                    <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
-                    <!--<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">-->
-                    <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>-->
-                    <!--</td>-->
+                <!--<tr>-->
+                <!--<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>-->
+                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
+                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
+                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>-->
+                <!--<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">-->
+                <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>-->
+                <!--</td>-->
 
-                    <!--</tr>-->
+                <!--</tr>-->
 
-                </table>
-            </div>
+            </table>
             <br/>
+            </apex:repeat>
+        </apex:repeat>
+
+
+            <!--<apex:outputPanel  >-->
+                <!--<div style="font-family: sans-serif;background-color: green;width:80px;color:white;padding:3px;">ADDED >></div>-->
+                <!--<div style="border: 1px solid green;">-->
+                    <!--<table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">-->
+
+                        <!--<apex:repeat value="{!groupMap[group]['Added']}" var="line">-->
+                            <!--<apex:variable var="color" value="{!IF(MOD(count,2)==0, '#ffffff','#f4f4f4')}"/>-->
+
+                            <!--<tr>-->
+                                <!--<td style="font-family:Helvetica,sans-serif;text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 12px;color:black; background-color: {!color};">-->
+                                    <!--<apex:outputText value="{!line.SBQQ__Description__c}" escape="true"></apex:outputText>-->
+                                <!--</td>-->
+                                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">{!line.SBQQ__SubscriptionTerm__c}</td>-->
+                                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:black; background-color: {!color};">-->
+                                    <!--<apex:outputText value="{0, number,###,###,##0}"><apex:param value="{!line.SBQQ__Quantity__c}" /></apex:outputText>-->
+                                    <!--&lt;!&ndash;{!line.SBQQ__Quantity__c}&ndash;&gt;-->
+                                <!--</td>-->
+                                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">-->
+                                    <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__ListPrice__c}" /></apex:outputText>-->
+                                <!--</td>-->
+                                <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:black; background-color: {!color};">-->
+                                    <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__NetTotal__c}" /></apex:outputText>-->
+                                <!--</td>-->
+                            <!--</tr>-->
+                            <!--<apex:variable var="count" value="{!count+1}"/>-->
+                        <!--</apex:repeat>-->
+                        <!--&lt;!&ndash;</apex:repeat>&ndash;&gt;-->
+
+                        <!--&lt;!&ndash;<tr>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                        <!--&lt;!&ndash;<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">&ndash;&gt;-->
+                        <!--&lt;!&ndash;<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>&ndash;&gt;-->
+                        <!--&lt;!&ndash;</td>&ndash;&gt;-->
+
+                        <!--&lt;!&ndash;</tr>&ndash;&gt;-->
+
+                    <!--</table>-->
+                <!--</div>-->
+                <!--<br/>-->
+            <!--</apex:outputPanel>-->
+
+
+            <!--<div style="font-family: sans-serif;background-color: #838b99;width:80px;color:white;padding:3px;"><< REMOVED</div>-->
+            <!--<div style="font-family: sans-serif;border: 1px solid #838b99;">-->
+                <!--<table style="font-family: sans-serif;border-collapse: collapse;width: 100%;">-->
+
+                    <!--<apex:repeat value="{!groupMap[group]['Removed']}" var="line">-->
+                        <!--<apex:variable var="color" value="{!IF(MOD(count,2)==0, '#ffffff','#f4f4f4')}"/>-->
+
+                        <!--<tr>-->
+                            <!--<td style="font-family:Helvetica,sans-serif;text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 12px;color:#838b99; background-color: {!color};">-->
+                                <!--<apex:outputText value="{!line.SBQQ__Description__c}" escape="true"></apex:outputText>-->
+                            <!--</td>-->
+                            <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:#838b99; background-color: {!color};">{!line.SBQQ__SubscriptionTerm__c}</td>-->
+                            <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:5px;width: 8%;font-size: 12px;color:#838b99; background-color: {!color};">-->
+                                <!--<apex:outputText value="{0, number,###,###,##0}"><apex:param value="{!line.SBQQ__Quantity__c}" /></apex:outputText>-->
+                                <!--&lt;!&ndash;{!line.SBQQ__Quantity__c}&ndash;&gt;-->
+                            <!--</td>-->
+                            <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:#838b99; background-color: {!color};">-->
+                                <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__ListPrice__c}" /></apex:outputText>-->
+                            <!--</td>-->
+                            <!--<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 16%;font-size: 12px;color:#838b99; background-color: {!color};">-->
+                                <!--<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!line.SBQQ__NetTotal__c}" /></apex:outputText>-->
+                            <!--</td>-->
+                        <!--</tr>-->
+                        <!--<apex:variable var="count" value="{!count+1}"/>-->
+                    <!--</apex:repeat>-->
+                    <!--&lt;!&ndash;</apex:repeat>&ndash;&gt;-->
+
+                    <!--&lt;!&ndash;<tr>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<td style="text-align: left;padding-bottom: 8px;padding-top: 4px;padding-left:5px;width: 55%;font-size: 16px;font-weight: bold;">{!group}&nbsp;total:</td>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<td style="text-align: right;padding-bottom: 8px;padding-top: 4px;width: 8%;font-size: 12px;"></td>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<td style="text-align: right;ppadding-bottom: 8px;padding-top: 4px;padding-right:3px;width: 24%;font-size: 16px;font-weight: bold;">&ndash;&gt;-->
+                    <!--&lt;!&ndash;<apex:outputText value="{0, number,£###,###,##0.00}"><apex:param value="{!groupSummary[group]}" /></apex:outputText>&ndash;&gt;-->
+                    <!--&lt;!&ndash;</td>&ndash;&gt;-->
+
+                    <!--&lt;!&ndash;</tr>&ndash;&gt;-->
+
+                <!--</table>-->
+            <!--</div>-->
+            <!--<br/>-->
 
 
 
-            <table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">
+            <!--<table style="font-family: helvetica, sans-serif;border-collapse: collapse;width: 100%;">-->
 
 
                 <!--<tr>-->
@@ -521,10 +719,10 @@
 
                 <!--</tr>-->
 
-            </table>
+            <!--</table>-->
 
 
-        </apex:repeat>
+        <!--</apex:repeat>-->
 
         <div style="page-break-after:always;"/>
 
@@ -534,11 +732,6 @@
 
         ADDITIONAL INFOMRATION
 
-
-
-        <div style="page-break-after:always;"/>
-
-        <div>TERMS AND CONDITIONS</div>
     </div>
     </body>
 </apex:page>

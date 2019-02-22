@@ -1,6 +1,9 @@
 ({
     getQuote : function(component, quoteId, refreshPanel) {
-        var action = component.get("c.getQuote"); 
+
+        console.log('get quote method on pcv called');
+
+        var action = component.get("c.getQuoteApex");
         action.setParams({ 
             oppId : component.get("v.recordId"),
             quoteId : quoteId
@@ -37,20 +40,12 @@
                         component.set('v.editable',false);
                     }
 
-                    console.log('has doc ' + response.getReturnValue()[0].HasDocument__c);
-
                     if (!response.getReturnValue()[0].HasDocument__c){
-
-                        console.log('setting rev editable');
-
                         component.set('v.revEditable',true);
                         this.getDocumentInfo(component);
                     } else {
                         component.set('v.revEditable',false);
                     }
-
-                    console.log('rev editable ' + component.get('v.revEditable'));
-
 
                     this.getGroups(component, response.getReturnValue()[0].Id,
                         response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
@@ -74,13 +69,15 @@
                 } else {
                     component.set('v.quote',null);
                     component.set('v.groups',null);
-                    var refresh = $A.get("e.c:Refresh");
-                    refresh.setParams({
-                        id : ''
-                    });
-                    refresh.fire();
-
+                    if (refreshPanel){
+                        var refresh = $A.get("e.c:Refresh");
+                        refresh.setParams({
+                            id : ''
+                        });
+                        refresh.fire();
+                    }
                 }
+                component.set('v.createAllowed',true);
             }
         });
         $A.enqueueAction(action);  
@@ -252,24 +249,21 @@
         var userId      = component.find('ourContact').get("v.value");
         var contactId   = component.find('quoteContact').get("v.value");
 
-        // var optionals   = component.find('optional').getElement().checked;
         var optionals   = document.getElementById('optionalCheckbox').checked;
-        // var invoices    = component.find('invoices').getElement().checked;
-        var invoices   = document.getElementById('invoicesCheckbox').checked;
+        var invoices    = document.getElementById('invoicesCheckbox').checked;
+        var vat         = document.getElementById('vatCheckbox').checked;
 
-        console.log(optionals);
-
-        console.log('quote id is ' + quoteId);
-        console.log('user id is ' + userId);
-        console.log('contact id is ' + contactId);
+        // console.log('quote id is ' + quoteId);
+        // console.log('user id is ' + userId);
+        // console.log('contact id is ' + contactId);
         
-        // document.getElementById('quotePreviewIFrame').src = document.getElementById('quotePreviewIFrame').src +
         document.getElementById('quotePreviewIFrame').src = '/apex/QuotePreview?' +
             'id=' + quoteId +
             '&userId=' + userId + 
             '&contactId=' + contactId +
             '&optionals=' + optionals +
-            '&invoices=' + invoices;
+            '&invoices=' + invoices +
+            '&vat=' + vat;
 
         console.log('should be loading the preview');
 

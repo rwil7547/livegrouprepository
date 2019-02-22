@@ -1,8 +1,8 @@
 ({
     clone : function(component) {
-        var clone = JSON.parse(JSON.stringify(component.get('v.original')));
-        component.set('v.line',clone);
-        component.set('v.optional',clone.SBQQ__Optional__c);
+        var clone = JSON.parse(JSON.stringify(component.get('v.line')));
+        component.set('v.original',clone);
+        // component.set('v.optional',clone.SBQQ__Optional__c);
     },
     fireOpenEdit : function(Id) {
         var selectEvt = $A.get("e.c:LineSelected");
@@ -19,11 +19,12 @@
         lineEvent.fire();
 	},
     closeEdit : function(component){
-
-        console.log(component.get('v.line.SBQQ__Description__c') + ' : close called');
-
         document.getElementById(component.get('v.line.Id')).classList.remove('selected');
         component.set('v.editmode', false);
+
+        if (component.get('v.editable') && component.get('v.revEditable') && !component.get('v.reconciling')){
+             component.find('line').getElement().setAttribute('draggable',true);
+        }
     },
     calculateTotal : function(component, event){        
         var id = component.get('v.line.Id');
@@ -54,10 +55,24 @@
         return description;
     },
     inputValid : function(component){
-
         var valid = (!isNaN(component.get('v.line.SBQQ__Quantity__c')) &&
+                     component.get('v.line.SBQQ__Quantity__c') >  0 &&
                      !isNaN(component.get('v.line.SBQQ__UnitCost__c')) &&
-                     !isNaN(component.get('v.line.SBQQ__UnitCost__c')));
+                     component.get('v.line.SBQQ__UnitCost__c') >= 0 &&
+                     !isNaN(component.get('v.line.SBQQ__ListPrice__c')) &&
+                     component.get('v.line.SBQQ__ListPrice__c') >= 0);
+
+        console.log('initial valid claim is ' + valid);
+
+        if (component.get('v.original.SBQQ__SubscriptionTerm__c')){
+
+            console.log('finding term of ' + component.get('v.line.SBQQ__Product__r.SBQQ__SubscriptionTerm__c'));
+
+            valid = !isNaN(component.get('v.line.SBQQ__SubscriptionTerm__c')) &&
+                component.get('v.line.SBQQ__SubscriptionTerm__c') >  0;
+        }
+
+        console.log('later valid claim is ' + valid);
 
         return valid;
     }

@@ -28,9 +28,6 @@
         document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
     },
     drop : function(component, event, helper){
-
-        console.log('dropped on group');
-
         document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
         if (component.get('v.customGroup') && !component.get('v.reconciling') &&
             !component.get('v.lines').length > 0){
@@ -83,7 +80,6 @@
         deleteEvent.setParams({groupId : component.get('v.group.Id')});
         deleteEvent.fire();
         component.set('v.responsePending',true);
-        console.log('child delete event fired');
     },
     handleDeleteResponse : function(component, event, helper){
         if (event.getParam('groupId') === component.get('v.group.Id')){

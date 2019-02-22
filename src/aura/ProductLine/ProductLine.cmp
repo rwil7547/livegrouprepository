@@ -15,7 +15,7 @@
         </div>
         <div class="slds-col slds-size_3-of-12" data-productid="{!v.product.Id}">{!v.product.Name}</div>
         <div class="slds-col slds-size_4-of-12"  data-productid="{!v.product.Id}">
-            {!v.product.Description}
+            <lightning:formattedText  value="{!v.product.Description}"></lightning:formattedText>
         </div>
         <div class="slds-col slds-size_2-of-12" style="text-align:right;padding-right:5px;"
              data-productid="{!v.product.Id}">

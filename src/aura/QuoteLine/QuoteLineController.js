@@ -1,25 +1,19 @@
 ({
     doInit : function(component, event, helper){
-
-		// helper.clone(component);
+		helper.clone(component);
         helper.calculateTotal(component, event);
-
-
-
-
     },
     openEdit : function(component, event, helper) {
         if (!component.get('v.reconciling') && component.get('v.editable') && !component.get('v.editmode')){
             if (!document.getElementById(component.get('v.line.Id')).classList.contains('selected')){
                 document.getElementById(component.get('v.line.Id')).classList.add('selected');
                 component.set('v.editmode', true);
+                component.find('line').getElement().setAttribute('draggable', false);
                 helper.fireOpenEdit(component.get('v.line.Id'));
             }
         }
     },
     closeEdit: function(component, event, helper) {
-
-        console.log('line is ' + component.get('v.line'));
 
         if(event.getParam('Id') !== component.get('v.line.Id') &&
             document.getElementById(component.get('v.line.Id')).classList.contains('selected') &&
@@ -39,22 +33,30 @@
             }
         }
     },
+    formatDescription: function(component, event, helper){
+        if (!component.get('v.changed')){
+            if (event.getParam("oldValue") !== event.getParam("value") &&
+                event.getParam('index')){
+                component.set('v.changed',true);
+                helper.fireLineChange(component, component.get('v.line'),'uncommitted');
+            }
+        }
+    },
     undoChanges : function(component, event, helper){
-        var clone = JSON.parse(JSON.stringify(component.get('v.original')));
-        component.set('v.line',clone);
+        var line = component.get('v.original');
+        component.set('v.line',line);
         component.set('v.changed', false);
     },
     save : function(component, event, helper){
 
-        if (event.which === 13 && helper.inputValid(component)){
+        if (event.which === 13 && component.get('v.changed') && helper.inputValid(component)){
             // component.set('v.responsePending',true);
             component.set('v.changed', false);
             helper.closeEdit(component);
             var line = component.get('v.line');
             line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
             helper.fireLineChange(component, line,'save');
-
-        }  
+        }
     },
     updateLine: function(component, event, helper){
         event.stopPropagation();
@@ -66,8 +68,7 @@
             line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
             helper.fireLineChange(component, line,'save');
         }
-
-    },  
+    },
     cloneLine: function(component, event, helper){
         event.stopPropagation();
         component.set('v.responsePending',true);
@@ -97,9 +98,10 @@
             var operation = event.getParam('operation');
             var response = event.getParam('response');
             if (operation === 'save' && response !== 'error'){   
-                var clone = JSON.parse(JSON.stringify(component.get('v.line')));
-                component.set('v.original',clone);
-                component.set('v.changed', false);           
+                helper.clone(component);
+                // var clone = JSON.parse(JSON.stringify(component.get('v.line')));
+                // component.set('v.original',clone);
+                // component.set('v.changed', false);
             } else if (operation === 'clone' && response !== 'error'){
                 var line = Object.assign({},component.get('v.line'));
                 line.Id = event.getParam('response');
@@ -156,10 +158,6 @@
     drop : function(component, event, helper){
         event.stopPropagation();
         component.find('line').getElement().classList.remove('dragOver');
-
-
-        console.log(event.dataTransfer.getData("text"));
-
         var data = JSON.parse(event.dataTransfer.getData("text"));
 
         if (data.type === 'Line'){

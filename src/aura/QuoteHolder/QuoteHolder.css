@@ -16,3 +16,24 @@
 	-moz-box-shadow: 0 0 3px #838b99 !important;
 	-webkit-box-shadow: 0 0 3px #838b99 !important;
 }
+
+.THIS .typeTitle {
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+    height: 4px;
+    position: relative;
+    margin-top: 15px;
+}
+
+.THIS .title {
+    background-color: white;
+    width: fit-content;
+    padding-left: 4px;
+    padding-right: 4px;
+    margin-left: 32px;
+    margin-top: 1px;
+    position: absolute;
+    top: -11px;
+}

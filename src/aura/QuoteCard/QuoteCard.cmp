@@ -10,18 +10,30 @@
 
     <aura:handler event="c:SelectQuoteEvent" action="{!c.deselect}" />   
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <aura:handler event="c:ShowDocument" action="{!c.handleShowDocument}" />
     <!--<aura:handler event="c:Refresh" action="{!c.refresh}" />-->
 
     <lightning:layout class="{!v.quote.selected ? 'slds-p-around_small quoteCard selectedQuote' : 'slds-p-around_small quoteCard'}" >
         <div class="slds-grid" style="width: 100%;" onclick="{!c.selectQuote}" id="{!(v.quote.Id + 'card')}">
             <div class="slds-col slds-size_10-of-12">
                 <div style="display:flex;font-weight:bold;font-size:16px;">
-                    <div >{!v.quote.Version__c}</div>
-                    <div hidden="{!!v.primary}" class="primary">PRIMARY</div>
+                    <aura:if isTrue="{!v.primary}">
+                        <div  class="primary">{!v.quote.Version__c}&nbsp;
+                            <span class="check">
+                                <lightning:icon iconName="utility:success" size="x-small" variant="inverse"/>
+                            </span>
+                        </div>
+                        <aura:set attribute="else">
+                            <div >{!v.quote.Version__c}</div>
+                        </aura:set>
+                    </aura:if>
+
+                    <!--<div >{!v.quote.Version__c}</div>-->
+                    <!--<div hidden="{!!v.primary}" class="primary">PRIMARY</div>-->
+
                     <aura:if isTrue="{!v.quote.Locked__c}">
                     	<div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="x-small"/></div>
                     </aura:if>
-                    <!--<input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="true"/>-->
                 </div>
                 <div style="display:flex;">
                     <span style="margin-right:20px;">

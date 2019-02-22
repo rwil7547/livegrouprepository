@@ -2,11 +2,14 @@
                 access="global" controller="QuoteListViewController" >
 
     <aura:attribute name="quotes" type="SBQQ__Quote__c[]" />
+    <aura:attribute name="estimates" type="SBQQ__Quote__c[]"/>
+    <aura:attribute name="contracts" type="SBQQ__Quote__c[]"/>
+    <aura:attribute name="reconciliations" type="SBQQ__Quote__c[]"/>
     <aura:attribute name="opportunity" type="Opportunity" />
 
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>    
     <aura:handler event="c:Refresh" action="{!c.refresh}" />
-    <aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />
+    <!--<aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />-->
 
     <force:recordData aura:id="forceRecordCmp"
                       recordId="{!v.recordId}"
@@ -28,9 +31,32 @@
                 </div>
             </lightning:layoutItem>
         </lightning:layout>   
-    
-        <aura:iteration items="{!v.quotes}" var="quote">
-            <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>      
-        </aura:iteration>    
+
+
+        <aura:if isTrue="{!v.estimates.length > 0}">
+            <div class="typeTitle" style="background-color: #66C1BF; color:#66C1BF;">
+                <div class="title">ESTIMATES</div>
+            </div>
+            <aura:iteration items="{!v.estimates}" var="quote">
+                <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
+            </aura:iteration>
+        </aura:if>
+        <aura:if isTrue="{!v.contracts.length > 0}">
+            <div class="typeTitle" style="background-color: #2c7495; color:#2c7495;">
+                <div class="title">CONTRACTS</div>
+            </div>
+            <aura:iteration items="{!v.contracts}" var="quote">
+                <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
+            </aura:iteration>
+        </aura:if>
+        <aura:if isTrue="{!v.reconciliations.length > 0}">
+            <div class="typeTitle" style="background-color: #d43b8f; color:#d43b8f;">
+                <div class="title">RECONCILIATIONS</div>
+            </div>
+            <aura:iteration items="{!v.reconciliations}" var="quote">
+                <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
+            </aura:iteration>
+        </aura:if>
+
     </lightning:card>
 </aura:component>

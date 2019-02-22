@@ -7,10 +7,16 @@
     border-radius: 3px;
     background-color: black;
     color: white;
-    margin-left: 10px;
+    margin-left: -6px;
     padding-left: 4px;
-    padding-right: 4px;
-    padding-bottom: -3px;
+    padding-right: 22px;
+    position: relative;
+}
+
+.THIS .check {
+    position: absolute;
+    top:-2px;
+    right:3px;
 }
 
 .THIS .quotePreview {

@@ -5,14 +5,14 @@
 public with sharing class PrimaryQuoteController {
 
     @AuraEnabled
-    public static List<SBQQ__Quote__c> getQuote(String oppId, String quoteId){
+    public static List<SBQQ__Quote__c> getQuoteApex(String oppId, String quoteId){
 
         String quoteQuery = (quoteId != 'default') ? ' AND Id = :quoteId ' : '';
 
         return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, Proposal_Introduction__c,' +
                         'Proposal_Conclusion__c, HasDocument__c, Locked__c, SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c,' +
-                        'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, Event_End__c, ' +
+                        'SBQQ__Opportunity2__r.SBQQ__Contracted__c, SBQQ__Opportunity2__r.Reconciling__c, SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, Event_End__c, ' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
                         '(SELECT Id FROM SBQQ__LineItems__r), ' +
@@ -473,7 +473,7 @@ public with sharing class PrimaryQuoteController {
             lines.add(
                 new SBQQ__QuoteLine__c(
                     SBQQ__Product__c        = product.Id,
-                    SBQQ__Description__c    = product.Description,
+                    SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                     SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
                     SBQQ__Quantity__c       = 1,
                     SBQQ__UnitCost__c       = product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
@@ -532,10 +532,12 @@ public with sharing class PrimaryQuoteController {
                                 WHERE Pricebook2.Name = 'Default')
                                 FROM Product2 WHERE Id IN :productIdSet]){
 
+
+
             lines.add(
                     new SBQQ__QuoteLine__c(
                             SBQQ__Product__c        = product.Id,
-                            SBQQ__Description__c    = product.Description,
+                            SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                             SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
                             SBQQ__Quantity__c       = 1,
                             SBQQ__UnitCost__c       = (product.SBQQ__Costs__r == null || product.SBQQ__Costs__r[0].SBQQ__UnitCost__c == null)? 0 : product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
@@ -638,6 +640,13 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.SBQQ__Primary__c         = true;
             cloneQuote.Stage__c                 = 'Contract';
             cloneQuote.Version__c               = 'Contract';
+            cloneQuote.Proposal_Introduction__c =
+                            'Thank you for confirming your intention to proceed with our support for ' +
+                            quote.SBQQ__Opportunity2__r.Name + '. The following pages contain a full ' +
+                            'breakdown of the costs outlined above. In the event that your requirements ' +
+                            'change, we will provide an updated contract amendment for your approval, ' +
+                            'which will outline any changes to the services agreed to in this document.';
+
             quoteMap.put(quote.Id, cloneQuote);
         }
 
@@ -716,6 +725,9 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
+
+        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c
+                                FROM Opportunity WHERE Id = :oppId];
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c
                                         WHERE SBQQ__Opportunity2__c = :oppId
                                         AND Stage__c = :type];
@@ -723,9 +735,6 @@ public with sharing class PrimaryQuoteController {
         String version = (type == 'Contract') ? 'Contract Amendment' + ' ' + count.size() :
                 type + ' ' + (count.size() + 1);
         Boolean primary = quote.Stage__c == 'Estimate' ? false : true;
-
-        system.debug('the value of primary is ' + primary);
-
 
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
@@ -830,6 +839,7 @@ public with sharing class PrimaryQuoteController {
 
         String result   = 'error';
 
+        Opportunity opp = [SELECT Id, Name FROM Opportunity WHERE Id = :oppId];
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
 
         SBQQ__Quote__c newQuote           = new SBQQ__Quote__c();
@@ -837,6 +847,10 @@ public with sharing class PrimaryQuoteController {
         newQuote.SBQQ__Primary__c         = false;
         newQuote.Stage__c                 = 'Estimate';
         newQuote.Version__c               = 'Estimate ' + (count.size() + 1);
+        newQuote.Proposal_Introduction__c = 'Thank you for asking us to submit an estimate of costs for ' +
+                                            opp.Name + '. The following pages contain a full breakdown of ' +
+                                            'the costs outlined above. We look forward to hearing from you ' +
+                                            'at your earliest convenience.';
 
         Database.SaveResult quoteInsert   = Database.insert(newQuote);
         if (quoteInsert.isSuccess()){
@@ -995,8 +1009,8 @@ public with sharing class PrimaryQuoteController {
 
         insert document;
 
-
         PageReference pdf = Page.QuotePreview;
+
         // add parent id to the parameters for standardcontroller
         pdf.getParameters().put('Id',quoteId);
         pdf.getParameters().put('userId',userId);
@@ -1007,22 +1021,14 @@ public with sharing class PrimaryQuoteController {
 
         // the contents of the attachment from the pdf
         Blob body;
-
-//        try {
-//
-//            // returns the output of the page as a PDF
-            body = pdf.getContent();
-
-//            // need to pass unit test -- current bug
-//        } catch (VisualforceException e) {
-//            body = Blob.valueOf('Some Text');
-//        }
+        body = pdf.getContent();
 
         attach.Body = body;
         attach.Name = 'Test';
         attach.IsPrivate = false;
         attach.ContentType = 'application/pdf';
-        // attach the pdf to the account
+
+        // attach the pdf to the Quote document
         attach.ParentId = document.Id;
         insert attach;
 
@@ -1031,6 +1037,9 @@ public with sharing class PrimaryQuoteController {
 
         quote.HasDocument__c = true;
         update quote;
+
+        // if the quote is at contract stage or later, lock prior versions
+        // todo: lock prior versions of quotes
 
         // send the user to the account to view results
         return true;

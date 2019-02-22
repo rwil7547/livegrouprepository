@@ -16,6 +16,11 @@
         event.stopPropagation();
 	    component.find('document').getElement().style.display = 'block';
     },
+    handleShowDocument : function(component, event, helper){
+	   if (event.getParam('quoteId') === component.get('v.quote.Id')){
+           component.find('document').getElement().style.display = 'block';
+       }
+    },
     closeDocument : function(component, event, helper){
         component.find('document').getElement().style.display = 'none';
     },
