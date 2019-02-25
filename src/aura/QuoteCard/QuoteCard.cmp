@@ -75,7 +75,7 @@
                         <lightning:formattedDateTime value="{!v.quote.SBQQ__R00N70000001lX7YEAU__r[0].CreatedDate}" />
                     </div>
                 </div>
-                <aura:if isTrue="{!not(v.quote.Locked__c)}">
+                <aura:if isTrue="{!not(v.quote.DocumentLocked__c)}">
                     <div style="margin-right: 5px;">
                         <lightning:card>
                                 <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteDocument}" />

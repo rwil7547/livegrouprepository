@@ -31,6 +31,10 @@ public class QuotePreviewController {
 
     public Boolean showOptionals {get; set;}
     public Boolean showVAT {get; set;}
+    public Boolean showSLA {get; set;}
+    public Boolean showTnCs {get; set;}
+
+
     public Boolean trackChanges {get; set;}
 
 
@@ -40,6 +44,8 @@ public class QuotePreviewController {
 
         showOptionals   = (ApexPages.currentPage().getParameters().get('optionals') == 'true') ? true : false;
         showVAT         = (ApexPages.currentPage().getParameters().get('vat') == 'true') ? true : false;
+        showSLA         = (ApexPages.currentPage().getParameters().get('sla') == 'true') ? true : false;
+        showTnCs        = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
 
         user = [SELECT Id, Name, FirstName, LastName, Phone, MobilePhone, Email
                 FROM User
@@ -236,8 +242,8 @@ public class QuotePreviewController {
                         optionalLineCount.put('Ungrouped', optionalLineCount.get('Ungrouped') + 1);
                     } else {
                         optionalGroupMap.get(line.SBQQ__Group__r.Name).get('Default').add(line);
-                        optionalGroupSummary.put(line.SBQQ__Group__r.Name, optionalGroupSummary.get(line.SBQQ__ProductFamily__c) + line.SBQQ__NetTotal__c);
-                        optionalLineCount.put(line.SBQQ__Group__r.Name, optionalLineCount.get(line.SBQQ__ProductFamily__c) + 1);
+                        optionalGroupSummary.put(line.SBQQ__Group__r.Name, optionalGroupSummary.get(line.SBQQ__Group__r.Name) + line.SBQQ__NetTotal__c);
+                        optionalLineCount.put(line.SBQQ__Group__r.Name, optionalLineCount.get(line.SBQQ__Group__r.Name) + 1);
                     }
                 }
             }

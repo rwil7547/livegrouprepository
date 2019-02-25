@@ -2,6 +2,7 @@
     doInit : function(component, event, helper){
 		helper.clone(component);
         helper.calculateTotal(component, event);
+        component.set('v.optional', component.get('v.line.SBQQ__Optional__c'));
     },
     openEdit : function(component, event, helper) {
         if (!component.get('v.reconciling') && component.get('v.editable') && !component.get('v.editmode')){
@@ -26,11 +27,8 @@
     },
     setChanged: function(component, event, helper){
         if (!component.get('v.changed')){
-            if (event.getParam("oldValue") !== event.getParam("value") &&
-                event.getParam('index')){
-                component.set('v.changed',true);
-                helper.fireLineChange(component, component.get('v.line'),'uncommitted');
-            }
+            component.set('v.changed',true);
+            helper.fireLineChange(component, component.get('v.line'),'uncommitted');
         }
     },
     formatDescription: function(component, event, helper){
@@ -46,11 +44,11 @@
         var line = component.get('v.original');
         component.set('v.line',line);
         component.set('v.changed', false);
+        helper.fireLineChange(component, line,'undo');
     },
     save : function(component, event, helper){
 
         if (event.which === 13 && component.get('v.changed') && helper.inputValid(component)){
-            // component.set('v.responsePending',true);
             component.set('v.changed', false);
             helper.closeEdit(component);
             var line = component.get('v.line');
@@ -61,7 +59,6 @@
     updateLine: function(component, event, helper){
         event.stopPropagation();
         if (helper.inputValid(component)){
-            // component.set('v.responsePending',true);
             component.set('v.changed', false);
             helper.closeEdit(component);
             var line = component.get('v.line');
@@ -78,11 +75,10 @@
     },
     toggleLineOptional: function(component, event, helper){
         event.stopPropagation();
-        // component.set('v.responsePending',true);
         component.set('v.changed', false);
         var line = component.get('v.line');
         helper.closeEdit(component);
-        helper.fireLineChange(component, component.get('v.line'),'optional');
+        helper.fireLineChange(component, line,'optional');
         component.set('v.optional', !component.get('v.optional'));
     },
     deleteLine: function(component, event, helper){
@@ -141,11 +137,13 @@
     },
     startLineDrag : function(component, event, helper){
         var family = component.get('v.line.SBQQ__ProductFamily__c') ? component.get('v.line.SBQQ__ProductFamily__c') : '';
+        var groupId = component.get('v.line.SBQQ__Group__c') ? component.get('v.line.SBQQ__Group__c') : family.replace(/ /g, '');
         var transferData = '{"type":"Line", ' +
                             '"id":"' + component.get('v.line.Id') + '",' +
                             '"origin":' + component.get('v.line.SBQQ__Number__c') + ',' +
                             '"family":"' + family + '",' +
-                            '"groupId":"' + component.get('v.line.SBQQ__Group__c') + '"}';
+                            '"groupId":"' + groupId + '",' +
+                            '"line": ' + JSON.stringify(component.get('v.line')) + '}';
         event.dataTransfer.setData("text/plain", transferData);
     },
     dragOver : function(component, event, helper){
@@ -158,20 +156,27 @@
     drop : function(component, event, helper){
         event.stopPropagation();
         component.find('line').getElement().classList.remove('dragOver');
+
         var data = JSON.parse(event.dataTransfer.getData("text"));
 
         if (data.type === 'Line'){
             if (data.id !== component.get('v.line.Id')){
                 if (!component.get('v.line.SBQQ__Group__c')){
                     if (data.family === component.get('v.line.SBQQ__ProductFamily__c')){
-                        var lineOrderChange = component.getEvent('lineOrderChange');
+                        // var lineOrderChange = component.getEvent('lineOrderChange');
+                        var lineOrderChange = $A.get('e.c:LineOrderChange');
                         lineOrderChange.setParams({
                             id : data.id,
                             oldPosition : data.origin,
                             newPosition : component.get('v.line.SBQQ__Number__c'),
-                            targetGroupId : 'none'
+                            sourceGroupId : data.groupId,
+                            targetGroupId : component.get('v.line.SBQQ__ProductFamily__c').replace(/ /g, ''),
+                            line : data.line
                         });
                         lineOrderChange.fire();
+
+                        console.log('firing order change');
+
                     } else {
                         var toastEvent = $A.get("e.force:showToast");
                         toastEvent.setParams({
@@ -184,12 +189,15 @@
 
                 } else {
 
-                    var lineOrderChange = component.getEvent('lineOrderChange');
+                    var lineOrderChange = $A.get('e.c:LineOrderChange');
+
                     lineOrderChange.setParams({
                         id : data.id,
                         oldPosition : data.origin,
                         newPosition : component.get('v.line.SBQQ__Number__c'),
-                        targetGroupId : 'none'
+                        sourceGroupId : data.groupId,
+                        targetGroupId : component.get('v.line.SBQQ__Group__c'),
+                        line : data.line
                     });
 
                     if (component.get('v.line.SBQQ__Group__c') !== data.groupId){

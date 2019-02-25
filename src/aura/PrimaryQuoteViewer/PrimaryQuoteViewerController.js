@@ -43,12 +43,19 @@
 
         if (event.getParam('operation') === 'uncommitted'){
             var pendingChanges = component.get('v.pendingChanges');
-            // pendingChanges.push(event.getParam('line'));
             pendingChanges.push(line);
             component.set('v.pendingChanges',pendingChanges);
-        } else {        
+        } else if (event.getParam('operation') === 'undo'){
+            var pendingChanges = component.get('v.pendingChanges');
+            for (var x = 0; x < pendingChanges.length; x++){
+                if (pendingChanges[x].Id === event.getParam('id')){
+                    pendingChanges.splice([x], 1);
+                }
+            }
+            component.set('v.pendingChanges',pendingChanges);
+        } else {
+            component.set('v.lineUpdatesPending',true);
             var lineUpdate = component.get('c.changeLineApex');
-
 
             lineUpdate.setParams({
                 line : line,
@@ -57,7 +64,7 @@
             lineUpdate.setCallback(this, function(response){
 				// console.log(response.getState() + ' ' + response.getReturnValue());
                 if (response.getState() === "SUCCESS" && response.getReturnValue() !== 'error'){
-                    helper.showToast('Success!', 'The quote succesfully updated.','success');
+                    helper.showToast('Success!', 'The quote successfully updated.','success');
                     var refresh = $A.get("e.c:Refresh");
                     refresh.setParams({
                         id : component.get('v.quote.Id'),
@@ -72,47 +79,6 @@
                         }
                     }
                     component.set('v.pendingChanges',pendingChanges);
-//
-//                     var responseObj = JSON.parse(response.getReturnValue());
-//                     var line = responseObj.attributes;
-//
-//                     var groups = component.get('v.groups');
-//
-//
-// console.log('response is ' + Object.keys(responseObj));
-//
-//                     groups.forEach(function(group){
-//                         // if (group.Id )
-//
-//                         var lines = group.SBQQ__LineItems__r;
-//
-//                         for (var x = 0; x < lines.length; x++){
-//                             if (lines[x].Id === event.getParam('id')){
-//                                 lines.push(JSON.parse(response.getReturnValue()));
-//                             }
-//
-//                         }
-//
-//
-//                         // group.SBQQ__LineItems__r = null;
-//                         // console.log('iterating over grouops');
-//                         // var lines = group.SBQQ__LineItems__r;
-//                         // lines.forEach(function(line){
-//                         //
-//                         //     console.log('iterating over lines');
-//                         //
-//                         //    if (line.Id === event.getParam('id')){
-//                         //         if (event.getParam('operation') === 'clone'){
-//                         //             lines.push(response.getReturnValue());
-//                         //         }
-//                         //
-//                         //
-//                         //    }
-//                         // });
-//                     });
-//                     component.set('v.groups',groups);
-
-
                 } else {
                     helper.showToast('Error', 'There was an error updating the quote line: ' + response.getState(), 'error');
                 }
@@ -133,6 +99,7 @@
         multipleLineUpdate.fire();
         
         component.set('v.responsePending' , true);
+        component.set('v.lineUpdatesPending',true);
         var pendingChanges = component.get('v.pendingChanges');
     	var saveAllLines = component.get('c.saveAllLinesApex');
         saveAllLines.setParams({
@@ -219,6 +186,8 @@
         $A.enqueueAction(addNewGroup);      
     },
     deleteGroup : function(component, event, helper){
+        component.set('v.lineUpdatesPending',true);
+
         var deleteGroup = component.get('c.deleteGroupApex');
         deleteGroup.setParams({
             groupId : event.getParam('groupId'),
@@ -248,7 +217,9 @@
         });
         $A.enqueueAction(deleteGroup);      
     },
-    insertProducts : function(component, event, helper){        
+    insertProducts : function(component, event, helper){
+        component.set('v.lineUpdatesPending',true);
+
         if (component.get('v.activeGroupId')){
             helper.insertGroupedProducts(component, event);
         } else {
@@ -262,7 +233,6 @@
             quoteId : component.get('v.quote.Id')
         });
         removeGroups.setCallback(this, function(response){
-            // component.set('v.responsePending' , false);
             if (response.getState() === "SUCCESS"){
             	helper.getQuote(component, component.get('v.quote.Id'), false);
                 helper.showToast('Success!', 'Custom groupings have been removed from the quote','success');        		
@@ -273,10 +243,15 @@
         $A.enqueueAction(removeGroups);        
     },
     previewQuote : function(component, event, helper){
-        if (!component.find('ourContact').set('v.value')){
+        if (!component.find('ourContact').get('v.value')){
+            console.log('user is ' + component.get('v.users')[0]);
+
             component.find('ourContact').set('v.value', component.get('v.users')[0].Id);
+
         }
-        if (!component.find('quoteContact').set('v.value')) {
+        if (!component.find('quoteContact').get('v.value')) {
+            console.log('contact is ' + component.get('v.contacts')[0]);
+
             component.find('quoteContact').set('v.value', component.get('v.contacts')[0].Id);
         }
         component.find('clonePreviewModal').getElement().classList.toggle('toggle');
@@ -284,14 +259,17 @@
     },
     hidePreview : function(component, event, helper){
         component.find('clonePreviewModal').getElement().classList.toggle('toggle');
-        // document.getElementById('quotePreviewIFrame').src = '';
     },
     reloadPreview : function(component, event, helper){
         helper.loadPreview(component);
     },
+    setPreviewChanged : function(component, event, helper){
+	    component.set('v.previewChanged',true);
+    },
     selectOption : function(component, event, helper){
 	    document.getElementById(event.target.id + 'Checkbox').checked =
             !document.getElementById(event.target.id + 'Checkbox').checked;
+        component.set('v.previewChanged',true);
     },
     showDocument : function(component, event, helper){
 	    var showDocument = $A.get('e.c:ShowDocument');
@@ -364,7 +342,6 @@
             });
             $A.enqueueAction(getOpportunities);
         }
-
     },
     clearOpportunity : function(component, event, helper){
 	    document.getElementById('opplistInput').value = null;
@@ -446,18 +423,13 @@
             oppId : component.get('v.recordId')
         });
         newQuote.setCallback(this, function(response){
-            // component.set('v.responsePending',false);
+            component.set('v.responsePending',false);
+
             if (response.getState() === 'SUCCESS' && response.getReturnValue() !== 'error'){
                 helper.getQuote(component, response.getReturnValue(), true);
                 helper.showToast('Success!', 'New estimate created','success');
-                // var refresh = $A.get("e.c:Refresh");
-                // refresh.setParams({
-                //     id : component.get('v.quote.Id')
-                // });
-                // refresh.fire();
             } else {
                 helper.showToast('Error', 'There was an error creating a new estimate', 'error');
-                // console.log(response.getState() + response.getReturnValue());
             }
         });
         $A.enqueueAction(newQuote);
@@ -471,8 +443,6 @@
         getRefresh.setCallback(this, function(response){
             if (response.getState() === 'SUCCESS'){
 
-                console.log('refresh resposne is ' + response.getReturnValue());
-
                 var quote = component.get('v.quote');
                 quote.SBQQ__NetAmount__c = response.getReturnValue()['SBQQ__NetAmount__c'];
                 quote.Cost_of_sale__c = response.getReturnValue()['Cost_of_sale__c'];
@@ -481,33 +451,28 @@
                 quote.SBQQ__Primary__c = response.getReturnValue()['SBQQ__Primary__c'];
                 component.set('v.quote', component.get('v.quote'));
 
-
-
                 var groups = component.get('v.groups');
-                groups.forEach(function(group){
-                    group.revTotal = response.getReturnValue()['rev' + group.Id];
-                    group.cosTotal = response.getReturnValue()['cos' + group.Id];
+                if (groups){
+                    groups.forEach(function(group){
 
+                        console.log('total for group returned is ' + response.getReturnValue()['rev' + group.Id]);
 
-
-                    // group.
-                });
+                        group.revTotal = !response.getReturnValue()['rev' + group.Id] ? 0 :
+                            response.getReturnValue()['rev' + group.Id];
+                        group.cosTotal = !response.getReturnValue()['cos' + group.Id] ? 0 :
+                            response.getReturnValue()['cos' + group.Id];
+                    });
+                }
 
                 component.set('v.groups',groups);
-
-                // var refresh = $A.get("e.c:Refresh");
-                // refresh.setParams({
-                //     id : component.get('v.quote.Id'),
-                //     quote : component.get('v.quote')
-                // });
-                // refresh.fire();
-
+                component.set('v.lineUpdatesPending',false);
             }
         });
         $A.enqueueAction(getRefresh);
     },
     cloneGroup : function(component, event, helper){
         component.set('v.responsePending', true);
+        component.set('v.lineUpdatesPending',true);
         var cloneGroup = component.get('c.cloneGroupApex');
         cloneGroup.setParams({ 
             quoteId : component.get('v.quote.Id'),
@@ -582,9 +547,6 @@
         $A.enqueueAction(updateExpense);     
     },
     togglePrimary : function(component, event, helper){
-        
-        component.set('v.responsePending',true);
-
         var isPrimary = (component.get('v.quote.SBQQ__Primary__c')) ? false : true;
 
         var togglePrimary = component.get('c.togglePrimaryApex');
@@ -594,7 +556,6 @@
             isPrimary : isPrimary
         });
         togglePrimary.setCallback(this, function(response){
-            component.set('v.responsePending',false);
             if (response.getState() === "SUCCESS" && response.getReturnValue()){
                 helper.showToast('Success!', 'Quote updated','success');
                 component.set('v.quote.SBQQ__Primary__c', isPrimary);
@@ -609,8 +570,6 @@
             }
         });
         $A.enqueueAction(togglePrimary);         
-        
-        
     },
     orderLines : function(component, event, helper){
 
@@ -625,9 +584,9 @@
         changeSortOrder.setCallback(this, function(response){
             if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
                 helper.showToast('Success!', 'Line order changed','success');
-                if (event.getParam('targetGroupId') !== 'none'){
-                    helper.getQuote(component, component.get('v.quote.Id'), false);
-                }
+                // if (event.getParam('targetGroupId') !== 'none'){
+                //     helper.getQuote(component, component.get('v.quote.Id'), false);
+                // }
             } else {
                 helper.showToast('Error', 'There was an error changing the line order', 'error');
             }

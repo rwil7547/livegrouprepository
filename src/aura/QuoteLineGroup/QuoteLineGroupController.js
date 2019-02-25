@@ -1,12 +1,5 @@
 ({
     doInit : function(component, event, helper){
-        // if (component.get('v.group.SBQQ__LineItems__r')){
-        //     component.set('v.lines', component.get('v.group.SBQQ__LineItems__r'));
-        // } else {
-        //     component.set('v.lines', new Array());
-        // }
-        //     //helper.getTotals(component);
-
         if (component.get('v.lines')){
             helper.getTotals(component);
         } else {
@@ -18,6 +11,8 @@
         }
     },
     dragOver : function(component, event, helper){
+        console.log('length is ' + component.get('v.lines').length);
+
         if (component.get('v.customGroup') && !component.get('v.reconciling') &&
             !component.get('v.lines').length > 0){
             event.preventDefault();
@@ -45,7 +40,6 @@
                 });
 
                 lineOrderChange.fire();
-
             }
         }
     },
@@ -131,24 +125,17 @@
         }
     },
     checkGroupSize : function(component, event, helper){
-        helper.getTotals(component);
-
-        if (!component.get('v.customGroup')){
-            if (event.getParam('operation') === 'delete' && component.get('v.lines').length === 1){
-                if (component.get('v.lines')[0].Id = event.getParam('originalId')){
+        // helper.getTotals(component);
+        if (event.getParam('operation') === 'delete' && component.get('v.lines').length === 1){
+            if (component.get('v.lines')[0].Id = event.getParam('originalId')){
+                if (!component.get('v.customGroup')){
                     component.destroy();
+                } else {
+                    component.set('v.lines',[]);
                 }
             }
         }
     },
-    // dragOver : function(component, event, helper){
-    //
-    //     if (!component.get('v.lines') || component.get('v.lines').length === 0){
-    //         event.preventDefault();
-    //         document.getElementById('group').classList.add('dragOver');
-    //         // component.find('group').classList.add('dragOver');
-    //     }
-    // },
     responsePending : function(component, event, helper){
         if (event.getParam('groupId') === component.get('v.group.Id')){
             component.set('v.responsePending',true);
@@ -159,40 +146,68 @@
         cloneGroup.setParams({ groupId : component.get('v.group.Id')});
         cloneGroup.fire();
     },
-    calculateTotals : function(component, event, helper){
-        console.log('calculating totals');
-        helper.getTotals(component);
-    },
     orderLines : function(component, event, helper){
 
-        var lines = component.get('v.lines');
-        var oldPosition = event.getParam('oldPosition');
-        var newPosition = event.getParam('newPosition');
-        var changeId = event.getParam('id');
+        console.log('group id is ' + component.get('v.group.Id') + ' and target id is ' + event.getParam('targetGroupId'));
 
-        if (oldPosition > newPosition) {
-            lines.forEach(function(element){
-                if (element.Id === changeId){
-                    element.SBQQ__Number__c = newPosition;
-                } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
-                    element.SBQQ__Number__c = element.SBQQ__Number__c +1;
-                }
+        // check if group is target
+        if (event.getParam('targetGroupId') === component.get('v.group.Id')){
+
+            var lines = component.get('v.lines');
+
+            // check if line is new to group
+            if (event.getParam('targetGroupId') !== event.getParam('sourceGroupId')){
+                var newLine = event.getParam('line');
+                newLine.SBQQ__Group__c = component.get('v.group.Id');
+                lines.push(newLine);
+            }
+
+            var oldPosition = event.getParam('oldPosition');
+            var newPosition = event.getParam('newPosition');
+            var changeId = event.getParam('id');
+
+            if (oldPosition > newPosition) {
+                lines.forEach(function(element){
+                    if (element.Id === changeId){
+                        element.SBQQ__Number__c = newPosition;
+                    } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
+                        element.SBQQ__Number__c = element.SBQQ__Number__c +1;
+                    }
+                });
+            } else {
+                lines.forEach(function(element){
+                    if (element.Id === changeId){
+                        element.SBQQ__Number__c = newPosition;
+                    } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
+                        element.SBQQ__Number__c = element.SBQQ__Number__c -1;
+                    }
+                });
+            }
+
+            lines.sort(function (a, b) {
+                return a.SBQQ__Number__c - b.SBQQ__Number__c;
             });
-        } else {
-            lines.forEach(function(element){
-                if (element.Id === changeId){
-                    element.SBQQ__Number__c = newPosition;
-                } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
-                    element.SBQQ__Number__c = element.SBQQ__Number__c -1;
+
+            component.set('v.lines', lines);
+            helper.getTotals(component);
+
+        } else if (event.getParam('sourceGroupId') === component.get('v.group.Id')){
+
+            // check if line is new to group
+            if (event.getParam('targetGroupId') !== event.getParam('sourceGroupId')){
+
+                var lines = component.get('v.lines');
+                for (var x = 0; x < lines.length; x++){
+                    if (lines[x].Id === event.getParam('id')){
+                        lines.splice([x], 1);
+                    }
                 }
-            });
+                component.set('v.lines',lines);
+                helper.getTotals(component);
+            }
+
         }
 
-        lines.sort(function (a, b) {
-            return a.SBQQ__Number__c - b.SBQQ__Number__c;
-        });
-
-        component.set('v.lines', lines);
 
     }
 })

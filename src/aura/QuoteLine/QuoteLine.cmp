@@ -18,13 +18,13 @@
     <aura:handler event="c:LineSelected" action="{!c.closeEdit}" />
     <aura:handler event="c:LineChangeResponse" action="{!c.processChangeResponse}" />
     <aura:handler event="c:MultipleLineUpdate" action="{!c.handleMultiLineUpdate}" />
-    <aura:handler name="change" value="{!v.line.SBQQ__Description__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Description__c}" />
-    <aura:handler name="change" value="{!v.line.SBQQ__SubscriptionTerm__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__SubscriptionTerm__c}" />
-    <aura:handler name="change" value="{!v.line.SBQQ__Quantity__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Quantity__c}" />
-    <aura:handler name="change" value="{!v.line.SBQQ__UnitCost__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__UnitCost__c}" />
-    <aura:handler name="change" value="{!v.line.SBQQ__ListPrice__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__ListPrice__c}" />
+    <!--<aura:handler name="change" value="{!v.line.SBQQ__Description__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Description__c}" />-->
+    <!--<aura:handler name="change" value="{!v.line.SBQQ__SubscriptionTerm__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__SubscriptionTerm__c}" />-->
+    <!--<aura:handler name="change" value="{!v.line.SBQQ__Quantity__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Quantity__c}" />-->
+    <!--<aura:handler name="change" value="{!v.line.SBQQ__UnitCost__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__UnitCost__c}" />-->
+    <!--<aura:handler name="change" value="{!v.line.SBQQ__ListPrice__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__ListPrice__c}" />-->
     <aura:handler name="change" value="{!v.expenses}" action="{!c.calculateTotal}" />
-    <aura:handler name="change" value="{!v.sortOrder}" action="{!c.changeSortOrder}" />
+    <!--<aura:handler name="change" value="{!v.sortOrder}" action="{!c.changeSortOrder}" />-->
     <aura:handler name="change" value="{!v.editMode}" action="{!c.changeDraggable1}" />
 
     <aura:registerEvent name="lineEdit" type="c:LineItemChange" />
@@ -44,16 +44,15 @@
                         : v.line.SBQQ__Product__r.Name)}</div>
                 </div>
                 <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
-                    <div draggable="false">
+                    <div draggable="false" onkeyup="{!c.setChanged}">
                         <lightning:inputRichText value="{!v.line.SBQQ__Description__c}"
                                                  aura:id="lineform"
                                                  class="{!v.line.Id}"
                                                  disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
                     </div>
                     <aura:set attribute="else">
-                        <!--<div><aura:unescapedHtml value="{!v.line.SBQQ__Description__c}" /></div>-->
                         <div style="max-height: 62px;overflow-y: hidden;position: relative;">
-                            <lightning:formattedRichText value="{!v.line.SBQQ__Description__c}"  />
+                            <lightning:formattedRichText value="{!v.line.SBQQ__Description__c}"/>
                             <div style="position:absolute;top:48px;">........</div>
                         </div>
                     </aura:set>
@@ -71,7 +70,8 @@
                                                    messageWhenValueMissing="Please add a value"
                                                      aura:id="lineform"
                                                    required="true"
-                                                   min="1"/>
+                                                   min="1"
+                                                   onchange="{!c.setChanged}"/>
                                     </span>
                                 </aura:if>
                             <aura:set attribute="else">
@@ -87,7 +87,8 @@
                                            value="{!v.line.SBQQ__Quantity__c}"
                                            messageWhenValueMissing="Please add a value"
                                            aura:id="lineform"
-                                            min="0.1"/>
+                                           min="0.1"
+                                           onchange="{!c.setChanged}"/>
                      </span>
                             <aura:set attribute="else">
                                 {!v.line.SBQQ__Quantity__c}
@@ -101,7 +102,8 @@
                                          type="decimal"
                                          value="{!v.line.SBQQ__UnitCost__c}"
                                          messageWhenValueMissing="Your message"
-                                         aura:id="lineform"/>
+                                         aura:id="lineform"
+                                         onchange="{!c.setChanged}"/>
                      </span>
                             <aura:set attribute="else">
                                 <lightning:formattedNumber value="{!v.line.SBQQ__UnitCost__c}" style="currency" currencyCode="GBP" />
@@ -121,7 +123,8 @@
                                          type="decimal"
                                          value="{!v.line.SBQQ__ListPrice__c}"
                                          messageWhenValueMissing="Your message"
-                                         aura:id="lineform"/>
+                                         aura:id="lineform"
+                                         onchange="{!c.setChanged}"/>
                      </span>
                             <aura:set attribute="else">
                                 <lightning:formattedNumber value="{!v.line.SBQQ__ListPrice__c}" style="currency" currencyCode="GBP" />

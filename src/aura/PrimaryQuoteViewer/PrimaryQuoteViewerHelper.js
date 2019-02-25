@@ -1,8 +1,6 @@
 ({
     getQuote : function(component, quoteId, refreshPanel) {
 
-        console.log('get quote method on pcv called');
-
         var action = component.get("c.getQuoteApex");
         action.setParams({ 
             oppId : component.get("v.recordId"),
@@ -12,9 +10,11 @@
 
             if (response.getState() === "SUCCESS"){
                 if (response.getReturnValue()[0]){
-                    component.set("v.quote", response.getReturnValue()[0]);
+                    component.set('v.createAllowed',false);
+
+                    var quote = response.getReturnValue()[0];
+                    component.set("v.quote", quote);
                     
-                    // if (quoteId === "default" || refreshPanel){
                     if (quoteId === "default"){
                         var selectEvent = $A.get("e.c:SelectQuoteEvent");
                         selectEvent.setParams({
@@ -24,8 +24,6 @@
                     }
 
                     if (refreshPanel){
-                        console.log('refresh fired');
-
                         var refresh = $A.get("e.c:Refresh");
                         refresh.setParams({
                             id : component.get('v.quote.Id')
@@ -33,34 +31,28 @@
                         refresh.fire();
                     }
                     
-                    if (!response.getReturnValue()[0].Locked__c){
-                        console.log('unlocking quote');
+                    if (!quote.Locked__c){
                         component.set('v.editable',true);
                     } else {
                         component.set('v.editable',false);
                     }
 
-                    if (!response.getReturnValue()[0].HasDocument__c){
+                    if (!quote.HasDocument__c){
                         component.set('v.revEditable',true);
+                        this.getProducts(component);
                         this.getDocumentInfo(component);
                     } else {
                         component.set('v.revEditable',false);
                     }
 
-                    this.getGroups(component, response.getReturnValue()[0].Id,
-                        response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
-                    // need to add more conditions to determine if quote is editable 
-                    if (component.get("v.quote.SBQQ__R00N70000001lX7YEAU__r")){
-                        // component.set('v.editable', false);
-                        var quoteDocs = component.get("v.quote.SBQQ__R00N70000001lX7YEAU__r");
-                        for (var x = 0; x < quoteDocs.length; x++){
-                            if (quoteDocs[x].SBQQ__OutputFormat__c === 'PDF'){
-                                component.set("v.pdf", quoteDocs[x].Id);
-                            } else {
-                                component.set("v.word", quoteDocs[x].Id);
-                            }    
-                        }
+                    if (quote.SBQQ__LineItems__r || quote.SBQQ__LineItemGroups__r){
+                        this.getGroups(component, response.getReturnValue()[0].Id,
+                            response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
                     }
+
+
+                    this.getExpenses(component, component.get('v.recordId'));
+
 
                     // clear the value of the quote clone opportunity data set
                     if (document.getElementById('opplistInput')){
@@ -76,14 +68,13 @@
                         });
                         refresh.fire();
                     }
+                    component.set('v.createAllowed',true);
                 }
-                component.set('v.createAllowed',true);
             }
         });
         $A.enqueueAction(action);  
         
-        this.getProducts(component);
-		this.getExpenses(component, component.get('v.recordId'));        
+
     },
 	getGroups : function(component, Id, custom) {
         var getGroups = component.get("c.getQuoteGroups"); 
@@ -253,19 +244,17 @@
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
 
-        // console.log('quote id is ' + quoteId);
-        // console.log('user id is ' + userId);
-        // console.log('contact id is ' + contactId);
-        
         document.getElementById('quotePreviewIFrame').src = '/apex/QuotePreview?' +
             'id=' + quoteId +
             '&userId=' + userId + 
             '&contactId=' + contactId +
             '&optionals=' + optionals +
             '&invoices=' + invoices +
-            '&vat=' + vat;
+            '&vat=' + vat +
+            '&sla=' + 'false' +
+            '&tnc=' + 'false';
 
-        console.log('should be loading the preview');
+        component.set('v.previewChanged',false);
 
     },
     exportQuoteData : function(component){

@@ -3,7 +3,7 @@
     <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
 
     <aura:attribute name="ready" type="boolean" default="false"/>
-    <aura:attribute name="creatAllowed" type="boolean" default="false"/>
+    <aura:attribute name="createAllowed" type="boolean" default="false"/>
     <aura:attribute name="quote" type="SBQQ__Quote__c" />
     <aura:attribute name="opportunity" type="Opportunity" />
     <aura:attribute name="opportunities" type="Opportunity[]" />
@@ -12,6 +12,7 @@
     <aura:attribute name="expenses" type="Expense__c[]" />
     <aura:attribute name="activeGroupId" type="string" />
     <aura:attribute name="previewing" type="boolean" default="false"/>
+    <aura:attribute name="previewChanged" type="boolean" default="false"/>
     <aura:attribute name="cloneDisabled" type="boolean" default="true"/>
     <aura:attribute name="pdf" type="string" default=""/>
     <aura:attribute name="word" type="string"  default=""/>
@@ -21,6 +22,7 @@
     <aura:attribute name="revEditable" type="boolean" default="false" />
     <aura:attribute name="customGroups" type="boolean" />
     <aura:attribute name="responsePending" type="boolean" default="false" />
+    <aura:attribute name="lineUpdatesPending" type="boolean" default="false" />
     <aura:attribute name="pendingChanges" type="SBQQ__QuoteLine__c[]" />
     <aura:attribute name="reconciling" type="boolean" default="false" />
     <aura:attribute name="cloneOptions" type="List" default="[{'label': 'this', 'value': 'This opportunity'},{'label': 'other', 'value': 'Another Opportunity'}]"/>    
@@ -39,7 +41,7 @@
     <aura:handler event="c:DragExpense" action="{!c.setDraggedExpense}" />
     <aura:handler event="c:ExpenseDrag" action="{!c.setActiveExpenseId}" />
     <aura:handler event="c:ExpenseDrop" action="{!c.updateLineId}" />
-    <aura:handler name="lineOrderChange" event="c:LineOrderChange" action="{!c.orderLines}" />
+    <aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
     <!--<aura:handler name="change" value="{!v.opportunity}" action="{!c.doInit}" />-->
 
     <aura:registerEvent name="lineChangeResponse" type="c:LineChangeResponse" />
@@ -52,7 +54,7 @@
     <force:recordData aura:id="forceRecordCmp"
         recordId="{!v.recordId}"
         layoutType="FULL"
-        fields="StageName,QuoteType__c,SBQQ__Contracted__c"
+        fields="StageName,QuoteType__c,SBQQ__Contracted__c,Committed__c,Reconciling__c"
         targetFields="{!v.opportunity}"
         mode="VIEW"
         targetError="{!v.error}" />
@@ -113,25 +115,46 @@
                                 <span style="margin-right:25px;">
                                     <div class="totalsField">Amount</div>
                                     <div class="totals">
-                                        <lightning:formattedNumber value="{!v.quote.SBQQ__NetAmount__c}"
-                                                               style="currency" currencyCode="GBP"/>
+                                        <aura:if isTrue="{!not(v.lineUpdatesPending)}">
+                                            <span><lightning:formattedNumber value="{!v.quote.SBQQ__NetAmount__c}" style="currency" currencyCode="GBP"/></span>
+                                            <aura:set attribute="else">
+                                                <p class="saving"><span>.</span><span>.</span><span>.</span></p>
+                                            </aura:set>
+                                        </aura:if>
                                     </div>
                                 </span>
                                 <span style="margin-right:25px;">
                                     <div class="totalsField">Cost of sales</div>
                                     <div class="totals">
-                                        <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/>
+                                        <aura:if isTrue="{!not(v.lineUpdatesPending)}">
+                                            <span><lightning:formattedNumber value="{!v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/></span>
+                                            <aura:set attribute="else">
+                                                <p class="saving"><span>.</span><span>.</span><span>.</span></p>
+                                            </aura:set>
+                                        </aura:if>
                                     </div>
                                 </span>
                                 <span style="margin-right:25px;">
                                     <div class="totalsField">Gross Profit</div>
                                     <div class="totals">
-                                        <lightning:formattedNumber value="{!v.quote.Gross_Profit__c}" style="currency" currencyCode="GBP"/>
+                                        <aura:if isTrue="{!not(v.lineUpdatesPending)}">
+                                            <span><lightning:formattedNumber value="{!v.quote.Gross_Profit__c}" style="currency" currencyCode="GBP"/></span>
+                                            <aura:set attribute="else">
+                                                <p class="saving"><span>.</span><span>.</span><span>.</span></p>
+                                            </aura:set>
+                                        </aura:if>
                                     </div>
                                 </span>
                                 <span style="margin-right:25px;">
                                     <div class="totalsField">Margin</div>
-                                    <div  class="totals">{!v.quote.Gross_Margin__c}%</div>
+                                    <div  class="totals">
+                                        <aura:if isTrue="{!not(v.lineUpdatesPending)}">
+                                            {!v.quote.Gross_Margin__c}%
+                                            <aura:set attribute="else">
+                                                <p class="saving"><span>.</span><span>.</span><span>.</span></p>
+                                            </aura:set>
+                                        </aura:if>
+                                    </div>
                                 </span>
                                 <span>
                                     <div class="totalsField">Primary</div>
@@ -154,11 +177,12 @@
         </aura:renderIf>
 
 
-        <aura:if isTrue="{!v.creatAllowed}">
-            <aura:if isTrue="{!not(v.quote)}">
+        <aura:if isTrue="{!v.createAllowed}">
+            <aura:if isTrue="{!and(v.opportunity.StageName != 'Closed Won',
+                                   v.opportunity.StageName != 'Closed Lost',
+                                   !v.opportunity.Committed__c)}">
                 <lightning:layout class="slds-p-around_small quoteCardPrimary" multipleRows="true">
                     <lightning:layoutItem size="12">
-                        Ready: {!v.ready}
                         <div class="slds-truncate buttonHolder">
                             <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
                         </div>
@@ -167,6 +191,19 @@
                     </lightning:layoutItem>
                 </lightning:layout>
             </aura:if>
+            <aura:if isTrue="{!and(v.opportunity.StageName == 'Closed Won',
+                                   !v.opportunity.Committed__c)}">
+                <lightning:layout class="slds-p-around_small quoteCardPrimary" multipleRows="true">
+                    <lightning:layoutItem size="12">
+                        <div class="slds-truncate buttonHolder">
+                            <lightning:button variant="neutral" label="NEW CONTRACT" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
+                        </div>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12">
+                    </lightning:layoutItem>
+                </lightning:layout>
+            </aura:if>
+
         </aura:if>
 
         <aura:iteration items="{!v.groups}" var="group">
@@ -178,6 +215,7 @@
                                   quoteType="{!v.quote.Stage__c}"
                                   hasDocument="{!v.quote.HasDocument__c}"
                                   customGroup="{!v.quote.SBQQ__LineItemsGrouped__c}"
+                                  lineUpdatesPending="{!v.lineUpdatesPending}"
                                   reconciling="{!v.reconciling}"
                                   expenses="{!v.expenses}"/>
             </div>
@@ -202,8 +240,13 @@
                         </div>
                         <div class="slds-col slds-size_4-of-12">
                             <div style="display:flex;justify-content: flex-end;">
-                                <lightning:button variant="neutral" label="SAVE" onclick="{!c.saveDocument}" />
-                                <lightning:button variant="neutral" label="UPDATE PREVIEW" onclick="{!c.reloadPreview}" />
+                                {!v.previeChanged}
+                                <aura:if isTrue="{!not(v.previewChanged)}">
+                                    <lightning:button variant="neutral" label="SAVE" onclick="{!c.saveDocument}" />
+                                    <aura:set attribute="else">
+                                        <lightning:button variant="neutral" label="UPDATE PREVIEW" onclick="{!c.reloadPreview}" />
+                                    </aura:set>
+                                </aura:if>
                                 <lightning:button variant="neutral" label="CANCEL" onclick="{!c.hidePreview}" />
                             </div>
                             <div aura:id="docSavePending" style="display:none;">
@@ -229,7 +272,7 @@
                                 <div style="font-size:16px;" id="one" class="previewTab">
                                     <div>
                                         <div>Select Live Group contact:</div>
-                                        <lightning:select name="ourContact" required="true" aura:id="ourContact">
+                                        <lightning:select name="ourContact" required="true" aura:id="ourContact" onchange="{!c.setPreviewChanged}">
                                             <aura:iteration items="{!v.users}" var="user">
                                                 <option value="{!user.Id}">{!user.FirstName}&nbsp;{!user.LastName}</option>
                                             </aura:iteration>
@@ -237,7 +280,7 @@
                                     </div><br/>
                                     <div>
                                         <div>Select {!v.quote.SBQQ__Opportunity2__r.Account.Name} contact:</div>
-                                        <lightning:select name="quoteContact" required="true" aura:id="quoteContact">
+                                        <lightning:select name="quoteContact" required="true" aura:id="quoteContact" onchange="{!c.setPreviewChanged}">
                                             <aura:iteration items="{!v.contacts}" var="contact">
                                                 <option value="{!contact.Id}">{!contact.Name}&nbsp;-&nbsp;{!contact.Title}</option>
                                             </aura:iteration>
@@ -248,24 +291,26 @@
                                 <div style="font-size:16px;display: none;" id="two" class="previewTab">
                                     <div>
                                         <div>Introduction text:</div>
-                                        <lightning:textarea type="text" value="{!v.quote.Proposal_Introduction__c}"/>
+                                        <lightning:textarea type="text" value="{!v.quote.Proposal_Introduction__c}"  onchange="{!c.setPreviewChanged}"/>
                                     </div><br/>
                                 </div>
 
                                 <div style="font-size:16px;display: none;cursor:pointer;" id="three" class="previewTab">
                                     <div>Include:</div>
-                                    <input type="checkbox" aura:id="optionals" id="optionalCheckbox" />
+                                    <input type="checkbox" aura:id="optionals" id="optionalCheckbox" onchange="{!c.setPreviewChanged}" />
                                         <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
-                                    <input type="checkbox" aura:id="vat" id="vatCheckbox"/>
+                                    <input type="checkbox" aura:id="vat" id="vatCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
                                         <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
-                                    <input type="checkbox" aura:id="fees" id="feesCheckbox" />
-                                        <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
-                                    <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}"/>
+                                    <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
                                         <span onclick="{!c.selectOption}" id="invoices"> &nbsp;Invoice schedule</span><br/>
-                                    <input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox"/>
-                                    <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
-                                    <input type="checkbox" aura:id="sla" id="slaCheckbox"/>
+                                    <input type="checkbox" aura:id="fees" id="feesCheckbox"  onchange="{!c.setPreviewChanged}"/>
+                                        <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
+                                    <input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox" onchange="{!c.setPreviewChanged}"/>
+                                        <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
+                                    <input type="checkbox" aura:id="sla" id="slaCheckbox" onchange="{!c.setPreviewChanged}"/>
                                         <span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>
+                                    <input type="checkbox" aura:id="termsAndConditions" id="termsAndConditionsCheckbox" onchange="{!c.setPreviewChanged}"/>
+                                        <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
                                 </div>
 
                             </div>
