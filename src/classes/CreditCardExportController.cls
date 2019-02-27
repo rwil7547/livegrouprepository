@@ -23,6 +23,16 @@ public class CreditCardExportController {
 
             if (colValues[0] != 'ACC.LAST NAME' && colValues[0] != ''){
 
+                for (Integer s = 0; s < colValues.size(); s++){
+                    if (colValues[s].length() > 0 && colValues[s].substring(0,1) == '"'){
+                        colValues[s] += colValues[s + 1];
+                        colValues.remove(s + 1);
+                    }
+                }
+
+
+                system.debug('col values are ' + colValues);
+
                 String idKey = colValues[0].substring(0,1) + colValues[1];
 
                 String employeeId = employeeIdMap.containsKey(idKey) ?
@@ -41,7 +51,8 @@ public class CreditCardExportController {
                         colValues[5].escapeEcmaScript().replaceAll('[\\\\/&@?]','') : '';
 
                 String[] dateVals = colValues[7].split('/');
-                Date dateVal = Date.newInstance(Integer.valueOf(dateVals[2]),Integer.valueOf(dateVals[1]),Integer.valueOf(dateVals[0]));
+                String yearVal = dateVals[2];
+                Date dateVal = Date.newInstance(Integer.valueOf(yearVal),Integer.valueOf(dateVals[1]),Integer.valueOf(dateVals[0]));
 
                 linesByPerson.get(employeeId).add(
                         new CreditCardLine__c(

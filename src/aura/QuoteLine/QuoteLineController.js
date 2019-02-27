@@ -1,12 +1,12 @@
 ({
-    doInit : function(component, event, helper){
-		helper.clone(component);
+    doInit: function (component, event, helper) {
+        helper.clone(component);
         helper.calculateTotal(component, event);
         component.set('v.optional', component.get('v.line.SBQQ__Optional__c'));
     },
-    openEdit : function(component, event, helper) {
-        if (!component.get('v.reconciling') && component.get('v.editable') && !component.get('v.editmode')){
-            if (!document.getElementById(component.get('v.line.Id')).classList.contains('selected')){
+    openEdit: function (component, event, helper) {
+        if (!component.get('v.reconciling') && component.get('v.editable') && !component.get('v.editmode')) {
+            if (!document.getElementById(component.get('v.line.Id')).classList.contains('selected')) {
                 document.getElementById(component.get('v.line.Id')).classList.add('selected');
                 component.set('v.editmode', true);
                 component.find('line').getElement().setAttribute('draggable', false);
@@ -14,30 +14,36 @@
             }
         }
     },
-    closeEdit: function(component, event, helper) {
+    closeEdit: function (component, event, helper) {
 
-        if(event.getParam('Id') !== component.get('v.line.Id') &&
+        if (event.getParam('Id') !== component.get('v.line.Id') &&
             document.getElementById(component.get('v.line.Id')).classList.contains('selected') &&
-            !component.get('v.changed')){
+            !component.get('v.changed')) {
             helper.closeEdit(component);
         }
     },
-    cancelEdit: function(component, event, helper){
+    cancelEdit: function (component, event, helper) {
         helper.closeEdit(component);
     },
-    setChanged: function(component, event, helper){
-        if (!component.get('v.changed')){
-            component.set('v.changed',true);
-            helper.fireLineChange(component, component.get('v.line'),'uncommitted');
+    setChanged: function (component, event, helper) {
+        if (!component.get('v.changed')  && event.which !== 37 && event.which !== 38
+            && event.which !== 39 && event.which !== 40) {
+            component.set('v.changed', true);
+            helper.fireLineChange(component, component.get('v.line'), 'uncommitted');
         }
     },
-    formatDescription: function(component, event, helper){
-        if (!component.get('v.changed')){
-            if (event.getParam("oldValue") !== event.getParam("value") &&
-                event.getParam('index')){
-                component.set('v.changed',true);
-                helper.fireLineChange(component, component.get('v.line'),'uncommitted');
-            }
+    formatPaste: function (component, e, helper) {
+        e.preventDefault();
+        var text = '';
+        if (e.clipboardData || e.originalEvent.clipboardData) {
+            text = (e.originalEvent || e).clipboardData.getData('text/plain');
+        } else if (window.clipboardData) {
+            text = window.clipboardData.getData('Text');
+        }
+        if (document.queryCommandSupported('insertText')) {
+            document.execCommand('insertText', false, text);
+        } else {
+            document.execCommand('paste', false, text);
         }
     },
     undoChanges : function(component, event, helper){
@@ -136,6 +142,9 @@
         }
     },
     startLineDrag : function(component, event, helper){
+
+        console.log('the line has started dragging');
+
         var family = component.get('v.line.SBQQ__ProductFamily__c') ? component.get('v.line.SBQQ__ProductFamily__c') : '';
         var groupId = component.get('v.line.SBQQ__Group__c') ? component.get('v.line.SBQQ__Group__c') : family.replace(/ /g, '');
         var transferData = '{"type":"Line", ' +
@@ -163,7 +172,6 @@
             if (data.id !== component.get('v.line.Id')){
                 if (!component.get('v.line.SBQQ__Group__c')){
                     if (data.family === component.get('v.line.SBQQ__ProductFamily__c')){
-                        // var lineOrderChange = component.getEvent('lineOrderChange');
                         var lineOrderChange = $A.get('e.c:LineOrderChange');
                         lineOrderChange.setParams({
                             id : data.id,
@@ -174,9 +182,6 @@
                             line : data.line
                         });
                         lineOrderChange.fire();
-
-                        console.log('firing order change');
-
                     } else {
                         var toastEvent = $A.get("e.force:showToast");
                         toastEvent.setParams({
@@ -186,9 +191,7 @@
                         });
                         toastEvent.fire();
                     }
-
                 } else {
-
                     var lineOrderChange = $A.get('e.c:LineOrderChange');
 
                     lineOrderChange.setParams({
@@ -213,8 +216,12 @@
             var line = component.get('v.line');
             dropEvent.setParams({ lineId : line.Id});
             dropEvent.fire();
+
+            console.log('expense drop fired');
+
         }
 
+        console.log('expense drop should have fired and type is ' + data.type);
 
     },
     changeSortOrder : function(component, event, helper){

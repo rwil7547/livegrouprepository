@@ -4,9 +4,9 @@
     <aura:attribute name="editable" type="boolean" />
     <aura:attribute name="selected" type="boolean" />
     <aura:attribute name="pdf" type="string" default=""/>
-    <aura:attribute name="word" type="string"  default=""/>
-    
+
     <aura:registerEvent name="selectQuote" type="c:SelectQuoteEvent" />
+    <aura:registerEvent name="deleteDocument" type="c:DeleteDocument" />
 
     <aura:handler event="c:SelectQuoteEvent" action="{!c.deselect}" />   
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
@@ -14,7 +14,7 @@
     <!--<aura:handler event="c:Refresh" action="{!c.refresh}" />-->
 
     <lightning:layout class="{!v.quote.selected ? 'slds-p-around_small quoteCard selectedQuote' : 'slds-p-around_small quoteCard'}" >
-        <div class="slds-grid" style="width: 100%;" onclick="{!c.selectQuote}" id="{!(v.quote.Id + 'card')}">
+        <div class="slds-grid" style="width: 100%;position: relative;" onclick="{!c.selectQuote}" id="{!(v.quote.Id + 'card')}">
             <div class="slds-col slds-size_10-of-12">
                 <div style="display:flex;font-weight:bold;font-size:16px;">
                     <aura:if isTrue="{!v.primary}">
@@ -27,10 +27,6 @@
                             <div >{!v.quote.Version__c}</div>
                         </aura:set>
                     </aura:if>
-
-                    <!--<div >{!v.quote.Version__c}</div>-->
-                    <!--<div hidden="{!!v.primary}" class="primary">PRIMARY</div>-->
-
                     <aura:if isTrue="{!v.quote.Locked__c}">
                     	<div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="x-small"/></div>
                     </aura:if>
@@ -54,13 +50,17 @@
                 <div style="float:right;">
 
                     <aura:renderIf isTrue="{!v.pdf != ''}">
-                        <span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;z-index:2;"
+                        <span id="{!v.pdf}" style="top:4px;right:18px;position:absolute;"
                               onclick="{!c.showDocument}" data-type="pdf">
                             <lightning:icon iconName="doctype:pdf" size="large" zoom="1.5" alternativeText="document"/>
                         </span>
                     </aura:renderIf>
                 </div>
             </div>
+        </div>
+
+        <div aura:id="documentModal" class="toggle">
+            <div class="backdrop" onclick="{!c.closeDocument}" ></div>
         </div>
 
         <div aura:id="document" style="position:fixed;display: none;" class="quotePreview slds-p-around_medium">
@@ -78,7 +78,7 @@
                 <aura:if isTrue="{!not(v.quote.DocumentLocked__c)}">
                     <div style="margin-right: 5px;">
                         <lightning:card>
-                                <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteDocument}" />
+                            <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteDocument}" />
                         </lightning:card>
                     </div>
                 </aura:if>

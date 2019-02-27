@@ -1,0 +1,7 @@
+<!--
+ - Created by Ronan Williams on 26/02/2019.
+ -->
+
+<aura:event type="COMPONENT" description="DeleteDocument">
+    <aura:attribute name="docId" type="String" />
+</aura:event>

@@ -31,15 +31,30 @@
 
             if (data.type === 'Line'){
 
-                var lineOrderChange = component.getEvent('lineOrderChange');
+                var lineOrderChange = $A.get('e.c:LineOrderChange');
+
                 lineOrderChange.setParams({
                     id : data.id,
                     oldPosition : data.origin,
-                    newPosition : component.get('v.line.SBQQ__Number__c'),
-                    targetGroupId : component.get('v.group.Id')
+                    newPosition : null,
+                    sourceGroupId : data.groupId,
+                    targetGroupId : component.get('v.group.Id'),
+                    line : data.line
                 });
 
                 lineOrderChange.fire();
+
+
+                //
+                // var lineOrderChange = component.getEvent('lineOrderChange');
+                // lineOrderChange.setParams({
+                //     id : data.id,
+                //     oldPosition : data.origin,
+                //     newPosition : component.get('v.line.SBQQ__Number__c'),
+                //     targetGroupId : component.get('v.group.Id')
+                // });
+                //
+                // lineOrderChange.fire();
             }
         }
     },

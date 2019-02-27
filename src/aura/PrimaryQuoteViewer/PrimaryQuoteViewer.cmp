@@ -79,7 +79,7 @@
                                 <lightning:button variant="neutral" label="CLONE" onclick="{!c.showCloneModal}" class="slds-truncate"/>
 
                                 <aura:if isTrue="{!and(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Primary__c)}">
-                                    <lightning:button variant="neutral" label="RECONCILE" onclick="{!c.openReconcile}" class="slds-truncate"/>
+                                    <lightning:button variant="neutral" label="{!'RECONCILE (' + v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c + ')'}" onclick="{!c.openReconcile}" class="slds-truncate"/>
                                 </aura:if>
                                 <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
                                     <lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>
@@ -98,13 +98,14 @@
                             </aura:set>
                         </aura:if>
                         <aura:set attribute="else">
-                            <lightning:button variant="neutral" label="FINISH RECONCILING" onclick="{!c.closeReconcile}" class="slds-truncate"/>
+                            <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeReconcile}" class="slds-truncate"/>
                         </aura:set>
                     </aura:if>
                 </div>
                     </lightning:layoutItem>
                 <lightning:layoutItem size="12">
-                    <div style="width:100%;">
+                    <div style="width:100%;display: grid;grid-template-columns: 75% 25%">
+                        <div >
                             <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
                                 <div >{!v.quote.Version__c}</div>
                                 <aura:if isTrue="{!not(v.editable)}">
@@ -168,9 +169,63 @@
                                         <lightning:icon iconName="doctype:pdf" size="large" zoom="1.5" alternativeText="document"/>
                                     </span>
                                 </aura:if>
-
-
                         </div>
+                    </div>
+                        <aura:if isTrue="{!not(v.quote.Stage__c == 'Estimate') &amp;&amp; v.quote.SBQQ__Primary__c}">
+                            <div class="recPanel">
+                                <div style="display:flex;font-weight:bold;font-size:14px;margin-bottom:2px;color:white;">
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c == 'Reconciliation - completed'}">
+                                        <div style="background-color: green;padding-left: 3px;padding-right: 3px;border-radius: 2px;padding-top: 0;">REC COMPLETE</div>
+                                    </aura:if>
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed'}">
+                                        <div style="background-color: dimgray;padding-left: 3px;padding-right: 3px;border-radius: 2px;padding-top: 0;">REC INCOMPLETE</div>
+                                    </aura:if>
+                                </div>
+                                <div style="font-size: 13px;">
+                                <div style="display: flex;">
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced'}">
+                                        <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                        <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
+                                        <aura:set attribute="else">
+                                            <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                            <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
+                                        </aura:set>
+                                    </aura:if>
+                                </div>
+                                <div style="display: flex;">
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c == 0}">
+                                        <aura:if isTrue="{!v.expenses.length != 0}">
+                                            <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                            <span>All expenses assigned</span>
+                                            <aura:set attribute="else">
+                                                <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                                <span>No expenses incurred</span>
+                                            </aura:set>
+                                        </aura:if>
+                                        <aura:set attribute="else">
+                                            <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                            <span>{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c} expenses unassigned</span>
+                                        </aura:set>
+                                    </aura:if>
+                                </div>
+
+                                <div style="display: flex;">
+                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c &gt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                        <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                        <span>COS is <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c - v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}" style="currency" currencyCode="GBP"/> too high</span>
+                                    </aura:if>
+                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c &lt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                        <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                        <span>COS is <lightning:formattedNumber value="{!v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c - v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/> too low</span>
+                                    </aura:if>
+                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c == v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                        <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                        <span>COS matches Quickbooks</span>
+                                    </aura:if>
+                                </div>
+                                </div>
+                            </div>
+                        </aura:if>
                     </div>
             </lightning:layoutItem>
             </lightning:layout>
@@ -290,9 +345,8 @@
 
                                 <div style="font-size:16px;display: none;" id="two" class="previewTab">
                                     <div>
-                                        <div>Introduction text:</div>
-                                        <lightning:textarea type="text" value="{!v.quote.Proposal_Introduction__c}"  onchange="{!c.setPreviewChanged}"/>
-                                    </div><br/>
+                                        <lightning:textarea type="text" value="{!v.quote.Proposal_Introduction__c}"  onchange="{!c.setPreviewChanged}" aura:id="documentText"/>
+                                    </div>
                                 </div>
 
                                 <div style="font-size:16px;display: none;cursor:pointer;" id="three" class="previewTab">
@@ -327,9 +381,10 @@
                 <div style="text-align: center;width: 100%;font-size: 20px;">
                     SELECT A DESTINATION FOR THE CLONE:
                 </div>
+                <aura:if isTrue="{!not(v.cloneDisabled)}">
                 <div class="cloneBlock">
                     <div class="cloneRadio">
-                        <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}"/>
+                        <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}" disabled="{!v.cloneDisabled}"/>
                     </div>
                     <div class="cloneText" onclick="{!c.clearOpportunity}">
                         Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c} for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
@@ -338,23 +393,25 @@
                 <div style="text-align: center;width: 100%;font-size: 16px;margin-top: 10px;">
                     ------ OR ------
                 </div>
+                </aura:if>
                 <div class="cloneBlock">
                     <div class="cloneRadio">
                         <input type="radio" id="otherOpportunity" checked="{!v.cloneDisabled}" onclick="{!c.deselectThisOpportunity}"/>
                     </div>
                     <div class="cloneText">
-                        <div onclick="{!c.deselectThisOpportunity}">Clone this record as an Estimate for another opportunity:</div>
+                        <div onclick="{!c.deselectThisOpportunity}">Clone this record as an Estimate for another opportunity</div>
                         <br/>
-                        <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup"
-                               onchange="{!c.deselectThisOpportunity}"/>
-                        <datalist id="opplist" >
-                            <aura:iteration items="{!v.opportunities}" var="opportunity">
-                                <option value="{!opportunity.Filtered_Job_Number__c + ' ' + opportunity.Name}"
-                                        data-oppId="{!opportunity.Id}" onclick="{!c.selectOtherOpportunity}">
-                                </option>
-                            </aura:iteration>
-                        </datalist>
-
+                        <div id="listInputBox" style="{!v.cloneDisabled ? '' : 'display: none;'}">
+                            <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup"
+                                   onchange="{!c.deselectThisOpportunity}"/>
+                            <datalist id="opplist" >
+                                <aura:iteration items="{!v.opportunities}" var="opportunity">
+                                    <option value="{!opportunity.Filtered_Job_Number__c + ' ' + opportunity.Name}"
+                                            data-oppId="{!opportunity.Id}" onclick="{!c.selectOtherOpportunity}">
+                                    </option>
+                                </aura:iteration>
+                            </datalist>
+                        </div>
                     </div>
                 </div>
                 <div style="text-align: center;width: 100%;margin-top: 10px;">

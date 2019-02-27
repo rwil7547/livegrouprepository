@@ -54,6 +54,9 @@
         <div class="block" id="reportBlocks">
             <div class="blockEntry">
                 <h1>Credit Card Importer</h1>
+                <div class="importer">Please go to &nbsp;<a href="https://commercial.barclaycard.co.uk">
+                    https://commercial.barclaycard.co.uk</a>&nbsp; and export the report titled 'Expensify'
+                    using the correct date parameters</div><br/>
                 <div class="importer">
                     <span>
                         <b>CSV File</b>
@@ -69,6 +72,10 @@
         var csvString = '';
 
         function uploadCSV() {
+
+            document.getElementById('uploadButton').value = 'Processing CSV...';
+            document.getElementById('uploadButton').setAttribute('disabled',true);
+
             Visualforce.remoting.timeout = 120000;
             Visualforce.remoting.Manager.invokeAction(
                 '{!$RemoteAction.CreditCardExportController.parseCSVString}',

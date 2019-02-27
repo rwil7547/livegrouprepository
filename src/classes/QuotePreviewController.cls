@@ -14,6 +14,7 @@ public class QuotePreviewController {
     public Map<String,Integer> groupLineCount {get; set;}
 
     public Map<String,SBQQ__QuoteLine__c> changeMap {get; set;}
+    public Map<String,String> groupAncestorMap {get;set;}
 
     public Map<String,Map<String,List<SBQQ__QuoteLine__c>>> optionalGroupMap {get; set;}
     public Map<String,Decimal> optionalGroupSummary {get; set;}
@@ -85,6 +86,8 @@ public class QuotePreviewController {
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
 
+        quote.Proposal_Introduction__c = ApexPages.currentPage().getParameters().get('text');
+
         docType = quote.Stage__c;
 
         groupMap        = new Map<String,Map<String,List<SBQQ__QuoteLine__c>>>();
@@ -107,6 +110,7 @@ public class QuotePreviewController {
             }
 
             changeMap = new Map<String,SBQQ__QuoteLine__c>();
+            groupAncestorMap = new Map<String,String>();
 
             for (SBQQ__QuoteLine__c line : [SELECT Name, SBQQ__ProductFamily__c, SBQQ__ListPrice__c, SBQQ__NetTotal__c,
                                                     SBQQ__Description__c, SBQQ__Group__r.Name, SBQQ__Quantity__c, Days__c,
@@ -120,7 +124,7 @@ public class QuotePreviewController {
             if (quote.Ancestor__c != null){
                 ancestorName = [SELECT Version__c FROM SBQQ__Quote__c WHERE Id = :quote.Ancestor__c].Version__c;
                 if (ancestorName == 'Contract'){
-                    ancestorName = 'initital Contract';
+                    ancestorName = 'initial Contract';
                 }
             }
         } else {
@@ -132,7 +136,7 @@ public class QuotePreviewController {
 
         // establish maps to hold values for line items, line item count and group total values
         if (quote.SBQQ__LineItemsGrouped__c) {
-            for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Name
+            for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Name, AncestorName__c
                                                     FROM SBQQ__QuoteLineGroup__c
                                                     WHERE SBQQ__Quote__c = :quote.Id]) {
                 Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
@@ -143,8 +147,19 @@ public class QuotePreviewController {
                 groupSummary.put(lineGroup.Name, 0);
                 groupLineCount.put(lineGroup.Name, 0);
 
+                if (lineGroup.AncestorName__c != null){
+                    groupAncestorMap.put(lineGroup.AncestorName__c, lineGroup.Name);
+                }
+
                 if (showOptionals){
-                    optionalGroupMap.put(lineGroup.Name, changeMap);
+
+                    system.debug('loading optionals map with map frame ');
+
+                    Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
+                    optionalChangeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
+                    optionalChangeMap.put('Added', new List<SBQQ__QuoteLine__c>());
+                    optionalChangeMap.put('Default', new List<SBQQ__QuoteLine__c>());
+                    optionalGroupMap.put(lineGroup.Name, optionalChangeMap);
                     optionalGroupSummary.put(lineGroup.Name, 0);
                     optionalLineCount.put(lineGroup.Name, 0);
                 }
@@ -197,6 +212,9 @@ public class QuotePreviewController {
         if (quote.SBQQ__LineItemsGrouped__c) {
             for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
                 if (!line.SBQQ__Optional__c){
+
+                    system.debug('processing non optional line ' + line);
+
                     if (line.SBQQ__Group__c == null || line.SBQQ__Group__r.Name == null){
                         if (line.Ancestor__c == null && trackChanges){
                             groupMap.get('Ungrouped').get('Added').add(line);
@@ -292,7 +310,19 @@ public class QuotePreviewController {
                     if (quote.SBQQ__LineItemsGrouped__c) {
                         if (line.SBQQ__Group__r.Name == null || line.SBQQ__Group__c == null) {
                             groupMap.get('Ungrouped').get('Removed').add(line);
+                        } else if (groupMap.containsKey(line.SBQQ__Group__r.Name)){
+                            groupMap.get(line.SBQQ__Group__r.Name).get('Removed').add(line);
+                        } else if (groupAncestorMap.containsKey(line.SBQQ__Group__r.Name)) {
+                            String currentGroupName = groupAncestorMap.get(line.SBQQ__Group__r.Name);
+                            groupMap.get(currentGroupName).get('Removed').add(line);
                         } else {
+                            Map<String, List<SBQQ__QuoteLine__c>> deletedGroupedMap = new Map<String, List<SBQQ__QuoteLine__c>>();
+                            deletedGroupedMap.put('Default', new List<SBQQ__QuoteLine__c>());
+                            deletedGroupedMap.put('Added', new List<SBQQ__QuoteLine__c>());
+                            deletedGroupedMap.put('Removed', new List<SBQQ__QuoteLine__c>());
+                            groupMap.put(line.SBQQ__Group__r.Name, deletedGroupedMap);
+                            groupSummary.put(line.SBQQ__Group__r.Name, 0);
+                            groupLineCount.put(line.SBQQ__Group__r.Name, 0);
                             groupMap.get(line.SBQQ__Group__r.Name).get('Removed').add(line);
                         }
                     } else {
@@ -321,14 +351,14 @@ public class QuotePreviewController {
         }
 
         if (showOptionals){
-            for (String optionlKey : optionalGroupMap.keySet()){
+            for (String optionalKey : optionalGroupMap.keySet()){
 
-                System.debug('trying to find the key ' + optionlKey + ' in map: ' + optionalGroupMap.get(optionlKey).size());
-
-                if (optionalGroupMap.get(optionlKey).get('Default').isEmpty()){
-                    optionalGroupMap.remove(optionlKey);
-                    optionalGroupSummary.remove(optionlKey);
-                    optionalLineCount.remove(optionlKey);
+                system.debug('assessing whether to remove ' + optionalKey + ' :' +
+                optionalGroupMap.get(optionalKey));
+                if (optionalGroupMap.get(optionalKey).get('Default').isEmpty()){
+                    optionalGroupMap.remove(optionalKey);
+                    optionalGroupSummary.remove(optionalKey);
+                    optionalLineCount.remove(optionalKey);
                 }
             }
         }

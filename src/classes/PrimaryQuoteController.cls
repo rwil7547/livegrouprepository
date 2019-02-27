@@ -10,12 +10,15 @@ public with sharing class PrimaryQuoteController {
         String quoteQuery = (quoteId != 'default') ? ' AND Id = :quoteId ' : '';
 
         return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
-                        'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, ' +
+                        'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, CreatedDate,' +
                         'Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__PriceBook__c, HasDocument__c, Locked__c, ' +
                         'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
                         'SBQQ__Opportunity2__r.SBQQ__Contracted__c, SBQQ__Opportunity2__r.Reconciling__c, ' +
                         'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, ' +
                         'SBQQ__Opportunity2__r.StageName, SBQQ__Opportunity2__r.Committed__c, Event_End__c, ' +
+                        'SBQQ__Opportunity2__r.Quickbooks_COS__c, SBQQ__Opportunity2__r.COSRemaining__c, ' +
+                        'SBQQ__Opportunity2__r.UnassignedExpenses__c,' +
+                        'SBQQ__Opportunity2__r.Percent_Invoiced__c, SBQQ__Opportunity2__r.Invoice_Status__c,' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
                         '(SELECT Id FROM SBQQ__LineItems__r), ' +
@@ -30,7 +33,7 @@ public with sharing class PrimaryQuoteController {
 
         Map<String,Object> responseMap = new Map<String,Object>();
 
-        SBQQ__Quote__c quote = [SELECT Id, SBQQ__NetAmount__c, SBQQ__LineItemsGrouped__c,
+        SBQQ__Quote__c quote = [SELECT Id, SBQQ__NetAmount__c, SBQQ__LineItemsGrouped__c, HasDocument__c,
                                         Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c
                                 FROM SBQQ__Quote__c WHERE Id = :quoteId];
 
@@ -39,6 +42,7 @@ public with sharing class PrimaryQuoteController {
         responseMap.put('Gross_Profit__c',quote.Gross_Profit__c);
         responseMap.put('Gross_Margin__c',quote.Gross_Margin__c);
         responseMap.put('SBQQ__Primary__c',quote.SBQQ__Primary__c);
+        responseMap.put('HasDocument__c',quote.HasDocument__c);
 
         if (quote.SBQQ__LineItemsGrouped__c){
             for (AggregateResult groupAggregate : [SELECT SBQQ__Group__c, SUM(SBQQ__NetTotal__c) revTotal,
@@ -235,7 +239,9 @@ public with sharing class PrimaryQuoteController {
                                                     AND SBQQ__Quote__c = :lineLock.SBQQ__Quote__c];
 
                 for (SBQQ__QuoteLine__c li : lines){
-                    li.SBQQ__Number__c = li.SBQQ__Number__c - 1;
+                    if (li.SBQQ__Number__c != null){
+                        li.SBQQ__Number__c = li.SBQQ__Number__c - 1;
+                    }
                 }
 
                 Database.SaveResult[] updateResults = Database.update(lines);
@@ -457,14 +463,17 @@ public with sharing class PrimaryQuoteController {
                                     WHERE Pricebook2.Name = 'Default')
                                    FROM Product2 WHERE Id IN :productIdSet]){
 
+            Decimal unitCost    = product.SBQQ__Costs__r != null ? product.SBQQ__Costs__r[0].SBQQ__UnitCost__c : 0;
+            Decimal unitPrice   = product.PricebookEntries != null ? product.PricebookEntries[0].UnitPrice : 0;
+
             lines.add(
                 new SBQQ__QuoteLine__c(
                     SBQQ__Product__c        = product.Id,
                     SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                     SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
                     SBQQ__Quantity__c       = 1,
-                    SBQQ__UnitCost__c       = product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
-                    SBQQ__ListPrice__c      = product.PricebookEntries[0].UnitPrice,
+                    SBQQ__UnitCost__c       = unitCost,
+                    SBQQ__ListPrice__c      = unitPrice,
                     SBQQ__Group__c          = groupId,
                     SBQQ__Quote__c          = quoteId,
                     SBQQ__Number__c         = lineItemCount + 1
@@ -519,7 +528,8 @@ public with sharing class PrimaryQuoteController {
                                 WHERE Pricebook2.Name = 'Default')
                                 FROM Product2 WHERE Id IN :productIdSet]){
 
-
+            Decimal unitCost    = product.SBQQ__Costs__r != null ? product.SBQQ__Costs__r[0].SBQQ__UnitCost__c : 0;
+            Decimal unitPrice   = product.PricebookEntries != null ? product.PricebookEntries[0].UnitPrice : 0;
 
             lines.add(
                     new SBQQ__QuoteLine__c(
@@ -527,8 +537,8 @@ public with sharing class PrimaryQuoteController {
                             SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                             SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
                             SBQQ__Quantity__c       = 1,
-                            SBQQ__UnitCost__c       = (product.SBQQ__Costs__r == null || product.SBQQ__Costs__r[0].SBQQ__UnitCost__c == null)? 0 : product.SBQQ__Costs__r[0].SBQQ__UnitCost__c,
-                            SBQQ__ListPrice__c      = (product.PricebookEntries == null || product.PricebookEntries[0].UnitPrice == null) ? 0 : product.PricebookEntries[0].UnitPrice,
+                            SBQQ__UnitCost__c       = unitCost,
+                            SBQQ__ListPrice__c      = unitPrice,
                             SBQQ__Quote__c          = quoteId,
                             SBQQ__Number__c         = lineItemCount + 1
                     )
@@ -569,13 +579,15 @@ public with sharing class PrimaryQuoteController {
                     line.SBQQ__Number__c = newPosition;
                     if(line.SBQQ__Quote__r.SBQQ__LineItemsGrouped__c){
                         line.SBQQ__Group__c = targetGroupId;
+                        system.debug('assigning new target id ' + targetGroupId);
                     }
                 } else {
                     line.SBQQ__Number__c = line.SBQQ__Number__c + 1;
                 }
             }
         } else if (oldPosition < newPosition){
-            lines = [SELECT Id, SBQQ__Number__c FROM SBQQ__QuoteLine__c
+            lines = [SELECT Id, SBQQ__Number__c, SBQQ__Quote__c, SBQQ__Quote__r.SBQQ__LineItemsGrouped__c
+                    FROM SBQQ__QuoteLine__c
                     WHERE SBQQ__Quote__c = :quoteId
                     AND (SBQQ__Number__c <= :newPosition AND SBQQ__Number__c >= :oldPosition)];
             for (SBQQ__QuoteLine__c line : lines){
@@ -583,6 +595,7 @@ public with sharing class PrimaryQuoteController {
                     line.SBQQ__Number__c = newPosition;
                     if(line.SBQQ__Quote__r.SBQQ__LineItemsGrouped__c){
                         line.SBQQ__Group__c = targetGroupId;
+                        system.debug('assigning new target id ' + targetGroupId);
                     }
                 } else {
                     line.SBQQ__Number__c = line.SBQQ__Number__c - 1;
@@ -629,8 +642,8 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.Stage__c                 = 'Contract';
             cloneQuote.Version__c               = 'Contract';
             cloneQuote.Proposal_Introduction__c =
-                            'Thank you for confirming your intention to proceed with our support for ' +
-                            quote.SBQQ__Opportunity2__r.Name + '. The following pages contain a full ' +
+                            'Thank you for confirming your intention to proceed with our support for your project, ' +
+                            quote.SBQQ__Opportunity2__r.Name + '.\nThe following pages contain a full ' +
                             'breakdown of the costs outlined above. In the event that your requirements ' +
                             'change, we will provide an updated contract amendment for your approval, ' +
                             'which will outline any changes to the services agreed to in this document.';
@@ -714,8 +727,9 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
-
-        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c
+        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c, Name,
+                                    (SELECT Version__c FROM SBQQ__Quotes2__r
+                                    WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
                                 FROM Opportunity WHERE Id = :oppId];
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c
                                         WHERE SBQQ__Opportunity2__c = :oppId
@@ -723,7 +737,7 @@ public with sharing class PrimaryQuoteController {
 
         String version = (type == 'Contract') ? 'Contract Amendment' + ' ' + count.size() :
                 type + ' ' + (count.size() + 1);
-        Boolean primary = quote.Stage__c == 'Estimate' ? false : true;
+        Boolean primary = type == 'Estimate' ? false : true;
 
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
@@ -733,6 +747,27 @@ public with sharing class PrimaryQuoteController {
         cloneQuote.HasDocument__c           = false;
         cloneQuote.Locked__c                = false;
         cloneQuote.Ancestor__c              = quote.Id;
+
+        if (type == 'Estimate'){
+            cloneQuote.Proposal_Introduction__c =
+                    'I am please to provide a revised estimate of costs for your project, ' +
+                    parentOpp.Name + '. The following pages contain a full breakdown of ' +
+                    'the costs outlined above. We look forward to hearing from you ' +
+                    'at your earliest convenience.';
+        } else if (type == 'Contract'){
+            cloneQuote.Proposal_Introduction__c =
+                    'I am pleased to provide an amended contract for your project, ' +
+                    parentOpp.Name + '.\nThe following pages contain a full breakdown of ' +
+                    'the costs outlined above, including an outline of anything we\'ve added, ' +
+                    'removed or changed since the previous version of this contract. ' +
+                    'We look forward to hearing from you at your earliest convenience.';
+        } else if (type == 'Reconciliation'){
+            cloneQuote.Proposal_Introduction__c =
+                    'Following the completion of your event I am pleased to provide you with an ' +
+                    'up-to-date reconciliation of costs. The following pages contain a full breakdown ' +
+                    'of the costs outlined above, including an outline of what we’ve added, removed or changed ' +
+                    'since the previous version of this contract.';
+        }
 
         Database.SaveResult quoteInsert     = Database.insert(cloneQuote);
         if (!quoteInsert.isSuccess()){
@@ -749,7 +784,8 @@ public with sharing class PrimaryQuoteController {
 
             for (SBQQ__QuoteLineGroup__c lineGroup : existingGroups){
                 SBQQ__QuoteLineGroup__c newGroup = lineGroup.clone(false,true);
-                newGroup.SBQQ__Quote__c = cloneQuote.Id;
+                newGroup.SBQQ__Quote__c     = cloneQuote.Id;
+                newGroup.AncestorName__c    = lineGroup.Name;
                 cloneGroups.put(lineGroup.Id, newGroup);
             }
 
@@ -809,13 +845,10 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
-        // todo: check if only prior version should be locked or all prior records locked
         List<SBQQ__Quote__c> priorQuotes = [SELECT Id, HasDocument__c, Locked__c, DocumentLocked__c
                                             FROM SBQQ__Quote__c
                                             WHERE SBQQ__Opportunity2__c = :oppId
                                             AND Id != :cloneQuote.Id];
-
-        system.debug('ids the same is  ' + (quote.Id == cloneQuote.Id));
 
         // if the new quote is an estimate, lock the documents on any prior estimate
         // if it is a contract, lock the documents and the quote itself
@@ -828,14 +861,9 @@ public with sharing class PrimaryQuoteController {
         } else {
             for (SBQQ__Quote__c prior : priorQuotes){
 
-                if (quote.Id == prior.Id){
-                    system.debug('handling quote');
-                }
-
-//                if (!prior.Locked__c){
-                    prior.Locked__c = true;
+                prior.Locked__c = true;
                 prior.SBQQ__Primary__c = false;
-//                }
+
                 if (prior.HasDocument__c && !prior.DocumentLocked__c) {
                     prior.DocumentLocked__c = true;
                 }
@@ -843,17 +871,6 @@ public with sharing class PrimaryQuoteController {
         }
 
         update priorQuotes;
-//
-//        if (quote.HasDocument__c == true){
-////            quote.Locked__c = true;
-//            quote.DocumentLocked__c = true;
-//        }
-//
-//        if (cloneQuote.SBQQ__Primary__c){
-//            quote.SBQQ__Primary__c = false;
-//        }
-//
-//        update quote;
 
         return cloneQuote.Id;
 
@@ -947,15 +964,13 @@ public with sharing class PrimaryQuoteController {
         } else {
             return 'default';
         }
-
-
-//        return true;
     }
 
     @AuraEnabled
     public static List<Expense__c> getExpensesApex(String oppId){
 
-        return [SELECT Id, Name, Amount__c, Supplier__c, Paid__c, Description__c, Due_Date__c, CreatedDate, QuoteLine__c
+        return [SELECT Id, Name, Amount__c, Supplier__c, Paid__c, Description__c, Due_Date__c,
+                        CreatedDate, QuoteLine__c, Assigned__c
                 FROM Expense__c
                 WHERE Opportunity__c = :oppId];
 
@@ -1005,7 +1020,8 @@ public with sharing class PrimaryQuoteController {
 
         Expense__c expense = new Expense__c(
                 Id = expenseId,
-                QuoteLine__c = lineId
+                QuoteLine__c = lineId,
+                Assigned__c = (lineId != null)
         );
 
         Database.SaveResult result = Database.update(expense);
@@ -1029,12 +1045,14 @@ public with sharing class PrimaryQuoteController {
 
 
     @AuraEnabled
-    public static Boolean saveDocumentApex(String quoteId, String oppId, String userId, String contactId) {
+    public static Boolean saveDocumentApex(String quoteId, String oppId,
+            String userId, String contactId, String text, String optionals, String invoices,
+            String vat, String sla, String tnc) {
 
         Boolean result = false;
 
         SBQQ__Quote__c quote = [SELECT Id, Version__c, SBQQ__Opportunity2__r.Filtered_Job_Number__c,
-                                        SBQQ__Opportunity2__r.Account.Name
+                                        SBQQ__Opportunity2__r.Account.Name, Proposal_Introduction__c
                                 FROM SBQQ__Quote__c WHERE Id = :quoteId];
 
         SBQQ__QuoteDocument__c document = new SBQQ__QuoteDocument__c();
@@ -1052,16 +1070,27 @@ public with sharing class PrimaryQuoteController {
         pdf.getParameters().put('Id',quoteId);
         pdf.getParameters().put('userId',userId);
         pdf.getParameters().put('contactId',contactId);
+        pdf.getParameters().put('text',EncodingUtil.urlDecode(text,'UTF-8'));
+        pdf.getParameters().put('optionals',optionals);
+        pdf.getParameters().put('invoices',invoices);
+        pdf.getParameters().put('vat',vat);
+        pdf.getParameters().put('sla',sla);
+        pdf.getParameters().put('tnc',tnc);
 
         // create the new attachment
         Attachment attach = new Attachment();
 
         // the contents of the attachment from the pdf
         Blob body;
-        body = pdf.getContent();
+        if(Test.isRunningTest()){
+            body = Blob.valueOf('Unit.Test');
+        }else {
+            body = pdf.getContent();
+        }
 
         attach.Body = body;
-        attach.Name = 'Test';
+        attach.Name = quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c + '' +
+                quote.Version__c;
         attach.IsPrivate = false;
         attach.ContentType = 'application/pdf';
 
@@ -1072,11 +1101,11 @@ public with sharing class PrimaryQuoteController {
         document.SBQQ__DocumentId__c  = attach.Id;
         update document;
 
+        if (quote.Proposal_Introduction__c != EncodingUtil.urlDecode(text,'UTF-8')){
+            quote.Proposal_Introduction__c = EncodingUtil.urlDecode(text,'UTF-8');
+        }
         quote.HasDocument__c = true;
         update quote;
-
-        // if the quote is at contract stage or later, lock prior versions
-        // todo: lock prior versions of quotes
 
         // send the user to the account to view results
         return true;

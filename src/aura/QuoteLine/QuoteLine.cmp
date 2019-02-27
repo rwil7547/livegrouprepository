@@ -18,37 +18,34 @@
     <aura:handler event="c:LineSelected" action="{!c.closeEdit}" />
     <aura:handler event="c:LineChangeResponse" action="{!c.processChangeResponse}" />
     <aura:handler event="c:MultipleLineUpdate" action="{!c.handleMultiLineUpdate}" />
-    <!--<aura:handler name="change" value="{!v.line.SBQQ__Description__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Description__c}" />-->
-    <!--<aura:handler name="change" value="{!v.line.SBQQ__SubscriptionTerm__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__SubscriptionTerm__c}" />-->
-    <!--<aura:handler name="change" value="{!v.line.SBQQ__Quantity__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__Quantity__c}" />-->
-    <!--<aura:handler name="change" value="{!v.line.SBQQ__UnitCost__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__UnitCost__c}" />-->
-    <!--<aura:handler name="change" value="{!v.line.SBQQ__ListPrice__c}" action="{!c.setChanged}" default="{#v.line.SBQQ__ListPrice__c}" />-->
     <aura:handler name="change" value="{!v.expenses}" action="{!c.calculateTotal}" />
-    <!--<aura:handler name="change" value="{!v.sortOrder}" action="{!c.changeSortOrder}" />-->
-    <aura:handler name="change" value="{!v.editMode}" action="{!c.changeDraggable1}" />
 
     <aura:registerEvent name="lineEdit" type="c:LineItemChange" />
     <aura:registerEvent name="lineOrderChange" type="c:LineOrderChange" />
     <aura:registerEvent name="clonedLine" type="c:ClonedLine" />
 
 
-    <div class="{!v.optional ? 'quoteLine optionalLine ' + (v.editMode ? 'selected' : '') : 'quoteLine ' + (v.editMode ? 'selected' : '')}"
+    <div class="{!v.optional ? 'quoteLine optionalLine ' + (v.editmode ? 'selected' : ' ') : 'quoteLine ' + (v.editmode ? 'selected' : ' ')}"
          ondblclick="{!c.openEdit}" aura:id="line" id="{!v.line.Id}"
-         draggable="{!v.editable &amp;&amp; v.revEditable  &amp;&amp; not(v.reconciling)}"
+         draggable="{!v.revEditable  &amp;&amp; not(v.reconciling) &amp;&amp; not(v.hasDocument)}"
          ondragstart="{!c.startLineDrag}" ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}" ondrop="{!c.drop}">
+
+        <!--draggable="{!v.editable &amp;&amp; v.revEditable  &amp;&amp; not(v.reconciling) &amp;&amp; not(v.hasDocument)}"-->
+
 
         <div class="quoteGrid">
             <div class="paddedCol">
                 <div style="font-weight:bold;font-size:14px;display:flex;">
                     <div>{!(v.optional ? 'OPTIONAL: ' + v.line.SBQQ__Product__r.Name
-                        : v.line.SBQQ__Product__r.Name)}</div>
+                        : v.line.SBQQ__Product__r.Name)}</div> order: {!v.line.SBQQ__Number__c}
                 </div>
                 <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
-                    <div draggable="false" onkeyup="{!c.setChanged}">
+                    <div draggable="false" onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}">
                         <lightning:inputRichText value="{!v.line.SBQQ__Description__c}"
                                                  aura:id="lineform"
                                                  class="{!v.line.Id}"
                                                  disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
+                                                 <!--disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT,REMOVE_FORMATTING" />-->
                     </div>
                     <aura:set attribute="else">
                         <div style="max-height: 62px;overflow-y: hidden;position: relative;">

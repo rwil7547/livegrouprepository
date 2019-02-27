@@ -45,14 +45,21 @@
                         component.set('v.revEditable',false);
                     }
 
+                    if (!quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c ||
+                        (quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c && quote.SBQQ__Primary__c)){
+                        component.set('v.cloneDisabled',false);
+                    } else {
+                        component.set('v.cloneDisabled',true);
+                    }
+
                     if (quote.SBQQ__LineItems__r || quote.SBQQ__LineItemGroups__r){
                         this.getGroups(component, response.getReturnValue()[0].Id,
                             response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
                     }
 
-
-                    this.getExpenses(component, component.get('v.recordId'));
-
+                    if (quote.Stage__c  !== 'Estimate' && quote.SBQQ__Primary__c){
+                        this.getExpenses(component, component.get('v.recordId'));
+                    }
 
                     // clear the value of the quote clone opportunity data set
                     if (document.getElementById('opplistInput')){
@@ -239,7 +246,8 @@
         var quoteId     = component.get('v.quote.Id');
         var userId      = component.find('ourContact').get("v.value");
         var contactId   = component.find('quoteContact').get("v.value");
-
+        var text        = encodeURIComponent(component.find('documentText').get("v.value"));
+        // var text        = component.find('documentText').get("v.value");
         var optionals   = document.getElementById('optionalCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
@@ -248,6 +256,7 @@
             'id=' + quoteId +
             '&userId=' + userId + 
             '&contactId=' + contactId +
+            '&text=' + text +
             '&optionals=' + optionals +
             '&invoices=' + invoices +
             '&vat=' + vat +
@@ -265,10 +274,51 @@
 
         groups.forEach(function(element){
 
+            reportData.push({
+                Name : '',
+                Description : '',
+                Days : '',
+                Quantity : '',
+                UnitCost : '',
+                TotalCost : '',
+                UnitPrice : '',
+                TotalPrice : ''
+            });
+            reportData.push({
+                Name : element.Name,
+                Description : '',
+                Days : '',
+                Quantity : '',
+                UnitCost : '',
+                TotalCost : '',
+                UnitPrice : '',
+                TotalPrice : ''
+            });
+
             var lines = element.SBQQ__LineItems__r;
 
             lines.forEach(function(element){
-                reportData.push({Name : element.Id});
+                reportData.push({
+                    Name : element.SBQQ__Product__r.Name,
+                    Description : element.SBQQ__Description__c,
+                    Days : (element.SBQQ__SubscriptionTerm__c) ? element.SBQQ__SubscriptionTerm__c : '',
+                    Quantity : element.SBQQ__Quantity__c,
+                    UnitCost : element.SBQQ__UnitCost__c,
+                    TotalCost : element.Line_cost_total__c,
+                    UnitPrice : element.SBQQ__ListPrice__c,
+                    TotalPrice : element.SBQQ__NetTotal__c
+                });
+            });
+
+            reportData.push({
+                Name : 'GROUP TOTAL:',
+                Description : '',
+                Days : '',
+                Quantity : '',
+                UnitCost : '',
+                TotalCost : element.cosTotal,
+                UnitPrice : '',
+                TotalPrice : element.revTotal
             });
         });
 

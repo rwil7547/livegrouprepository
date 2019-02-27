@@ -24,6 +24,9 @@
 .THIS .quoteLine:hover {
     background-color: #f4f4f4;
 }
+.THIS .quoteLine:active {
+    cursor: move;
+}
 
 .THIS.optionalLine {
     font-style: italic;

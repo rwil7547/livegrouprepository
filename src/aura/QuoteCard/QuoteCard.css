@@ -32,3 +32,32 @@
     padding: 10px;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
 }
+
+.THIS.quoteCard {
+    background-color: #ededed;
+    border-radius: 4px;
+    border: 0.5px solid #ccc9c9;
+    cursor: pointer;
+    margin-bottom: 7px;
+}
+
+.THIS.quoteCard:hover {
+    box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.1), 0 3px 8px 0 rgba(0, 0, 0, 0.1);
+}
+
+.THIS .backdrop {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: white;
+    opacity: 0.8;
+    z-index:100;
+}
+
+.THIS .toggle {
+    display: none;
+}

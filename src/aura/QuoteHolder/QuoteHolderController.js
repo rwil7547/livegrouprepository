@@ -15,10 +15,13 @@
                 var quotes = response.getReturnValue();
                 quotes.forEach(function(quote){
                    if (quote.Stage__c === 'Estimate'){
+                       quote.position = estimates.length;
                        estimates.push(quote);
                    } else if (quote.Stage__c === 'Contract'){
+                       quote.position = contracts.length;
                        contracts.push(quote);
                    } else if (quote.Stage__c === 'Reconciliation'){
+                       quote.position = reconciliations.length;
                        reconciliations.push(quote);
                    }
                 });
@@ -49,10 +52,13 @@
                     }
 
                     if (quote.Stage__c === 'Estimate'){
+                        quote.position = estimates.length;
                         estimates.push(quote);
                     } else if (quote.Stage__c === 'Contract'){
+                        quote.position = contracts.length;
                         contracts.push(quote);
                     } else if (quote.Stage__c === 'Reconciliation'){
+                        quote.position = reconciliations.length;
                         reconciliations.push(quote);
                     }
                 });
@@ -62,5 +68,37 @@
             }
         });
         $A.enqueueAction(action);
+    },
+    deleteDocument : function(component, event, helper){
+
+	    var deleteDoc = component.get('c.deleteDocumentApex');
+	    deleteDoc.setParams({docId : event.getParam('docId')});
+
+	    deleteDoc.setCallback(this, function(response){
+	        if (response.getState() === 'SUCCESS' && response.getReturnValue()){
+                var refresh = $A.get("e.c:Refresh");
+                refresh.setParams({
+                    id : component.get('v.quote.Id')
+                });
+                refresh.fire();
+            }
+        });
+	    $A.enqueueAction(deleteDoc);
+    },
+    toggleEstimates : function(component, event, helper){
+	    component.set('v.estimatesOpen',!component.get('v.estimatesOpen'));
+        // component.set('v.contractsOpen',false);
+        // component.set('v.reconciliationsOpen',false);
+    },
+    toggleContracts : function(component, event, helper){
+        component.set('v.contractsOpen',!component.get('v.contractsOpen'));
+        // component.set('v.estimatesOpen',false);
+        // component.set('v.reconciliationsOpen',false);
+    },
+    toggleReconciliations : function(component, event, helper){
+        component.set('v.reconciliationsOpen',!component.get('v.reconciliationsOpen'));
+        // component.set('v.contractsOpen',false);
+        // component.set('v.reconciliationsOpen',false);
     }
+
 })

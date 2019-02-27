@@ -76,7 +76,6 @@
                 <lightning:layoutItem size="12" >
                     <aura:iteration items="{!v.lines}" var="line">
                         <div style="position:relative;">
-                            <!--<c:QuoteLine original="{#line}"-->
                             <c:QuoteLine line="{!line}"
                                          editable="{!v.editable}"
                                          revEditable="{!v.revEditable}"

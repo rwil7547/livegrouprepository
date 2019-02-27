@@ -12,7 +12,7 @@
             <img src="{!$Resource.QuickbooksLogoSmall}" style="width:30px;"/>
         </div>
     	<div>
-            <div>{!v.expense.Supplier__c} - {!v.expense.Description__c}</div>
+            <div>{!v.expense.Assigned__c}{!v.expense.Supplier__c} - {!v.expense.Description__c}</div>
             <div style="font-size:10px;color:grey;"><lightning:formattedDateTime value="{!v.expense.CreatedDate}"/></div>        	
         </div>
         <div style="text-align:right;padding-right:5px;">

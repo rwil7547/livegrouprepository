@@ -244,14 +244,9 @@
     },
     previewQuote : function(component, event, helper){
         if (!component.find('ourContact').get('v.value')){
-            console.log('user is ' + component.get('v.users')[0]);
-
             component.find('ourContact').set('v.value', component.get('v.users')[0].Id);
-
         }
         if (!component.find('quoteContact').get('v.value')) {
-            console.log('contact is ' + component.get('v.contacts')[0]);
-
             component.find('quoteContact').set('v.value', component.get('v.contacts')[0].Id);
         }
         component.find('clonePreviewModal').getElement().classList.toggle('toggle');
@@ -295,19 +290,31 @@
 
         var userId 		= component.find('ourContact').get("v.value");
         var contactId 	= component.find('quoteContact').get("v.value");
+        // var text        = component.find('documentText').get("v.value");
+        var text        = encodeURIComponent(component.find('documentText').get("v.value"));
+
+        var optionals   = document.getElementById('optionalCheckbox').checked;
+        var invoices    = document.getElementById('invoicesCheckbox').checked;
+        var vat         = document.getElementById('vatCheckbox').checked;
 
         var saveDocument = component.get('c.saveDocumentApex');
         saveDocument.setParams({
             quoteId : component.get('v.quote.Id'),
             oppId : component.get('v.recordId'),
             userId : userId,
-            contactId : contactId
+            contactId : contactId,
+            text : text,
+            optionals : optionals,
+            invoices : invoices,
+            vat : vat,
+            sla : 'false',
+            tnc : 'false'
         });
         saveDocument.setCallback(this, function(response){
             component.find('docSavePending').getElement().style.display = 'none';
             if (response.getState() === 'SUCCESS' && response.getReturnValue()){
-                // component.set('v.previewing',false);
                 component.find('quotePreview').getElement().style.display = 'none';
+                component.find('clonePreviewModal').getElement().classList.toggle('toggle');
 
                 var refresh = $A.get("e.c:Refresh");
                 refresh.setParams({
@@ -344,22 +351,25 @@
         }
     },
     clearOpportunity : function(component, event, helper){
-	    document.getElementById('opplistInput').value = null;
-        document.getElementById('thisOpportunity').checked = true;
-        document.getElementById('otherOpportunity').checked = false;
-        document.getElementById('cloneButton').style.display = 'block';
+        if (!component.get('v.cloneDisabled')) {
+            document.getElementById('opplistInput').value = null;
+            document.getElementById('listInputBox').style.display = 'none';
+            document.getElementById('thisOpportunity').checked = true;
+            document.getElementById('otherOpportunity').checked = false;
+            document.getElementById('cloneButton').style.display = 'block';
+        }
     },
     deselectThisOpportunity : function(component, event, helper){
-
-        document.getElementById('thisOpportunity').checked = false;
+        document.getElementById('listInputBox').style.display = 'block';
         document.getElementById('otherOpportunity').checked = true;
 
         if (document.getElementById('opplistInput').value ){
-            // document.getElementById('thisOpportunity').checked = false;
-            // document.getElementById('otherOpportunity').checked = true;
             document.getElementById('cloneButton').style.display = 'block';
-        } else if (document.getElementById('otherOpportunity').checked === true){
+        } else {
             document.getElementById('cloneButton').style.display = 'none';
+        }
+
+        if (!component.get('v.cloneDisabled')){
             document.getElementById('thisOpportunity').checked = false;
         }
     },
@@ -381,8 +391,9 @@
                }
             });
         } else {
-            oppId = component.get('v.recordId');
-            type = component.get('v.quote.Stage__c');
+            oppId   = component.get('v.recordId');
+            // type    = component.get('v.quote.Stage__c');
+            type    = component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c');
         }
 
         component.set('v.responsePending',true);
@@ -444,11 +455,12 @@
             if (response.getState() === 'SUCCESS'){
 
                 var quote = component.get('v.quote');
-                quote.SBQQ__NetAmount__c = response.getReturnValue()['SBQQ__NetAmount__c'];
-                quote.Cost_of_sale__c = response.getReturnValue()['Cost_of_sale__c'];
-                quote.Gross_Profit__c = response.getReturnValue()['Gross_Profit__c'];
-                quote.Gross_Margin__c = response.getReturnValue()['Gross_Margin__c'];
-                quote.SBQQ__Primary__c = response.getReturnValue()['SBQQ__Primary__c'];
+                quote.SBQQ__NetAmount__c    = response.getReturnValue()['SBQQ__NetAmount__c'];
+                quote.Cost_of_sale__c       = response.getReturnValue()['Cost_of_sale__c'];
+                quote.Gross_Profit__c       = response.getReturnValue()['Gross_Profit__c'];
+                quote.Gross_Margin__c       = response.getReturnValue()['Gross_Margin__c'];
+                quote.SBQQ__Primary__c      = response.getReturnValue()['SBQQ__Primary__c'];
+                quote.HasDocument__c        = response.getReturnValue()['HasDocument__c'];
                 component.set('v.quote', component.get('v.quote'));
 
                 var groups = component.get('v.groups');
@@ -512,25 +524,35 @@
         helper.getQuote(component, 'default', false);
     },
     setActiveExpenseId : function(component, event, hepler){
-    	component.set('v.activeExpenseId', event.getParam('expenseId'));    
+    	component.set('v.activeExpenseId', event.getParam('expenseId'));
+
+    	console.log('the active expesne id is ' + event.getParam('expenseId'));
     },
     updateLineId : function(component, event, helper) {
 
-        var activeId = component.get('v.activeExpenseId');
-        var lineId 	 = event.getParam('lineId');
-        var expenses = component.get('v.expenses');
+        var expenses    = component.get('v.expenses');
         
         for (var x = 0; x < expenses.length; x++){
             if (expenses[x].Id === component.get('v.activeExpenseId')){
+
                 var expense = Object.assign({},expenses[x]);
                 expense.QuoteLine__c = event.getParam('lineId');
+                expense.Assigned__c = (event.getParam('lineId') !== null);
                 expenses.splice(x,1);
                 expenses.push(expense);
                 component.set('v.expenses',expenses);
         		break;                                            
             }
         }
-        
+
+        var quote = component.get('v.quote');
+        // if (event.getParam('lineId') !== null){
+        if (expense.Assigned__c){
+            quote.SBQQ__Opportunity2__r.UnassignedExpenses__c -= 1;
+        } else {
+            quote.SBQQ__Opportunity2__r.UnassignedExpenses__c += 1;
+        }
+
         var updateExpense = component.get('c.assignExpenseApex');
         updateExpense.setParams({
             lineId : event.getParam('lineId'),
@@ -584,9 +606,6 @@
         changeSortOrder.setCallback(this, function(response){
             if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
                 helper.showToast('Success!', 'Line order changed','success');
-                // if (event.getParam('targetGroupId') !== 'none'){
-                //     helper.getQuote(component, component.get('v.quote.Id'), false);
-                // }
             } else {
                 helper.showToast('Error', 'There was an error changing the line order', 'error');
             }

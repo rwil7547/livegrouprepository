@@ -176,3 +176,12 @@
 .THIS .saving span:nth-child(3) {
     animation-delay: .4s;
 }
+
+.THIS .recPanel {
+    border-radius: 3px;
+    padding-left: 5px;
+    border-left: 0.5px solid #d3d3d3;
+}
+
+
+
