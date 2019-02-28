@@ -102,6 +102,7 @@ public class QuoteInterfaceTest {
         con.AccountId   = acc.Id;
         con.FirstName   = 'Test';
         con.LastName    = 'Contact';
+        con.Email       = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@gmail.com';
         con.Title       = 'Test Title';
         con.MailingStreet = '1 Street Name';
         con.MailingCity = 'City';
@@ -284,7 +285,7 @@ public class QuoteInterfaceTest {
 
         // test get quote value refresh
         Map<String,Object> refreshMap = PrimaryQuoteController.getRefreshApex(quoteId);
-        System.assertEquals(6,refreshMap.size());
+        System.assertEquals(8,refreshMap.size());
 
 
     }
@@ -326,6 +327,159 @@ public class QuoteInterfaceTest {
     }
 
     @IsTest
+    public static void testDocPreviewEstimateOptionals(){
+        String oppId = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1].Id;
+
+        // attempt to insert a new quote
+        String quoteId = PrimaryQuoteController.createNewEstimateApex(oppId);
+
+        // test insert four ungrouped lines
+        List<Product2> products = [SELECT Id FROM Product2];
+        List<String> productIds = new List<String>{products[0].Id,products[1].Id};
+        PrimaryQuoteController.insertUngroupedLinesApex(quoteId,productIds);
+
+        List<SBQQ__QuoteLine__c> returnedLines = [SELECT Id, SBQQ__UnitCost__c, SBQQ__Optional__c, SBQQ__Number__c
+                        FROM SBQQ__QuoteLine__c WHERE SBQQ__Quote__c = :quoteId];
+
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional');
+
+        PageReference pdf = Page.QuotePreview;
+
+        // add parent id to the parameters for standardcontroller
+        pdf.getParameters().put('Id',quoteId);
+        pdf.getParameters().put('userId',UserInfo.getUserId());
+        pdf.getParameters().put('contactId',[SELECT Id FROM Contact LIMIT 1].Id);
+        pdf.getParameters().put('text',EncodingUtil.urlDecode('proposal intro','UTF-8'));
+        pdf.getParameters().put('optionals','true');
+        pdf.getParameters().put('invoices','false');
+        pdf.getParameters().put('vat','false');
+        pdf.getParameters().put('sla','false');
+        pdf.getParameters().put('tnc','false');
+        Test.setCurrentPage(pdf);
+
+        QuotePreviewController qpc = new QuotePreviewController();
+
+
+    }
+
+    @IsTest
+    public static void testDocPreviewContractAmendment(){
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1];
+
+        // attempt to insert a new quote
+        String quoteId = PrimaryQuoteController.createNewEstimateApex(opp.Id);
+        PrimaryQuoteController.togglePrimaryApex(quoteId,opp.Id, true);
+
+        // test insert four ungrouped lines
+        List<Product2> products = [SELECT Id FROM Product2];
+        List<String> productIds = new List<String>{products[0].Id,products[1].Id};
+        PrimaryQuoteController.insertUngroupedLinesApex(quoteId,productIds);
+
+        opp.StageName = 'Closed Won';
+        update opp;
+
+        List<SBQQ__Quote__c> contracts = PrimaryQuoteController.getQuoteApex(opp.Id, 'default');
+
+        PrimaryQuoteController.cloneEstimateApex(contracts[0], opp.Id, 'Contract');
+
+        List<SBQQ__Quote__c> amendments = PrimaryQuoteController.getQuoteApex(opp.Id, 'default');
+
+        Test.startTest();
+        PrimaryQuoteController.insertUngroupedLinesApex(amendments[0].Id,productIds);
+
+        List<SBQQ__QuoteLine__c> returnedLines = [SELECT Id, SBQQ__UnitCost__c, SBQQ__Optional__c, SBQQ__Number__c
+                                                    FROM SBQQ__QuoteLine__c
+                                                    WHERE SBQQ__Quote__c = :quoteId
+                                                    ORDER BY CreatedDate ASC];
+
+        returnedLines[0].SBQQ__Description__c   = 'xxx';
+        returnedLines[0].SBQQ__Quantity__c      = 20;
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'save');
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'clone');
+        PrimaryQuoteController.changeLineApex(returnedLines[1],'delete');
+
+        PageReference pdf = Page.QuotePreview;
+
+        // add parent id to the parameters for standardcontroller
+        pdf.getParameters().put('Id',amendments[0].Id);
+        pdf.getParameters().put('userId',UserInfo.getUserId());
+        pdf.getParameters().put('contactId',[SELECT Id FROM Contact LIMIT 1].Id);
+        pdf.getParameters().put('text',EncodingUtil.urlDecode('proposal intro','UTF-8'));
+        pdf.getParameters().put('optionals','true');
+        pdf.getParameters().put('invoices','true');
+        pdf.getParameters().put('vat','false');
+        pdf.getParameters().put('sla','false');
+        pdf.getParameters().put('tnc','false');
+        Test.setCurrentPage(pdf);
+
+        QuotePreviewController qpcUngrouped = new QuotePreviewController();
+
+        PrimaryQuoteController.groupLinesApex(amendments[0].Id);
+        returnedLines[0].SBQQ__Group__c         = null;
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'save');
+        QuotePreviewController qpcGrouped = new QuotePreviewController();
+
+        Test.stopTest();
+
+    }
+
+    @IsTest
+    public static void testDocPreviewContractAmendmentOptional(){
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1];
+
+        // attempt to insert a new quote
+        String quoteId = PrimaryQuoteController.createNewEstimateApex(opp.Id);
+        PrimaryQuoteController.togglePrimaryApex(quoteId,opp.Id, true);
+
+        // test insert four ungrouped lines
+        List<Product2> products = [SELECT Id FROM Product2];
+        List<String> productIds = new List<String>{products[0].Id,products[1].Id};
+        PrimaryQuoteController.insertUngroupedLinesApex(quoteId,productIds);
+
+        opp.StageName = 'Closed Won';
+        update opp;
+
+        List<SBQQ__Quote__c> contracts = PrimaryQuoteController.getQuoteApex(opp.Id, 'default');
+
+        PrimaryQuoteController.cloneEstimateApex(contracts[0], opp.Id, 'Contract');
+
+        List<SBQQ__Quote__c> amendments = PrimaryQuoteController.getQuoteApex(opp.Id, 'default');
+
+        Test.startTest();
+        PrimaryQuoteController.insertUngroupedLinesApex(amendments[0].Id,productIds);
+
+        List<SBQQ__QuoteLine__c> returnedLines = [SELECT Id, SBQQ__UnitCost__c, SBQQ__Optional__c, SBQQ__Number__c
+        FROM SBQQ__QuoteLine__c
+        WHERE SBQQ__Quote__c = :quoteId
+        ORDER BY CreatedDate ASC];
+
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional');
+        PrimaryQuoteController.changeLineApex(returnedLines[1],'optional');
+
+        PageReference pdf = Page.QuotePreview;
+
+        // add parent id to the parameters for standardcontroller
+        pdf.getParameters().put('Id',amendments[0].Id);
+        pdf.getParameters().put('userId',UserInfo.getUserId());
+        pdf.getParameters().put('contactId',[SELECT Id FROM Contact LIMIT 1].Id);
+        pdf.getParameters().put('text',EncodingUtil.urlDecode('proposal intro','UTF-8'));
+        pdf.getParameters().put('optionals','true');
+        pdf.getParameters().put('invoices','true');
+        pdf.getParameters().put('vat','false');
+        pdf.getParameters().put('sla','false');
+        pdf.getParameters().put('tnc','false');
+        Test.setCurrentPage(pdf);
+
+        QuotePreviewController qpcUngrouped = new QuotePreviewController();
+
+        PrimaryQuoteController.groupLinesApex(amendments[0].Id);
+        QuotePreviewController qpcGrouped = new QuotePreviewController();
+
+        Test.stopTest();
+
+    }
+
+    @IsTest
     public static void testDocument(){
         String oppId = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1].Id;
 
@@ -345,7 +499,7 @@ public class QuoteInterfaceTest {
 
         // test save document
         Boolean saveDocumentResponse = PrimaryQuoteController.saveDocumentApex(quoteId, oppId,
-                                        userId, contactId, 'false', 'false', 'false', 'false', 'false');
+                                        userId, contactId,'proposal text', 'false', 'false', 'false', 'false', 'false');
 
     }
 

@@ -87,18 +87,21 @@
     },
     toggleEstimates : function(component, event, helper){
 	    component.set('v.estimatesOpen',!component.get('v.estimatesOpen'));
-        // component.set('v.contractsOpen',false);
-        // component.set('v.reconciliationsOpen',false);
     },
     toggleContracts : function(component, event, helper){
         component.set('v.contractsOpen',!component.get('v.contractsOpen'));
-        // component.set('v.estimatesOpen',false);
-        // component.set('v.reconciliationsOpen',false);
     },
     toggleReconciliations : function(component, event, helper){
         component.set('v.reconciliationsOpen',!component.get('v.reconciliationsOpen'));
-        // component.set('v.contractsOpen',false);
-        // component.set('v.reconciliationsOpen',false);
+    },
+    assessChange : function(component, event, helper){
+	    if (event.getParam("oldValue")){
+            var refresh = $A.get("e.c:Refresh");
+            refresh.setParams({
+                id : component.get('v.quote.Id')
+            });
+            refresh.fire();
+        }
     }
 
 })

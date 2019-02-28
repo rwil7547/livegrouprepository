@@ -11,6 +11,10 @@ public class QuickbooksClassSyncTest {
         Account acc = (Account)SmartFactory.createSObject('Account');
         insert acc;
 
+        SBQQ__Quote__c quote1   = new SBQQ__Quote__c();
+        quote1.SBQQ__Primary__c = true;
+        insert quote1;
+
         Opportunity opp = (Opportunity)SmartFactory.createSObject('Opportunity');
         opp.Clive_job_number__c = 12345;
         opp.AccountId           = acc.Id;
@@ -19,7 +23,12 @@ public class QuickbooksClassSyncTest {
         opp.Invoice_Schedule__c = 'Single post-event invoice';
         opp.Event_start__c      = Date.today();
         opp.Event_end__c        = Date.today();
+        opp.SBQQ__PrimaryQuote__c = quote1.Id;
         insert opp;
+
+        SBQQ__Quote__c quote2   = new SBQQ__Quote__c();
+        quote2.SBQQ__Primary__c = true;
+        insert quote2;
 
         Opportunity opp2 = (Opportunity)SmartFactory.createSObject('Opportunity');
         opp2.Clive_job_number__c = 54321;
@@ -29,7 +38,12 @@ public class QuickbooksClassSyncTest {
         opp2.Invoice_Schedule__c = 'Single post-event invoice';
         opp2.Event_start__c     = Date.today();
         opp2.Event_end__c       = Date.today();
+        opp2.SBQQ__PrimaryQuote__c = quote2.Id;
         insert opp2;
+
+        SBQQ__Quote__c quote3   = new SBQQ__Quote__c();
+        quote3.SBQQ__Primary__c = true;
+        insert quote3;
 
         Opportunity opp3 = (Opportunity)SmartFactory.createSObject('Opportunity');
         opp3.Clive_job_number__c = 11111;
@@ -39,6 +53,7 @@ public class QuickbooksClassSyncTest {
         opp3.Invoice_Schedule__c = 'Single post-event invoice';
         opp3.Event_start__c     = Date.today();
         opp3.Event_end__c       = Date.today();
+        opp3.SBQQ__PrimaryQuote__c = quote1.Id;
         insert opp3;
 
     }
@@ -92,8 +107,15 @@ public class QuickbooksClassSyncTest {
         opp.Event_end__c        = Date.today();
         insert opp;
 
+        SBQQ__Quote__c quote1   = new SBQQ__Quote__c();
+        quote1.SBQQ__Primary__c = true;
+        quote1.SBQQ__Opportunity2__c = opp.Id;
+        insert quote1;
+
+
         Test.startTest();
         opp.StageName  = 'Closed Won';
+        opp.SBQQ__PrimaryQuote__c = quote1.Id;
         update opp;
         Test.stopTest();
     }

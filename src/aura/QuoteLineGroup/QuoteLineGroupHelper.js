@@ -2,7 +2,7 @@
 	getTotals : function(component) {
         var lines = component.get('v.lines');
         var cosTotal = lines.reduce(function (total, line) {
-            var amount = (line.SBQQ__Optional__c) ? 0 : line.Line_cost_total__c;             
+            var amount = (line.SBQQ__Optional__c) ? 0 : line.Line_total_cost__c;
             return total + amount;
         },0);
         var revTotal = lines.reduce(function (total, line) {

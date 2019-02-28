@@ -4,11 +4,7 @@
         component.set('v.ready',true);
     },
     changeQuote : function(component, event, helper){
-
         if (event.getParam('quoteId') !== component.get('v.quote.Id') && event.getParam('quoteId') !== 'default'){
-
-            console.log('changing quote because id is ' + event.getParam('id') + ' and qquote id is ' + component.get('v.quote.Id'));
-
             component.set('v.responsePending',true);
             helper.getQuote(component, event.getParam('quoteId'), false);
         }
@@ -124,9 +120,7 @@
                         operation : 'save' 
                     });
                     changeResponse.fire();
-                    // pendingChanges.splice([x], 1);
                 }
-				// component.set('v.pendingChanges',pendingChanges);
 				component.set('v.pendingChanges',[]);
             } else {
                 helper.showToast('Error', 'There was an error saving the updates', 'error');                
@@ -139,7 +133,6 @@
     	var groupQuote = component.get('c.groupLinesApex');
         groupQuote.setParams({ quoteId : component.get('v.quote.Id')});
         groupQuote.setCallback(this, function(response){
-            // component.set('v.responsePending' , false);
             if (response.getState() === 'SUCCESS' && response.getReturnValue()){
                 helper.showToast('Success!', 'The quote has been set to custom groupings','success');
                 helper.getQuote(component, component.get('v.quote.Id'), false);
@@ -290,7 +283,6 @@
 
         var userId 		= component.find('ourContact').get("v.value");
         var contactId 	= component.find('quoteContact').get("v.value");
-        // var text        = component.find('documentText').get("v.value");
         var text        = encodeURIComponent(component.find('documentText').get("v.value"));
 
         var optionals   = document.getElementById('optionalCheckbox').checked;
@@ -392,8 +384,11 @@
             });
         } else {
             oppId   = component.get('v.recordId');
-            // type    = component.get('v.quote.Stage__c');
-            type    = component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c');
+            if (component.get('v.quote.Legacy__c')){
+                type = 'Estimate';
+            } else {
+                type = component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c');
+            }
         }
 
         component.set('v.responsePending',true);
@@ -461,14 +456,13 @@
                 quote.Gross_Margin__c       = response.getReturnValue()['Gross_Margin__c'];
                 quote.SBQQ__Primary__c      = response.getReturnValue()['SBQQ__Primary__c'];
                 quote.HasDocument__c        = response.getReturnValue()['HasDocument__c'];
+                quote.SBQQ__Opportunity2__r.UnassignedExpenses__c = response.getReturnValue()['SBQQ__Opportunity2__r.UnassignedExpenses__c'];
+                quote.SBQQ__Opportunity2__r.Quote_Status__c = response.getReturnValue()['SBQQ__Opportunity2__r.Quote_Status__c'];
                 component.set('v.quote', component.get('v.quote'));
 
                 var groups = component.get('v.groups');
                 if (groups){
                     groups.forEach(function(group){
-
-                        console.log('total for group returned is ' + response.getReturnValue()['rev' + group.Id]);
-
                         group.revTotal = !response.getReturnValue()['rev' + group.Id] ? 0 :
                             response.getReturnValue()['rev' + group.Id];
                         group.cosTotal = !response.getReturnValue()['cos' + group.Id] ? 0 :
@@ -525,8 +519,6 @@
     },
     setActiveExpenseId : function(component, event, hepler){
     	component.set('v.activeExpenseId', event.getParam('expenseId'));
-
-    	console.log('the active expesne id is ' + event.getParam('expenseId'));
     },
     updateLineId : function(component, event, helper) {
 
@@ -546,12 +538,15 @@
         }
 
         var quote = component.get('v.quote');
-        // if (event.getParam('lineId') !== null){
+
         if (expense.Assigned__c){
             quote.SBQQ__Opportunity2__r.UnassignedExpenses__c -= 1;
         } else {
             quote.SBQQ__Opportunity2__r.UnassignedExpenses__c += 1;
         }
+
+        component.set('v.quote',quote);
+
 
         var updateExpense = component.get('c.assignExpenseApex');
         updateExpense.setParams({

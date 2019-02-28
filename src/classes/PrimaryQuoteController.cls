@@ -9,7 +9,7 @@ public with sharing class PrimaryQuoteController {
 
         String quoteQuery = (quoteId != 'default') ? ' AND Id = :quoteId ' : '';
 
-        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
+        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Legacy__c, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, CreatedDate,' +
                         'Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__PriceBook__c, HasDocument__c, Locked__c, ' +
                         'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
@@ -34,7 +34,8 @@ public with sharing class PrimaryQuoteController {
         Map<String,Object> responseMap = new Map<String,Object>();
 
         SBQQ__Quote__c quote = [SELECT Id, SBQQ__NetAmount__c, SBQQ__LineItemsGrouped__c, HasDocument__c,
-                                        Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c
+                                        Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c,
+                                        SBQQ__Opportunity2__r.UnassignedExpenses__c, SBQQ__Opportunity2__r.Quote_Status__c
                                 FROM SBQQ__Quote__c WHERE Id = :quoteId];
 
         responseMap.put('SBQQ__NetAmount__c',quote.SBQQ__NetAmount__c);
@@ -43,10 +44,12 @@ public with sharing class PrimaryQuoteController {
         responseMap.put('Gross_Margin__c',quote.Gross_Margin__c);
         responseMap.put('SBQQ__Primary__c',quote.SBQQ__Primary__c);
         responseMap.put('HasDocument__c',quote.HasDocument__c);
+        responseMap.put('SBQQ__Opportunity2__r.UnassignedExpenses__c',quote.SBQQ__Opportunity2__r.UnassignedExpenses__c);
+        responseMap.put('SBQQ__Opportunity2__r.Quote_Status__c',quote.SBQQ__Opportunity2__r.Quote_Status__c);
 
         if (quote.SBQQ__LineItemsGrouped__c){
             for (AggregateResult groupAggregate : [SELECT SBQQ__Group__c, SUM(SBQQ__NetTotal__c) revTotal,
-                                                            SUM(Line_cost_total__c) cosTotal
+                                                            SUM(Line_total_cost__c) cosTotal
                                                      FROM SBQQ__QuoteLine__c
                                                      WHERE SBQQ__Quote__c = :quoteId
                                                      AND SBQQ__Optional__c = FALSE
@@ -56,7 +59,7 @@ public with sharing class PrimaryQuoteController {
             }
         } else {
 
-            for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, Line_cost_total__c, SBQQ__NetTotal__c
+            for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, Line_total_cost__c, SBQQ__NetTotal__c
                                             FROM SBQQ__QuoteLine__c
                                             WHERE SBQQ__Quote__c = :quoteId
                                             AND SBQQ__Optional__c = FALSE
@@ -71,9 +74,9 @@ public with sharing class PrimaryQuoteController {
                 }
 
                 if (!responseMap.containsKey('cos' + family)){
-                    responseMap.put('cos' + family, line.Line_cost_total__c);
+                    responseMap.put('cos' + family, line.Line_total_cost__c);
                 } else {
-                    responseMap.put('cos' + family, (Decimal)responseMap.get('cos' + family) + line.Line_cost_total__c);
+                    responseMap.put('cos' + family, (Decimal)responseMap.get('cos' + family) + line.Line_total_cost__c);
                 }
 
             }
@@ -89,7 +92,7 @@ public with sharing class PrimaryQuoteController {
         if (custom){
             return [SELECT Id, Name, SBQQ__NetTotal__c,
                         (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                            SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Optional__c, SBQQ__Group__c,
+                            SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Group__c,
                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                             SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c
                         FROM SBQQ__LineItems__r
@@ -101,7 +104,7 @@ public with sharing class PrimaryQuoteController {
             Map<String,List<SBQQ__QuoteLine__c>> groupMap = new Map<String,List<SBQQ__QuoteLine__c>>();
 
             for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                                    SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Optional__c, SBQQ__Number__c, SBQQ__Group__c,
+                                                    SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Number__c, SBQQ__Group__c,
                                                     SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                     SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                                             FROM SBQQ__QuoteLine__c
@@ -137,7 +140,8 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static List<Product2> getProductsApex(){
 
-        return [SELECT Id, Name, Description, Family,
+        return [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
+                        SBQQ__SubscriptionPricing__c,
                 (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                 WHERE SBQQ__Active__c = TRUE LIMIT 1),
                 (SELECT UnitPrice FROM PricebookEntries
@@ -171,9 +175,17 @@ public with sharing class PrimaryQuoteController {
         List<SBQQ__Quote__c> quotes = [SELECT Id, SBQQ__Opportunity2__c
                                         FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
 
+        Opportunity parentOpp = new Opportunity();
+        parentOpp.Id = oppId;
+
         for (SBQQ__Quote__c quote : quotes){
             if (quote.Id == quoteId){
                 quote.SBQQ__Primary__c = isPrimary;
+                if (isPrimary){
+                    parentOpp.SBQQ__PrimaryQuote__c = quote.Id;
+                } else {
+                    parentOpp.SBQQ__PrimaryQuote__c = null;
+                }
             } else {
                 quote.SBQQ__Primary__c = false;
             }
@@ -187,6 +199,8 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
+        update parentOpp;
+
         return success;
     }
 
@@ -198,7 +212,7 @@ public with sharing class PrimaryQuoteController {
 
         SBQQ__QuoteLine__c lineLock = [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Number__c,
                                             SBQQ__Quantity__c, SBQQ__Group__c,
-                                            SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Optional__c,
+                                            SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c,
                                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                             SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Quote__c
                                         FROM SBQQ__QuoteLine__c
@@ -297,7 +311,7 @@ public with sharing class PrimaryQuoteController {
 
         SBQQ__QuoteLineGroup__c originalGroup = [SELECT Id, Name, SBQQ__NetTotal__c,
                                                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                                        SBQQ__UnitCost__c, Line_cost_total__c, Days__c,
+                                                        SBQQ__UnitCost__c, Line_total_cost__c, Days__c,
                                                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                                                 FROM SBQQ__LineItems__r)
@@ -332,7 +346,7 @@ public with sharing class PrimaryQuoteController {
 
         return [SELECT Id, Name, SBQQ__NetTotal__c,
                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                        SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Number__c,
+                        SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                 FROM SBQQ__LineItems__r)
@@ -456,7 +470,7 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> lines = new List<SBQQ__QuoteLine__c>();
 
-        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
+        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionPricing__c,
                                     (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                                     WHERE SBQQ__Active__c = TRUE LIMIT 1),
                                     (SELECT UnitPrice FROM PricebookEntries
@@ -470,10 +484,13 @@ public with sharing class PrimaryQuoteController {
                 new SBQQ__QuoteLine__c(
                     SBQQ__Product__c        = product.Id,
                     SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
-                    SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
+                    SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
+                    SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+                    SBQQ__DefaultSubscriptionTerm__c = 1,
                     SBQQ__Quantity__c       = 1,
                     SBQQ__UnitCost__c       = unitCost,
                     SBQQ__ListPrice__c      = unitPrice,
+                    SBQQ__NetPrice__c       = unitPrice,
                     SBQQ__Group__c          = groupId,
                     SBQQ__Quote__c          = quoteId,
                     SBQQ__Number__c         = lineItemCount + 1
@@ -499,7 +516,7 @@ public with sharing class PrimaryQuoteController {
             }
 
             return [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c, SBQQ__Number__c,
-                        SBQQ__Group__c, SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__SubscriptionTerm__c,
+                        SBQQ__Group__c, SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__SubscriptionTerm__c,
                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c,
                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                     FROM SBQQ__QuoteLine__c
@@ -521,24 +538,29 @@ public with sharing class PrimaryQuoteController {
 
         Decimal lineItemCount = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
 
-        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
+        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionPricing__c,
                                 (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                                 WHERE SBQQ__Active__c = TRUE LIMIT 1),
                                 (SELECT UnitPrice FROM PricebookEntries
                                 WHERE Pricebook2.Name = 'Default')
                                 FROM Product2 WHERE Id IN :productIdSet]){
 
-            Decimal unitCost    = product.SBQQ__Costs__r != null ? product.SBQQ__Costs__r[0].SBQQ__UnitCost__c : 0;
-            Decimal unitPrice   = product.PricebookEntries != null ? product.PricebookEntries[0].UnitPrice : 0;
+            Decimal unitCost    = product.SBQQ__Costs__r != null && product.SBQQ__Costs__r[0].SBQQ__UnitCost__c != null?
+                    product.SBQQ__Costs__r[0].SBQQ__UnitCost__c : 0;
+            Decimal unitPrice   = product.PricebookEntries != null && product.PricebookEntries[0].UnitPrice != null ?
+                    product.PricebookEntries[0].UnitPrice : 0;
 
             lines.add(
                     new SBQQ__QuoteLine__c(
                             SBQQ__Product__c        = product.Id,
                             SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
-                            SBQQ__SubscriptionTerm__c = (product.SBQQ__SubscriptionTerm__c != null) ? 1 : null,
+                            SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
+                            SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+                            SBQQ__DefaultSubscriptionTerm__c = 1,
                             SBQQ__Quantity__c       = 1,
                             SBQQ__UnitCost__c       = unitCost,
                             SBQQ__ListPrice__c      = unitPrice,
+                            SBQQ__NetPrice__c       = unitPrice,
                             SBQQ__Quote__c          = quoteId,
                             SBQQ__Number__c         = lineItemCount + 1
                     )
@@ -579,7 +601,6 @@ public with sharing class PrimaryQuoteController {
                     line.SBQQ__Number__c = newPosition;
                     if(line.SBQQ__Quote__r.SBQQ__LineItemsGrouped__c){
                         line.SBQQ__Group__c = targetGroupId;
-                        system.debug('assigning new target id ' + targetGroupId);
                     }
                 } else {
                     line.SBQQ__Number__c = line.SBQQ__Number__c + 1;
@@ -595,7 +616,6 @@ public with sharing class PrimaryQuoteController {
                     line.SBQQ__Number__c = newPosition;
                     if(line.SBQQ__Quote__r.SBQQ__LineItemsGrouped__c){
                         line.SBQQ__Group__c = targetGroupId;
-                        system.debug('assigning new target id ' + targetGroupId);
                     }
                 } else {
                     line.SBQQ__Number__c = line.SBQQ__Number__c - 1;
@@ -627,6 +647,7 @@ public with sharing class PrimaryQuoteController {
         Set<Id> quoteIds = new Set<Id>();
         Set<Id> oppIds   = new Set<Id>();
 
+        Map<String,String> newPrimaryMap                = new Map<String,String>();
         Map<String, SBQQ__Quote__c> quoteMap            = new Map<String,SBQQ__Quote__c>();
         Map<String, SBQQ__QuoteLineGroup__c> groupMap   = new Map<String,SBQQ__QuoteLineGroup__c>();
         List<SBQQ__QuoteLine__c> linesToInsert          = new List<SBQQ__QuoteLine__c>();
@@ -677,7 +698,7 @@ public with sharing class PrimaryQuoteController {
         }
 
         for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__Quote__c, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                                SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Number__c,
+                                                SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                 SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
                                         FROM SBQQ__QuoteLine__c
@@ -699,9 +720,14 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
-        List<Opportunity> opps = [SELECT Id FROM Opportunity WHERE Id IN : oppIds];
+        for (SBQQ__Quote__c primary : quoteMap.values()){
+            newPrimaryMap.put(primary.SBQQ__Opportunity2__c,primary.Id);
+        }
+
+        List<Opportunity> opps = [SELECT Id, SBQQ__PrimaryQuote__c FROM Opportunity WHERE Id IN : oppIds];
         for (Opportunity opp : opps){
             opp.SBQQ__Contracted__c = true;
+            opp.SBQQ__PrimaryQuote__c = newPrimaryMap.get(opp.Id);
         }
 
         update opps;
@@ -747,6 +773,7 @@ public with sharing class PrimaryQuoteController {
         cloneQuote.HasDocument__c           = false;
         cloneQuote.Locked__c                = false;
         cloneQuote.Ancestor__c              = quote.Id;
+        cloneQuote.Legacy__c                = quote.SBQQ__Opportunity2__c == oppId ? cloneQuote.Legacy__c : false;
 
         if (type == 'Estimate'){
             cloneQuote.Proposal_Introduction__c =
@@ -800,7 +827,7 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> originalLines =
                         [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                SBQQ__UnitCost__c, Line_cost_total__c, Days__c, SBQQ__Number__c,
+                                SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                 SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
                         FROM SBQQ__QuoteLine__c
@@ -860,7 +887,6 @@ public with sharing class PrimaryQuoteController {
             }
         } else {
             for (SBQQ__Quote__c prior : priorQuotes){
-
                 prior.Locked__c = true;
                 prior.SBQQ__Primary__c = false;
 
@@ -868,6 +894,11 @@ public with sharing class PrimaryQuoteController {
                     prior.DocumentLocked__c = true;
                 }
             }
+        }
+
+        if (primary){
+            parentOpp.SBQQ__PrimaryQuote__c = cloneQuote.Id;
+            update parentOpp;
         }
 
         update priorQuotes;

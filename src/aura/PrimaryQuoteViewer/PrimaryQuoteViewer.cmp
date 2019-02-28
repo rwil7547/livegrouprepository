@@ -171,7 +171,7 @@
                                 </aura:if>
                         </div>
                     </div>
-                        <aura:if isTrue="{!not(v.quote.Stage__c == 'Estimate') &amp;&amp; v.quote.SBQQ__Primary__c}">
+                        <aura:if isTrue="{!or(v.quote.Stage__c != 'Estimate',v.quote.Legacy__c) &amp;&amp; v.quote.SBQQ__Primary__c}">
                             <div class="recPanel">
                                 <div style="display:flex;font-weight:bold;font-size:14px;margin-bottom:2px;color:white;">
                                     <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c == 'Reconciliation - completed'}">
@@ -192,22 +192,24 @@
                                         </aura:set>
                                     </aura:if>
                                 </div>
-                                <div style="display: flex;">
-                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c == 0}">
-                                        <aura:if isTrue="{!v.expenses.length != 0}">
-                                            <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
-                                            <span>All expenses assigned</span>
-                                            <aura:set attribute="else">
+                                <aura:if isTrue="{!not(v.quote.Legacy__c)}">
+                                    <div style="display: flex;">
+                                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c == 0}">
+                                            <aura:if isTrue="{!v.expenses.length != 0}">
                                                 <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
-                                                <span>No expenses incurred</span>
+                                                <span>All expenses assigned</span>
+                                                <aura:set attribute="else">
+                                                    <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                                    <span>No expenses incurred</span>
+                                                </aura:set>
+                                            </aura:if>
+                                            <aura:set attribute="else">
+                                                <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                                <span>{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c} expenses unassigned</span>
                                             </aura:set>
                                         </aura:if>
-                                        <aura:set attribute="else">
-                                            <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
-                                            <span>{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c} expenses unassigned</span>
-                                        </aura:set>
-                                    </aura:if>
-                                </div>
+                                    </div>
+                                </aura:if>
 
                                 <div style="display: flex;">
                                     <aura:if isTrue="{!v.quote.Cost_of_sale__c &gt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
@@ -223,6 +225,7 @@
                                         <span>COS matches Quickbooks</span>
                                     </aura:if>
                                 </div>
+
                                 </div>
                             </div>
                         </aura:if>
@@ -387,7 +390,8 @@
                         <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}" disabled="{!v.cloneDisabled}"/>
                     </div>
                     <div class="cloneText" onclick="{!c.clearOpportunity}">
-                        Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c} for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
+                        Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Contract' ? 'Contract Amendment' : v.quote.SBQQ__Opportunity2__r.QuoteType__c}
+                        for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
                     </div>
                 </div>
                 <div style="text-align: center;width: 100%;font-size: 16px;margin-top: 10px;">
@@ -399,7 +403,7 @@
                         <input type="radio" id="otherOpportunity" checked="{!v.cloneDisabled}" onclick="{!c.deselectThisOpportunity}"/>
                     </div>
                     <div class="cloneText">
-                        <div onclick="{!c.deselectThisOpportunity}">Clone this record as an Estimate for another opportunity</div>
+                        <div onclick="{!c.deselectThisOpportunity}">Clone this record as an estimate for another opportunity</div>
                         <br/>
                         <div id="listInputBox" style="{!v.cloneDisabled ? '' : 'display: none;'}">
                             <input class="slds-input" aura:id="opplistInput" id="opplistInput"  name="opportunityLookup"

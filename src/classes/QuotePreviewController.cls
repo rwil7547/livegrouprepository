@@ -52,12 +52,13 @@ public class QuotePreviewController {
                 FROM User
                 WHERE Id = :ApexPages.currentPage().getParameters().get('userId')];
 
-
-        String signatureName = user.FirstName + user.LastName;
-        List<StaticResource> sr = [SELECT Id, Body FROM StaticResource WHERE Name = :signatureName LIMIT 1];
-        if (!sr.isEmpty()){
-            String myUrl = PageReference.forResource(signatureName).getUrl();
-            userSignature = myUrl.subString(0, myUrl.indexOf('?'));
+        if (!Test.isRunningTest()){
+            String signatureName = user.FirstName + user.LastName;
+            List<StaticResource> sr = [SELECT Id, Body FROM StaticResource WHERE Name = :signatureName LIMIT 1];
+            if (!sr.isEmpty()){
+                String myUrl = PageReference.forResource(signatureName).getUrl();
+                userSignature = myUrl.subString(0, myUrl.indexOf('?'));
+            }
         }
 
         contact = [SELECT Id, Name, FirstName, LastName, Account.Name, MailingStreet, MailingCity, MailingCountry, MailingPostalCode,
@@ -81,7 +82,8 @@ public class QuotePreviewController {
                             AncestorDescription__c, AncestorQuantity__c, AncestorDays__c, AncestorPrice__c, AncestorTotal__c,
                             Changed__c, FiguresChanged__c, SBQQ__Optional__c
                      FROM SBQQ__LineItems__r
-                     ORDER BY SBQQ__Number__c ASC),
+//                     ORDER BY SBQQ__Number__c ASC),
+                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c ASC),
                     (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
@@ -147,13 +149,11 @@ public class QuotePreviewController {
                 groupSummary.put(lineGroup.Name, 0);
                 groupLineCount.put(lineGroup.Name, 0);
 
-                if (lineGroup.AncestorName__c != null){
+                if (trackChanges && lineGroup.AncestorName__c != null){
                     groupAncestorMap.put(lineGroup.AncestorName__c, lineGroup.Name);
                 }
 
                 if (showOptionals){
-
-                    system.debug('loading optionals map with map frame ');
 
                     Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     optionalChangeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
@@ -212,8 +212,6 @@ public class QuotePreviewController {
         if (quote.SBQQ__LineItemsGrouped__c) {
             for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
                 if (!line.SBQQ__Optional__c){
-
-                    system.debug('processing non optional line ' + line);
 
                     if (line.SBQQ__Group__c == null || line.SBQQ__Group__r.Name == null){
                         if (line.Ancestor__c == null && trackChanges){

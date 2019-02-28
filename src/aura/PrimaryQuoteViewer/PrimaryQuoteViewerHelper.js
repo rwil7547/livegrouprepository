@@ -45,8 +45,9 @@
                         component.set('v.revEditable',false);
                     }
 
-                    if (!quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c ||
-                        (quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c && quote.SBQQ__Primary__c)){
+                    if (quote.SBQQ__Status__c !== 'Reconciliation - completed' &&
+                        (!quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c ||
+                        (quote.SBQQ__Opportunity2__r.SBQQ__Contracted__c && quote.SBQQ__Primary__c))){
                         component.set('v.cloneDisabled',false);
                     } else {
                         component.set('v.cloneDisabled',true);
@@ -55,6 +56,9 @@
                     if (quote.SBQQ__LineItems__r || quote.SBQQ__LineItemGroups__r){
                         this.getGroups(component, response.getReturnValue()[0].Id,
                             response.getReturnValue()[0].SBQQ__LineItemsGrouped__c);
+                    } else {
+                        component.set('v.responsePending',false);
+                        component.set('v.groups',[]);
                     }
 
                     if (quote.Stage__c  !== 'Estimate' && quote.SBQQ__Primary__c){
@@ -93,8 +97,13 @@
         getGroups.setCallback(this, function(response){
             component.set('v.responsePending',false);
             if (response.getState() === "SUCCESS"){
+
+                console.log('setting value of groups');
+
                 component.set("v.groups", response.getReturnValue());
-            } 
+            } else {
+                console.log('problem: ' + response.getState());
+            }
         });
         
         $A.enqueueAction(getGroups);

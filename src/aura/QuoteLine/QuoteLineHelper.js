@@ -2,7 +2,6 @@
     clone : function(component) {
         var clone = JSON.parse(JSON.stringify(component.get('v.line')));
         component.set('v.original',clone);
-        // component.set('v.optional',clone.SBQQ__Optional__c);
     },
     fireOpenEdit : function(Id) {
         var selectEvt = $A.get("e.c:LineSelected");
@@ -39,10 +38,6 @@
         component.set('v.expensesTotal',total);
     },
     formatDescription : function(description){
-        // console.log('substr is ' + description.substring(0, 3));
-        // console.log('endstr is ' + description.substring(description.length - 4, description.length));
-        // console.log('long endstr is ' + description.substring(description.length - 11, description.length));
-        //
         if (description.substring(0, 3) === '<p>'){
             description = description.substring(3);
         }

@@ -94,7 +94,7 @@ public class OpportunityInvoiceScheduleTest {
 		// check that three invoice schedules have been created 
 		System.assertEquals(2,isList.size());
 
-        opp.StageName = 'Costed Prospect';
+        opp.StageName = 'Closed Lost';
         update opp;
 
         // query for newly created invoice schedules 
@@ -311,7 +311,7 @@ public class OpportunityInvoiceScheduleTest {
 	        opps.add(opp);
 	    }    
 
-	insert opps; 
+	    insert opps;
 
         List<Invoice_Schedule__c> isList = [SELECT Id 
         				    FROM Invoice_Schedule__c];

@@ -43,18 +43,6 @@
                 });
 
                 lineOrderChange.fire();
-
-
-                //
-                // var lineOrderChange = component.getEvent('lineOrderChange');
-                // lineOrderChange.setParams({
-                //     id : data.id,
-                //     oldPosition : data.origin,
-                //     newPosition : component.get('v.line.SBQQ__Number__c'),
-                //     targetGroupId : component.get('v.group.Id')
-                // });
-                //
-                // lineOrderChange.fire();
             }
         }
     },
@@ -140,9 +128,8 @@
         }
     },
     checkGroupSize : function(component, event, helper){
-        // helper.getTotals(component);
         if (event.getParam('operation') === 'delete' && component.get('v.lines').length === 1){
-            if (component.get('v.lines')[0].Id = event.getParam('originalId')){
+            if (component.get('v.lines')[0].Id === event.getParam('originalId')){
                 if (!component.get('v.customGroup')){
                     component.destroy();
                 } else {

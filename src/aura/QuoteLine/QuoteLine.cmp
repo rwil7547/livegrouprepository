@@ -30,14 +30,11 @@
          draggable="{!v.revEditable  &amp;&amp; not(v.reconciling) &amp;&amp; not(v.hasDocument)}"
          ondragstart="{!c.startLineDrag}" ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}" ondrop="{!c.drop}">
 
-        <!--draggable="{!v.editable &amp;&amp; v.revEditable  &amp;&amp; not(v.reconciling) &amp;&amp; not(v.hasDocument)}"-->
-
-
         <div class="quoteGrid">
             <div class="paddedCol">
                 <div style="font-weight:bold;font-size:14px;display:flex;">
                     <div>{!(v.optional ? 'OPTIONAL: ' + v.line.SBQQ__Product__r.Name
-                        : v.line.SBQQ__Product__r.Name)}</div> order: {!v.line.SBQQ__Number__c}
+                        : v.line.SBQQ__Product__r.Name)}</div> {!v.line.SBQQ__Group__c}
                 </div>
                 <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
                     <div draggable="false" onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}">
@@ -45,7 +42,6 @@
                                                  aura:id="lineform"
                                                  class="{!v.line.Id}"
                                                  disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
-                                                 <!--disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT,REMOVE_FORMATTING" />-->
                     </div>
                     <aura:set attribute="else">
                         <div style="max-height: 62px;overflow-y: hidden;position: relative;">
@@ -177,7 +173,7 @@
                             <div class="right">
                                 <lightning:formattedNumber value="{!v.expensesTotal}" style="currency" currencyCode="GBP" />
                             </div>
-                            <aura:if isTrue="{!v.line.Line_cost_total__c != v.expensesTotal}">
+                            <aura:if isTrue="{!v.line.Line_total_cost__c != v.expensesTotal}">
                             	<div style="margin-left:5px;">
                                 	<lightning:icon iconName="utility:change_record_type" alternativeText="Cancel" size="x-small" onclick="{!c.reconcileLine}" title="Calculate" />
                                 </div>

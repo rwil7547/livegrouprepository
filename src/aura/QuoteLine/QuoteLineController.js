@@ -101,9 +101,6 @@
             var response = event.getParam('response');
             if (operation === 'save' && response !== 'error'){   
                 helper.clone(component);
-                // var clone = JSON.parse(JSON.stringify(component.get('v.line')));
-                // component.set('v.original',clone);
-                // component.set('v.changed', false);
             } else if (operation === 'clone' && response !== 'error'){
                 var line = Object.assign({},component.get('v.line'));
                 line.Id = event.getParam('response');
@@ -145,11 +142,12 @@
 
         console.log('the line has started dragging');
 
-        var family = component.get('v.line.SBQQ__ProductFamily__c') ? component.get('v.line.SBQQ__ProductFamily__c') : '';
+        var family  = component.get('v.line.SBQQ__ProductFamily__c') ? component.get('v.line.SBQQ__ProductFamily__c') : '';
         var groupId = component.get('v.line.SBQQ__Group__c') ? component.get('v.line.SBQQ__Group__c') : family.replace(/ /g, '');
+        var origin  = component.get('v.line.SBQQ__Number__c') ? component.get('v.line.SBQQ__Number__c') : 1;
         var transferData = '{"type":"Line", ' +
                             '"id":"' + component.get('v.line.Id') + '",' +
-                            '"origin":' + component.get('v.line.SBQQ__Number__c') + ',' +
+                            '"origin":' + origin + ',' +
                             '"family":"' + family + '",' +
                             '"groupId":"' + groupId + '",' +
                             '"line": ' + JSON.stringify(component.get('v.line')) + '}';
@@ -216,13 +214,7 @@
             var line = component.get('v.line');
             dropEvent.setParams({ lineId : line.Id});
             dropEvent.fire();
-
-            console.log('expense drop fired');
-
         }
-
-        console.log('expense drop should have fired and type is ' + data.type);
-
     },
     changeSortOrder : function(component, event, helper){
         var line = component.get('v.line');
@@ -246,7 +238,7 @@
             unitCost * line.SBQQ__Quantity__c * line.SBQQ__SubscriptionTerm__c;
 
         line.SBQQ__UnitCost__c = unitCost;
-        line.Line_cost_total__c = lineCostTotal;
+        line.Line_total_cost__c = lineCostTotal;
         component.set('v.line',line);
         helper.fireLineChange(component, line,'save');
     }
