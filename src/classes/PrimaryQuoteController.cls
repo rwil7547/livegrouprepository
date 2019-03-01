@@ -9,7 +9,7 @@ public with sharing class PrimaryQuoteController {
 
         String quoteQuery = (quoteId != 'default') ? ' AND Id = :quoteId ' : '';
 
-        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, Legacy__c, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
+        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, SBQQ__Opportunity2__r.Legacy__c, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, CreatedDate,' +
                         'Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__PriceBook__c, HasDocument__c, Locked__c, ' +
                         'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
@@ -17,7 +17,7 @@ public with sharing class PrimaryQuoteController {
                         'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, ' +
                         'SBQQ__Opportunity2__r.StageName, SBQQ__Opportunity2__r.Committed__c, Event_End__c, ' +
                         'SBQQ__Opportunity2__r.Quickbooks_COS__c, SBQQ__Opportunity2__r.COSRemaining__c, ' +
-                        'SBQQ__Opportunity2__r.UnassignedExpenses__c,' +
+                        'SBQQ__Opportunity2__r.UnassignedExpenses__c,SBQQ__Opportunity2__r.Quote_Status__c,' +
                         'SBQQ__Opportunity2__r.Percent_Invoiced__c, SBQQ__Opportunity2__r.Invoice_Status__c,' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
@@ -545,7 +545,7 @@ public with sharing class PrimaryQuoteController {
                                 WHERE Pricebook2.Name = 'Default')
                                 FROM Product2 WHERE Id IN :productIdSet]){
 
-            Decimal unitCost    = product.SBQQ__Costs__r != null && product.SBQQ__Costs__r[0].SBQQ__UnitCost__c != null?
+            Decimal unitCost    = product.SBQQ__Costs__r != null && product.SBQQ__Costs__r[0].SBQQ__UnitCost__c != null ?
                     product.SBQQ__Costs__r[0].SBQQ__UnitCost__c : 0;
             Decimal unitPrice   = product.PricebookEntries != null && product.PricebookEntries[0].UnitPrice != null ?
                     product.PricebookEntries[0].UnitPrice : 0;
@@ -700,7 +700,8 @@ public with sharing class PrimaryQuoteController {
         for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__Quote__c, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                 SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                                SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
+                                                SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
+                                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
                                         FROM SBQQ__QuoteLine__c
                                         WHERE SBQQ__Quote__c IN :quoteIds]){
 
@@ -753,7 +754,7 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
-        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c, Name,
+        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c, Name, Legacy__c,
                                     (SELECT Version__c FROM SBQQ__Quotes2__r
                                     WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
                                 FROM Opportunity WHERE Id = :oppId];
@@ -763,7 +764,7 @@ public with sharing class PrimaryQuoteController {
 
         String version = (type == 'Contract') ? 'Contract Amendment' + ' ' + count.size() :
                 type + ' ' + (count.size() + 1);
-        Boolean primary = type == 'Estimate' ? false : true;
+        Boolean primary = type == 'Estimate' && !parentOpp.Legacy__c ? false : true;
 
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
@@ -773,7 +774,7 @@ public with sharing class PrimaryQuoteController {
         cloneQuote.HasDocument__c           = false;
         cloneQuote.Locked__c                = false;
         cloneQuote.Ancestor__c              = quote.Id;
-        cloneQuote.Legacy__c                = quote.SBQQ__Opportunity2__c == oppId ? cloneQuote.Legacy__c : false;
+        cloneQuote.SBQQ__Status__c          = parentOpp.Legacy__c ? quote.SBQQ__Status__c : null;
 
         if (type == 'Estimate'){
             cloneQuote.Proposal_Introduction__c =
@@ -826,10 +827,11 @@ public with sharing class PrimaryQuoteController {
         }
 
         List<SBQQ__QuoteLine__c> originalLines =
-                        [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
+                        [SELECT Id, SBQQ__Quote__c, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                 SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
+                                SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
+                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
                         FROM SBQQ__QuoteLine__c
                         WHERE SBQQ__Quote__c = :quote.Id];
 
@@ -877,9 +879,9 @@ public with sharing class PrimaryQuoteController {
                                             WHERE SBQQ__Opportunity2__c = :oppId
                                             AND Id != :cloneQuote.Id];
 
-        // if the new quote is an estimate, lock the documents on any prior estimate
+        // if the new quote is an estimate and not a legacy opportunity, lock the documents on any prior estimate
         // if it is a contract, lock the documents and the quote itself
-        if (cloneQuote.Stage__c == 'Estimate'){
+        if (cloneQuote.Stage__c == 'Estimate' && !parentOpp.Legacy__c){
             for (SBQQ__Quote__c prior : priorQuotes){
                 if (prior.HasDocument__c && !prior.DocumentLocked__c){
                     prior.DocumentLocked__c = true;
@@ -1071,6 +1073,7 @@ public with sharing class PrimaryQuoteController {
                 FROM Opportunity
                 WHERE QuoteType__c = 'Estimate'
                 AND Id != :currentOppId
+                AND Legacy__c = FALSE
                 ORDER BY Filtered_Job_Number__c DESC];
     }
 
@@ -1141,6 +1144,22 @@ public with sharing class PrimaryQuoteController {
         // send the user to the account to view results
         return true;
 
+    }
+
+    @AuraEnabled
+    public static Boolean recCompleteApex(String quoteId){
+
+        SBQQ__Quote__c quote = new SBQQ__Quote__c();
+        quote.Id = quoteId;
+        quote.SBQQ__Status__c = 'Reconciliation - completed';
+        quote.Locked__c = true;
+
+        Database.SaveResult quoteSaveResult = Database.update(quote);
+        if(quoteSaveResult.isSuccess()){
+            return true;
+        } else {
+            return false;
+        }
     }
 
 

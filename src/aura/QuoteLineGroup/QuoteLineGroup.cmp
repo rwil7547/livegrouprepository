@@ -22,7 +22,7 @@
     <aura:handler event="c:InsertProductsResponse" action="{!c.handleAddLinesResponse}" />
     <aura:handler event="c:GroupResponsePending" action="{!c.responsePending}"/>
     <aura:handler name="clonedLine" event="c:ClonedLine" action="{!c.handleLineCloned}" />
-	<aura:handler event="c:LineChangeResponse" action="{!c.checkGroupSize}" />
+	<aura:handler event="c:LineChangeResponse" action="{!c.handleLineDelete}" />
     <aura:handler name="lineItemChange" event="c:LineItemChange" action="{!c.handleLineChange}"/>
 	<aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
     <!---->

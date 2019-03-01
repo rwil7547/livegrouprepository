@@ -80,10 +80,9 @@ public class QuotePreviewController {
                     (SELECT Name, SBQQ__ProductFamily__c, SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
                             SBQQ__Group__r.Name, SBQQ__Quantity__c, Days__c, SBQQ__SubscriptionTerm__c, Ancestor__c,
                             AncestorDescription__c, AncestorQuantity__c, AncestorDays__c, AncestorPrice__c, AncestorTotal__c,
-                            Changed__c, FiguresChanged__c, SBQQ__Optional__c
+                            Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c
                      FROM SBQQ__LineItems__r
-//                     ORDER BY SBQQ__Number__c ASC),
-                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c ASC),
+                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c,SBQQ__Number__c ASC),
                     (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
@@ -133,7 +132,6 @@ public class QuotePreviewController {
             trackChanges = false;
         }
 
-        Set<Id> currentIds  = new Set<Id>();
         Set<Id> ancestorIds = new Set<Id>();
 
         // establish maps to hold values for line items, line item count and group total values
@@ -143,7 +141,6 @@ public class QuotePreviewController {
                                                     WHERE SBQQ__Quote__c = :quote.Id]) {
                 Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                 changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
-                changeMap.put('Added', new List<SBQQ__QuoteLine__c>());
                 changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
                 groupMap.put(lineGroup.Name, changeMap);
                 groupSummary.put(lineGroup.Name, 0);
@@ -157,7 +154,6 @@ public class QuotePreviewController {
 
                     Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     optionalChangeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
-                    optionalChangeMap.put('Added', new List<SBQQ__QuoteLine__c>());
                     optionalChangeMap.put('Default', new List<SBQQ__QuoteLine__c>());
                     optionalGroupMap.put(lineGroup.Name, optionalChangeMap);
                     optionalGroupSummary.put(lineGroup.Name, 0);
@@ -170,7 +166,6 @@ public class QuotePreviewController {
                     Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
                     changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
-                    changeMap.put('Added', new List<SBQQ__QuoteLine__c>());
                     groupMap.put(line.SBQQ__ProductFamily__c, changeMap);
                 }
                 if (!groupSummary.containsKey(line.SBQQ__ProductFamily__c)) {
@@ -194,7 +189,6 @@ public class QuotePreviewController {
 
         Map<String, List<SBQQ__QuoteLine__c>> ungroupedMap = new Map<String, List<SBQQ__QuoteLine__c>>();
         ungroupedMap.put('Default', new List<SBQQ__QuoteLine__c>());
-        ungroupedMap.put('Added', new List<SBQQ__QuoteLine__c>());
         ungroupedMap.put('Removed', new List<SBQQ__QuoteLine__c>());
 
         groupMap.put('Ungrouped', ungroupedMap);
@@ -215,7 +209,8 @@ public class QuotePreviewController {
 
                     if (line.SBQQ__Group__c == null || line.SBQQ__Group__r.Name == null){
                         if (line.Ancestor__c == null && trackChanges){
-                            groupMap.get('Ungrouped').get('Added').add(line);
+                            line.Added__c = true;
+                            groupMap.get('Ungrouped').get('Default').add(line);
                         } else {
                             groupMap.get('Ungrouped').get('Default').add(line);
                             ancestorIds.add(line.Ancestor__c);
@@ -243,7 +238,8 @@ public class QuotePreviewController {
                         }
 
                         if (line.Ancestor__c == null && trackChanges){
-                            groupMap.get(line.SBQQ__Group__r.Name).get('Added').add(line);
+                            line.Added__c = true;
+                            groupMap.get(line.SBQQ__Group__r.Name).get('Default').add(line);
                         } else {
                             groupMap.get(line.SBQQ__Group__r.Name).get('Default').add(line);
                             ancestorIds.add(line.Ancestor__c);
@@ -268,7 +264,8 @@ public class QuotePreviewController {
             for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
                 if (!line.SBQQ__Optional__c) {
                     if (line.Ancestor__c == null && trackChanges) {
-                        groupMap.get(line.SBQQ__ProductFamily__c).get('Added').add(line);
+                        line.Added__c = true;
+                        groupMap.get(line.SBQQ__ProductFamily__c).get('Default').add(line);
                     } else {
 
                         if (changeMap != null && changeMap.containsKey(line.Ancestor__c)) {
@@ -316,7 +313,6 @@ public class QuotePreviewController {
                         } else {
                             Map<String, List<SBQQ__QuoteLine__c>> deletedGroupedMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                             deletedGroupedMap.put('Default', new List<SBQQ__QuoteLine__c>());
-                            deletedGroupedMap.put('Added', new List<SBQQ__QuoteLine__c>());
                             deletedGroupedMap.put('Removed', new List<SBQQ__QuoteLine__c>());
                             groupMap.put(line.SBQQ__Group__r.Name, deletedGroupedMap);
                             groupSummary.put(line.SBQQ__Group__r.Name, 0);
@@ -324,7 +320,17 @@ public class QuotePreviewController {
                             groupMap.get(line.SBQQ__Group__r.Name).get('Removed').add(line);
                         }
                     } else {
-                        groupMap.get(line.SBQQ__ProductFamily__c).get('Removed').add(line);
+                        if (groupMap.containsKey(line.SBQQ__ProductFamily__c)){
+                            groupMap.get(line.SBQQ__ProductFamily__c).get('Removed').add(line);
+                        } else {
+                            Map<String, List<SBQQ__QuoteLine__c>> deletedFamilyMap = new Map<String, List<SBQQ__QuoteLine__c>>();
+                            deletedFamilyMap.put('Default', new List<SBQQ__QuoteLine__c>());
+                            deletedFamilyMap.put('Removed', new List<SBQQ__QuoteLine__c>());
+                            groupMap.put(line.SBQQ__ProductFamily__c, deletedFamilyMap);
+                            groupSummary.put(line.SBQQ__ProductFamily__c, 0);
+                            groupLineCount.put(line.SBQQ__ProductFamily__c, 0);
+                            groupMap.get(line.SBQQ__ProductFamily__c).get('Removed').add(line);
+                        }
                     }
                 }
             }
@@ -334,13 +340,9 @@ public class QuotePreviewController {
             if (groupMap.get(groupKey).get('Default').isEmpty()){
                 groupMap.get(groupKey).remove('Default');
             }
-            if (groupMap.get(groupKey).get('Added').isEmpty()){
-                groupMap.get(groupKey).remove('Added');
-            }
             if (groupMap.get(groupKey).get('Removed').isEmpty()){
                 groupMap.get(groupKey).remove('Removed');
             }
-
             if (groupMap.get(groupKey).isEmpty()){
                 groupMap.remove(groupKey);
                 groupSummary.remove(groupKey);
@@ -350,9 +352,6 @@ public class QuotePreviewController {
 
         if (showOptionals){
             for (String optionalKey : optionalGroupMap.keySet()){
-
-                system.debug('assessing whether to remove ' + optionalKey + ' :' +
-                optionalGroupMap.get(optionalKey));
                 if (optionalGroupMap.get(optionalKey).get('Default').isEmpty()){
                     optionalGroupMap.remove(optionalKey);
                     optionalGroupSummary.remove(optionalKey);

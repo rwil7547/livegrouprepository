@@ -343,7 +343,13 @@
         }
     },
     clearOpportunity : function(component, event, helper){
+
+	    console.log('trying to select');
+
         if (!component.get('v.cloneDisabled')) {
+            console.log('should select');
+
+
             document.getElementById('opplistInput').value = null;
             document.getElementById('listInputBox').style.display = 'none';
             document.getElementById('thisOpportunity').checked = true;
@@ -384,7 +390,7 @@
             });
         } else {
             oppId   = component.get('v.recordId');
-            if (component.get('v.quote.Legacy__c')){
+            if (component.get('v.quote.SBQQ__Opportunity2__r.Legacy__c')){
                 type = 'Estimate';
             } else {
                 type = component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c');
@@ -459,6 +465,14 @@
                 quote.SBQQ__Opportunity2__r.UnassignedExpenses__c = response.getReturnValue()['SBQQ__Opportunity2__r.UnassignedExpenses__c'];
                 quote.SBQQ__Opportunity2__r.Quote_Status__c = response.getReturnValue()['SBQQ__Opportunity2__r.Quote_Status__c'];
                 component.set('v.quote', component.get('v.quote'));
+
+                if (!component.get('v.revEditable') && !quote.HasDocument__c){
+                    component.set('v.revEditable',true);
+                    helper.getProducts(component);
+                    helper.getDocumentInfo(component);
+                } else if (component.get('v.revEditable') && quote.HasDocument__c){
+                    component.set('v.revEditable',false);
+                }
 
                 var groups = component.get('v.groups');
                 if (groups){
@@ -606,6 +620,29 @@
             }
         });
         $A.enqueueAction(changeSortOrder);
+    },
+    recComplete : function(component, event, helper){
+
+        component.set('v.responsePending',true);
+        var recComplete = component.get('c.recCompleteApex');
+        recComplete.setParams({
+            quoteId : component.get('v.quote.Id')
+        });
+        recComplete.setCallback(this, function(response){
+            component.set('v.responsePending',false);
+            if (response.getState() === "SUCCESS" && response.getReturnValue()){
+                helper.showToast('Success!', 'Quote set to Reconciliation - completed','success');
+                console.log('firing refresh event');
+                var refresh = $A.get("e.c:Refresh");
+                refresh.setParams({
+                    id : component.get('v.quote.Id')
+                });
+                refresh.fire();
+            } else {
+                helper.showToast('Error', 'There was an error updating the quote', 'error');
+            }
+        });
+        $A.enqueueAction(recComplete);
     },
     exportQuote : function(component, event, helper){
 

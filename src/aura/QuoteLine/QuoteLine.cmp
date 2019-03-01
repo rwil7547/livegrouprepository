@@ -34,7 +34,7 @@
             <div class="paddedCol">
                 <div style="font-weight:bold;font-size:14px;display:flex;">
                     <div>{!(v.optional ? 'OPTIONAL: ' + v.line.SBQQ__Product__r.Name
-                        : v.line.SBQQ__Product__r.Name)}</div> {!v.line.SBQQ__Group__c}
+                        : v.line.SBQQ__Product__r.Name)}</div>
                 </div>
                 <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
                     <div draggable="false" onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}">

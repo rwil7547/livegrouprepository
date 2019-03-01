@@ -109,6 +109,9 @@
         component.set('v.lines', newLines);
     },
     handleLineChange : function(component, event, helper){
+
+        console.log('handling a line change');
+
         if (event.getParam('operation') === 'update'){
             var lines = component.get('v.lines');
             var lineUpdate = event.getParam('line');
@@ -120,6 +123,9 @@
             component.set('v.lines',lines);
 
         } else if (event.getParam('operation') === 'delete'){
+
+            console.log('assessing if delete');
+
             if (!component.get('v.customGroup')){
                 if (component.get('v.lines').length === 0){
                     component.destroy();
@@ -127,15 +133,26 @@
             }
         }
     },
-    checkGroupSize : function(component, event, helper){
-        if (event.getParam('operation') === 'delete' && component.get('v.lines').length === 1){
-            if (component.get('v.lines')[0].Id === event.getParam('originalId')){
-                if (!component.get('v.customGroup')){
-                    component.destroy();
-                } else {
-                    component.set('v.lines',[]);
+    handleLineDelete : function(component, event, helper){
+
+        if (event.getParam('operation') === 'delete'){
+
+            var lines = component.get('v.lines');
+            var newLines = [];
+
+            for (var x = 0; x < lines.length; x++){
+                newLines.push(lines[x]);
+                if (lines[x].Id === event.getParam('originalId')){
+                    newLines.splice(x,1);
+                    component.set('v.lines', newLines);
+                    break;
                 }
             }
+
+            if (!component.get('v.customGroup') && component.get('v.lines').length === 0){
+                component.destroy();
+            }
+
         }
     },
     responsePending : function(component, event, helper){
@@ -207,9 +224,6 @@
                 component.set('v.lines',lines);
                 helper.getTotals(component);
             }
-
         }
-
-
     }
 })

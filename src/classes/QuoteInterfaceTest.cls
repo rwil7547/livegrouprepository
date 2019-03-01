@@ -31,62 +31,45 @@ public class QuoteInterfaceTest {
         defaultPricebook.Name       = 'Default';
         insert defaultPricebook;
 
-        // insert two products
-        Product2 product1       = new Product2();
-        product1.Name           = 'product1';
-        product1.Description    = 'product1';
-        product1.Family         = 'family1';
-        product1.IsActive       = true;
-        insert product1;
+        // insert 6 products with prices and unit costs
+        List<Product2> products     = new List<Product2>();
+        List<PricebookEntry> prices = new List<PricebookEntry>();
+        List<SBQQ__Cost__c> costs   = new List<SBQQ__Cost__c>();
 
-        Product2 product2       = new Product2();
-        product2.Name           = 'product2';
-        product2.Description    = 'product2';
-        product2.Family         = 'family2';
-        product2.IsActive       = true;
-        insert product2;
+        for (Integer x = 0; x < 6; x++){
+            Product2 product       = new Product2();
+            product.Name           = 'product' + x;
+            product.Description    = 'product' + x;
+            product.Family         = 'family' + x;
+            product.IsActive       = true;
+            products.add(product);
+        }
 
-        // insert two standard price book entries
-        PricebookEntry standardEntry1   = new PricebookEntry();
-        standardEntry1.UnitPrice        = 100;
-        standardEntry1.Pricebook2Id     = Test.getStandardPricebookId();
-        standardEntry1.Product2Id       = product1.Id;
-        insert standardEntry1;
+        insert products;
 
-        PricebookEntry standardEntry2   = new PricebookEntry();
-        standardEntry2.UnitPrice        = 100;
-        standardEntry2.Pricebook2Id     = Test.getStandardPricebookId();
-        standardEntry2.Product2Id       = product2.Id;
-        insert standardEntry2;
+        for (Integer x = 0; x < 6; x++){
+            PricebookEntry standardEntry   = new PricebookEntry();
+            standardEntry.UnitPrice        = 100;
+            standardEntry.Pricebook2Id     = Test.getStandardPricebookId();
+            standardEntry.Product2Id       = products[x].Id;
+            prices.add(standardEntry);
 
-        // insert two price book entries
-        PricebookEntry entry1   = new PricebookEntry();
-        entry1.UnitPrice        = 100;
-        entry1.Pricebook2Id     = defaultPricebook.Id;
-        entry1.Product2Id       = product1.Id;
-        entry1.UseStandardPrice = false;
-        insert entry1;
+            PricebookEntry defaultEntry   = new PricebookEntry();
+            defaultEntry.UnitPrice        = 100;
+            defaultEntry.Pricebook2Id     = defaultPricebook.Id;
+            defaultEntry.Product2Id       = products[x].Id;
+            defaultEntry.UseStandardPrice = false;
+            prices.add(defaultEntry);
 
-        PricebookEntry entry2   = new PricebookEntry();
-        entry2.UnitPrice        = 100;
-        entry2.Pricebook2Id     = defaultPricebook.Id;
-        entry2.Product2Id       = product2.Id;
-        entry2.UseStandardPrice = false;
-        insert entry2;
+            SBQQ__Cost__c cost     = new SBQQ__Cost__c();
+            cost.SBQQ__UnitCost__c = 50;
+            cost.SBQQ__Active__c   = true;
+            cost.SBQQ__Product__c  = products[x].Id;
+            costs.add(cost);
+        }
 
-
-        // insert two unit costs
-        SBQQ__Cost__c cost1     = new SBQQ__Cost__c();
-        cost1.SBQQ__UnitCost__c = 50;
-        cost1.SBQQ__Active__c   = true;
-        cost1.SBQQ__Product__c  = product1.Id;
-        insert cost1;
-
-        SBQQ__Cost__c cost2     = new SBQQ__Cost__c();
-        cost2.SBQQ__UnitCost__c = 50;
-        cost2.SBQQ__Active__c   = true;
-        cost2.SBQQ__Product__c  = product2.Id;
-        insert cost2;
+        insert prices;
+        insert costs;
 
         // insert 5 expenses assigned to the opportunity
         for (Integer x = 0; x < 5; x++){
@@ -117,7 +100,7 @@ public class QuoteInterfaceTest {
 
         // retrieve products available
         List<Product2> products = PrimaryQuoteController.getProductsApex();
-        System.assertEquals(2, products.size());
+        System.assertEquals(6, products.size());
 
         // retrieve families available
         List<String> families = PrimaryQuoteController.getFamilies();
@@ -363,7 +346,7 @@ public class QuoteInterfaceTest {
     }
 
     @IsTest
-    public static void testDocPreviewContractAmendment(){
+    public static void testDocPreviewContractAmendmentOptionals(){
         Opportunity opp = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1];
 
         // attempt to insert a new quote
@@ -372,7 +355,7 @@ public class QuoteInterfaceTest {
 
         // test insert four ungrouped lines
         List<Product2> products = [SELECT Id FROM Product2];
-        List<String> productIds = new List<String>{products[0].Id,products[1].Id};
+        List<String> productIds = new List<String>{products[0].Id,products[1].Id,products[2].Id,products[3].Id,products[4].Id};
         PrimaryQuoteController.insertUngroupedLinesApex(quoteId,productIds);
 
         opp.StageName = 'Closed Won';
@@ -384,19 +367,16 @@ public class QuoteInterfaceTest {
 
         List<SBQQ__Quote__c> amendments = PrimaryQuoteController.getQuoteApex(opp.Id, 'default');
 
-        Test.startTest();
+//        Test.startTest();
         PrimaryQuoteController.insertUngroupedLinesApex(amendments[0].Id,productIds);
+
+        Test.startTest();
 
         List<SBQQ__QuoteLine__c> returnedLines = [SELECT Id, SBQQ__UnitCost__c, SBQQ__Optional__c, SBQQ__Number__c
                                                     FROM SBQQ__QuoteLine__c
-                                                    WHERE SBQQ__Quote__c = :quoteId
+                                                    WHERE SBQQ__Quote__c = :amendments[0].Id
                                                     ORDER BY CreatedDate ASC];
 
-        returnedLines[0].SBQQ__Description__c   = 'xxx';
-        returnedLines[0].SBQQ__Quantity__c      = 20;
-        PrimaryQuoteController.changeLineApex(returnedLines[0],'save');
-        PrimaryQuoteController.changeLineApex(returnedLines[0],'clone');
-        PrimaryQuoteController.changeLineApex(returnedLines[1],'delete');
 
         PageReference pdf = Page.QuotePreview;
 
@@ -412,11 +392,19 @@ public class QuoteInterfaceTest {
         pdf.getParameters().put('tnc','false');
         Test.setCurrentPage(pdf);
 
-        QuotePreviewController qpcUngrouped = new QuotePreviewController();
+//        QuotePreviewController qpcUngrouped = new QuotePreviewController();
 
         PrimaryQuoteController.groupLinesApex(amendments[0].Id);
         returnedLines[0].SBQQ__Group__c         = null;
         PrimaryQuoteController.changeLineApex(returnedLines[0],'save');
+        returnedLines[3].SBQQ__Optional__c      = true;
+        PrimaryQuoteController.changeLineApex(returnedLines[1],'delete');
+        PrimaryQuoteController.changeLineApex(returnedLines[2],'clone');
+        PrimaryQuoteController.changeLineApex(returnedLines[3],'optional');
+        returnedLines[4].SBQQ__Description__c   = 'xxx';
+        returnedLines[4].SBQQ__Quantity__c      = 50;
+        PrimaryQuoteController.changeLineApex(returnedLines[4],'save');
+
         QuotePreviewController qpcGrouped = new QuotePreviewController();
 
         Test.stopTest();
@@ -480,7 +468,7 @@ public class QuoteInterfaceTest {
     }
 
     @IsTest
-    public static void testDocument(){
+    public static void testDocumentSaveAndDelete(){
         String oppId = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1].Id;
 
         // attempt to insert a new quote
@@ -500,6 +488,26 @@ public class QuoteInterfaceTest {
         // test save document
         Boolean saveDocumentResponse = PrimaryQuoteController.saveDocumentApex(quoteId, oppId,
                                         userId, contactId,'proposal text', 'false', 'false', 'false', 'false', 'false');
+
+        List<SBQQ__Quote__c> listViewResponse = QuoteListViewController.getQuotes(oppId);
+
+        Boolean deleteDocumentResponse = QuoteListViewController.deleteDocumentApex(listViewResponse[0].SBQQ__R00N70000001lX7YEAU__r[0].SBQQ__DocumentId__c);
+
+    }
+
+    @IsTest
+    public static void testQuoteListViewGetQuotes() {
+
+        String oppId = [SELECT Id FROM Opportunity WHERE Name = 'QuoteTestOpportunity' LIMIT 1].Id;
+
+        // attempt to insert a new quote
+        PrimaryQuoteController.createNewEstimateApex(oppId);
+
+        // attempt to insert a new quote
+        PrimaryQuoteController.createNewEstimateApex(oppId);
+
+        List<SBQQ__Quote__c> listViewResponse = QuoteListViewController.getQuotes(oppId);
+        System.assertEquals(2,listViewResponse.size());
 
     }
 
