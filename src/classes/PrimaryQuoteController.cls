@@ -9,15 +9,17 @@ public with sharing class PrimaryQuoteController {
 
         String quoteQuery = (quoteId != 'default') ? ' AND Id = :quoteId ' : '';
 
-        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, SBQQ__Opportunity2__r.Legacy__c, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, ' +
+        return (List<SBQQ__Quote__c>) Database.query('SELECT Id, SBQQ__Opportunity2__r.Legacy__c, Version__c, ' +
+                        'SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, CreatedDate,' +
                         'Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__PriceBook__c, HasDocument__c, Locked__c, ' +
                         'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
-                        'SBQQ__Opportunity2__r.SBQQ__Contracted__c, SBQQ__Opportunity2__r.Reconciling__c, ' +
+                        'SBQQ__Opportunity2__r.Contracted__c, SBQQ__Opportunity2__r.Reconciling__c, ' +
                         'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, ' +
                         'SBQQ__Opportunity2__r.StageName, SBQQ__Opportunity2__r.Committed__c, Event_End__c, ' +
                         'SBQQ__Opportunity2__r.Quickbooks_COS__c, SBQQ__Opportunity2__r.COSRemaining__c, ' +
                         'SBQQ__Opportunity2__r.UnassignedExpenses__c,SBQQ__Opportunity2__r.Quote_Status__c,' +
+                        'SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c,' +
                         'SBQQ__Opportunity2__r.Percent_Invoiced__c, SBQQ__Opportunity2__r.Invoice_Status__c,' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
@@ -94,7 +96,8 @@ public with sharing class PrimaryQuoteController {
                         (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Group__c,
                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c
+                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c,
+                            SBQQ__AdditionalDiscountAmount__c
                         FROM SBQQ__LineItems__r
                         ORDER BY SBQQ__Number__c ASC)
                     FROM SBQQ__QuoteLineGroup__c
@@ -106,7 +109,8 @@ public with sharing class PrimaryQuoteController {
             for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                     SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Number__c, SBQQ__Group__c,
                                                     SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                                    SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
+                                                    SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                                                    SBQQ__AdditionalDiscountAmount__c
                                             FROM SBQQ__QuoteLine__c
                                             WHERE SBQQ__Quote__c = :Id
                                             ORDER BY SBQQ__Number__c ASC]){
@@ -214,7 +218,8 @@ public with sharing class PrimaryQuoteController {
                                             SBQQ__Quantity__c, SBQQ__Group__c,
                                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c,
                                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Quote__c
+                                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Quote__c,
+                                            SBQQ__AdditionalDiscountAmount__c
                                         FROM SBQQ__QuoteLine__c
                                         WHERE Id = :line.Id
                                         LIMIT 1 FOR UPDATE];
@@ -313,7 +318,8 @@ public with sharing class PrimaryQuoteController {
                                                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c,
                                                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
+                                                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                                                        SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c
                                                 FROM SBQQ__LineItems__r)
                                                 FROM SBQQ__QuoteLineGroup__c
                                                 WHERE Id = :groupId];
@@ -348,7 +354,8 @@ public with sharing class PrimaryQuoteController {
                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
+                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                        SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c
                 FROM SBQQ__LineItems__r)
                 FROM SBQQ__QuoteLineGroup__c
                 WHERE Id = :cloneGroup.Id];
@@ -527,7 +534,6 @@ public with sharing class PrimaryQuoteController {
         }
     }
 
-
     @AuraEnabled
     public static Boolean insertUngroupedLinesApex(String quoteId, List<String> productIds){
 
@@ -639,6 +645,19 @@ public with sharing class PrimaryQuoteController {
 
 
     @AuraEnabled
+    public static String convertToContractApex(String quoteId){
+
+        SBQQ__Quote__c quote = [SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
+                                        Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
+                                        Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c,
+                                        SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c
+                                FROM SBQQ__Quote__c
+                                WHERE Id = :quoteId];
+
+        return createContractsApex(new List<SBQQ__Quote__c>{quote});
+    }
+
+    @AuraEnabled
     public static String createContractsApex(List<SBQQ__Quote__c> quotes){
 
         String result   = 'error';
@@ -701,7 +720,8 @@ public with sharing class PrimaryQuoteController {
                                                 SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                 SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
-                                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
+                                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c, SBQQ__Optional__c,
+                                                SBQQ__AdditionalDiscountAmount__c
                                         FROM SBQQ__QuoteLine__c
                                         WHERE SBQQ__Quote__c IN :quoteIds]){
 
@@ -727,7 +747,7 @@ public with sharing class PrimaryQuoteController {
 
         List<Opportunity> opps = [SELECT Id, SBQQ__PrimaryQuote__c FROM Opportunity WHERE Id IN : oppIds];
         for (Opportunity opp : opps){
-            opp.SBQQ__Contracted__c = true;
+            opp.Contracted__c = true;
             opp.SBQQ__PrimaryQuote__c = newPrimaryMap.get(opp.Id);
         }
 
@@ -754,7 +774,7 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
-        Opportunity parentOpp = [SELECT Id, Event_end__c, SBQQ__Contracted__c, Reconciling__c, Name, Legacy__c,
+        Opportunity parentOpp = [SELECT Id, Event_end__c, Contracted__c, Reconciling__c, Name, Legacy__c,
                                     (SELECT Version__c FROM SBQQ__Quotes2__r
                                     WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
                                 FROM Opportunity WHERE Id = :oppId];
@@ -828,10 +848,10 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> originalLines =
                         [SELECT Id, SBQQ__Quote__c, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
-                                SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
+                                SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c, SBQQ__Optional__c,
                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                 SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
-                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c
+                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c, SBQQ__AdditionalDiscountAmount__c
                         FROM SBQQ__QuoteLine__c
                         WHERE SBQQ__Quote__c = :quote.Id];
 

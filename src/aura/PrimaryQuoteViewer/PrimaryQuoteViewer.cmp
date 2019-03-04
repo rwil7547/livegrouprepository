@@ -53,7 +53,7 @@
     <force:recordData aura:id="forceRecordCmp"
         recordId="{!v.recordId}"
         layoutType="FULL"
-        fields="StageName,QuoteType__c,SBQQ__Contracted__c,Committed__c,Reconciling__c,Invoice_Status__c"
+        fields="StageName,QuoteType__c,Contracted__c,Committed__c,Reconciling__c,Invoice_Status__c,SBQQ__PrimaryQuote__c"
         targetFields="{!v.opportunity}"
         mode="VIEW"
         targetError="{!v.error}" />
@@ -81,7 +81,7 @@
                                     <lightning:button variant="neutral" label="{!'RECONCILE (' + v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c + ')'}" onclick="{!c.openReconcile}" class="slds-truncate"/>
                                 </aura:if>
                                 <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
-                                    <lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>
+                                    <!--<lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>-->
                                     <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
                                         <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
                                         <lightning:button variant="neutral" label="GROUP" onclick="{!c.groupQuote}" class="slds-truncate"/>
@@ -100,6 +100,9 @@
                                 </aura:if>
                                 <aura:if isTrue="{!and(v.opportunity.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c, v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed')}">
                                     <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
+                                </aura:if>
+                                <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
+                                    <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
                                 </aura:if>
 
                             </aura:set>

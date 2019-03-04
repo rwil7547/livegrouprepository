@@ -80,9 +80,10 @@ public class QuotePreviewController {
                     (SELECT Name, SBQQ__ProductFamily__c, SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
                             SBQQ__Group__r.Name, SBQQ__Quantity__c, Days__c, SBQQ__SubscriptionTerm__c, Ancestor__c,
                             AncestorDescription__c, AncestorQuantity__c, AncestorDays__c, AncestorPrice__c, AncestorTotal__c,
-                            Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c
+                            Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c,SBQQ__AdditionalDiscountAmount__c
                      FROM SBQQ__LineItems__r
-                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c,SBQQ__Number__c ASC),
+//                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c,SBQQ__Number__c ASC),
+                     ORDER BY CreatedDate,SBQQ__Number__c ASC),
                     (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
@@ -138,7 +139,8 @@ public class QuotePreviewController {
         if (quote.SBQQ__LineItemsGrouped__c) {
             for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Name, AncestorName__c
                                                     FROM SBQQ__QuoteLineGroup__c
-                                                    WHERE SBQQ__Quote__c = :quote.Id]) {
+                                                    WHERE SBQQ__Quote__c = :quote.Id
+                                                    ORDER BY CreatedDate DESC]) {
                 Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                 changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
                 changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
@@ -364,6 +366,7 @@ public class QuotePreviewController {
             invoices = [SELECT Id, Amount__c, Send_Date__c, Invoice_Sent__c, Invoice_Paid__c, Status2__c
                         FROM Invoice_Schedule__c WHERE Opportunity__c = :quote.SBQQ__Opportunity2__c
                         ORDER BY Invoice_Id__c ASC];
+
         }
 
         if (quote.Stage__c == 'Estimate'){

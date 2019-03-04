@@ -328,13 +328,14 @@ public class SalesDashboardTest {
 
         update oppToDateChange;
 
-        // set opp to won
-        Opportunity oppToWin = [SELECT Id, Event_end__c, Amount, Forecast_COS__c, StageName
-            FROM Opportunity WHERE StageName != 'Closed Won' AND Event_end__c > :Date.today() LIMIT 1];
-
-        oppToWin.StageName = 'Closed Won';
-
-        update oppToWin;
+        // REMOVED DUE TO NEW VALIDATION RULE PREVENTING CHANGES TO OPP STATUS ONCE CLOSED LOST
+//        // set opp to won
+//        Opportunity oppToWin = [SELECT Id, Event_end__c, Amount, Forecast_COS__c, StageName
+//            FROM Opportunity WHERE StageName != 'Closed Won' AND Event_end__c > :Date.today() LIMIT 1];
+//
+//        oppToWin.StageName = 'Closed Won';
+//
+//        update oppToWin;
 
         String startDate    = String.valueOf(Date.today().addMonths(-20));
         String endDate      = String.valueOf(Date.today().addMonths(20));

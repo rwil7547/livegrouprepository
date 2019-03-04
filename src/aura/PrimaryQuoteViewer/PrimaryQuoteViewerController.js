@@ -1,5 +1,5 @@
 ({
-	doInit : function(component, event, helper) {
+    doInit : function(component, event, helper) {
         helper.getQuote(component, 'default', false);
         component.set('v.ready',true);
     },
@@ -9,18 +9,18 @@
             helper.getQuote(component, event.getParam('quoteId'), false);
         }
     },
-    showModal : function(component,event,helper){        
+    showModal : function(component,event,helper){
         var modal = component.find("selectorModal");
         $A.util.toggleClass(modal, "toggle");
-        
+
         if (event.getParam("groupId")){
             component.set('v.activeGroupId',event.getParam("groupId"));
         }
     },
-    hideModal : function(component,event,helper){        
+    hideModal : function(component,event,helper){
         var modal = component.find("selectorModal");
         $A.util.toggleClass(modal, "toggle");
-		component.set('v.activeGroupId',null);
+        component.set('v.activeGroupId',null);
     },
     editLine : function(component, event, helper){
 
@@ -55,10 +55,10 @@
 
             lineUpdate.setParams({
                 line : line,
-                operation : event.getParam('operation') 
+                operation : event.getParam('operation')
             });
             lineUpdate.setCallback(this, function(response){
-				// console.log(response.getState() + ' ' + response.getReturnValue());
+                // console.log(response.getState() + ' ' + response.getReturnValue());
                 if (response.getState() === "SUCCESS" && response.getReturnValue() !== 'error'){
                     helper.showToast('Success!', 'The quote successfully updated.','success');
                     var refresh = $A.get("e.c:Refresh");
@@ -66,7 +66,7 @@
                         id : component.get('v.quote.Id'),
                         quote : component.get('v.quote')
                     });
-                	refresh.fire();
+                    refresh.fire();
 
                     var pendingChanges = component.get('v.pendingChanges');
                     for (var x = 0; x < pendingChanges.length; x++){
@@ -85,7 +85,7 @@
                     operation : event.getParam('operation')
                 });
                 changeResponse.fire();
-                
+
             });
             $A.enqueueAction(lineUpdate);
         }
@@ -93,11 +93,11 @@
     saveAll : function(component, event, helper){
         var multipleLineUpdate = $A.get("e.c:MultipleLineUpdate");
         multipleLineUpdate.fire();
-        
+
         component.set('v.responsePending' , true);
         component.set('v.lineUpdatesPending',true);
         var pendingChanges = component.get('v.pendingChanges');
-    	var saveAllLines = component.get('c.saveAllLinesApex');
+        var saveAllLines = component.get('c.saveAllLinesApex');
         saveAllLines.setParams({
             lines : component.get('v.pendingChanges')
         });
@@ -117,36 +117,36 @@
                     changeResponse.setParams({
                         originalId : pendingChanges[x].Id,
                         response : pendingChanges[x].Id,
-                        operation : 'save' 
+                        operation : 'save'
                     });
                     changeResponse.fire();
                 }
-				component.set('v.pendingChanges',[]);
+                component.set('v.pendingChanges',[]);
             } else {
-                helper.showToast('Error', 'There was an error saving the updates', 'error');                
+                helper.showToast('Error', 'There was an error saving the updates', 'error');
             }
         });
-        $A.enqueueAction(saveAllLines);        
-	},
+        $A.enqueueAction(saveAllLines);
+    },
     groupQuote : function(component, event, helper){
         component.set('v.responsePending' , true);
-    	var groupQuote = component.get('c.groupLinesApex');
+        var groupQuote = component.get('c.groupLinesApex');
         groupQuote.setParams({ quoteId : component.get('v.quote.Id')});
         groupQuote.setCallback(this, function(response){
             if (response.getState() === 'SUCCESS' && response.getReturnValue()){
                 helper.showToast('Success!', 'The quote has been set to custom groupings','success');
                 helper.getQuote(component, component.get('v.quote.Id'), false);
             } else {
-                helper.showToast('Error', 'There was an error grouping the quote', 'error');              	    
-            }    
+                helper.showToast('Error', 'There was an error grouping the quote', 'error');
+            }
         });
-        $A.enqueueAction(groupQuote);        
+        $A.enqueueAction(groupQuote);
     },
     changeGroupName : function(component, event, helper){
         var groupNameUpdate = component.get('c.changeGroupNameApex');
         groupNameUpdate.setParams({
             Id : event.getParam('id'),
-        	name : event.getParam('name') 
+            name : event.getParam('name')
         });
         groupNameUpdate.setCallback(this, function(response){
             if (response.getState() === "SUCCESS" && response.getReturnValue() === true){
@@ -155,12 +155,12 @@
                 helper.showToast('Error', 'There was an error saving your change', 'error');
             }
         });
-        $A.enqueueAction(groupNameUpdate);                
+        $A.enqueueAction(groupNameUpdate);
     },
     addGroup : function(component,event,helper){
         var quote = component.get('v.quote');
         var groups = component.get('v.groups');
-        
+
         var addNewGroup = component.get('c.insertNewGroupApex');
         addNewGroup.setParams({
             quoteId : quote.Id,
@@ -176,7 +176,7 @@
                 helper.showToast('Error', 'There was an error adding a new quote group', 'error');
             }
         });
-        $A.enqueueAction(addNewGroup);      
+        $A.enqueueAction(addNewGroup);
     },
     deleteGroup : function(component, event, helper){
         component.set('v.lineUpdatesPending',true);
@@ -187,7 +187,7 @@
             quoteId : component.get('v.quote.Id')
         });
         deleteGroup.setCallback(this, function(response){
-            var changeResponse = $A.get("e.c:DeleteGroupResponse");            
+            var changeResponse = $A.get("e.c:DeleteGroupResponse");
             if (response.getState() === "SUCCESS" && response.getReturnValue() === true){
                 var refresh = $A.get("e.c:Refresh");
                 refresh.setParams({
@@ -196,19 +196,19 @@
                 refresh.fire();
                 changeResponse.setParams({
                     groupId : event.getParam('groupId'),
-                    result : 'success' 
+                    result : 'success'
                 });
                 helper.showToast('Success!', 'Quote group deleted','success');
             } else {
                 changeResponse.setParams({
                     groupId : event.getParam('groupId'),
-                    result : 'error' 
+                    result : 'error'
                 });
                 helper.showToast('Error', 'There was an error deleting this quote group', 'error');
-            }            
+            }
             changeResponse.fire();
         });
-        $A.enqueueAction(deleteGroup);      
+        $A.enqueueAction(deleteGroup);
     },
     insertProducts : function(component, event, helper){
         component.set('v.lineUpdatesPending',true);
@@ -227,13 +227,13 @@
         });
         removeGroups.setCallback(this, function(response){
             if (response.getState() === "SUCCESS"){
-            	helper.getQuote(component, component.get('v.quote.Id'), false);
-                helper.showToast('Success!', 'Custom groupings have been removed from the quote','success');        		
+                helper.getQuote(component, component.get('v.quote.Id'), false);
+                helper.showToast('Success!', 'Custom groupings have been removed from the quote','success');
             } else {
                 helper.showToast('Error', 'There was an error removing custom groupings from the quote', 'error');
             }
         });
-        $A.enqueueAction(removeGroups);        
+        $A.enqueueAction(removeGroups);
     },
     previewQuote : function(component, event, helper){
         if (!component.find('ourContact').get('v.value')){
@@ -252,24 +252,24 @@
         helper.loadPreview(component);
     },
     setPreviewChanged : function(component, event, helper){
-	    component.set('v.previewChanged',true);
+        component.set('v.previewChanged',true);
     },
     selectOption : function(component, event, helper){
-	    document.getElementById(event.target.id + 'Checkbox').checked =
+        document.getElementById(event.target.id + 'Checkbox').checked =
             !document.getElementById(event.target.id + 'Checkbox').checked;
         component.set('v.previewChanged',true);
     },
     showDocument : function(component, event, helper){
-	    var showDocument = $A.get('e.c:ShowDocument');
-	    showDocument.setParams({
+        var showDocument = $A.get('e.c:ShowDocument');
+        showDocument.setParams({
             quoteId : component.get('v.quote.Id')
         });
-	    showDocument.fire();
+        showDocument.fire();
     },
     changeTab : function(component, event, helper){
         var selectedId  = component.find('quoteTabs').get('v.selectedTabId');
-	    var previewTabs = document.getElementsByClassName('previewTab');
-	    for (var x = 0; x <previewTabs.length; x++){
+        var previewTabs = document.getElementsByClassName('previewTab');
+        for (var x = 0; x <previewTabs.length; x++){
             if (previewTabs[x].id === selectedId){
                 previewTabs[x].style.display = 'block';
             } else {
@@ -279,7 +279,7 @@
     },
     saveDocument : function(component, event, helper){
 
-	    component.find('docSavePending').getElement().style.display = 'block';
+        component.find('docSavePending').getElement().style.display = 'block';
 
         var userId 		= component.find('ourContact').get("v.value");
         var contactId 	= component.find('quoteContact').get("v.value");
@@ -322,7 +322,7 @@
 
     },
     deleteQuote : function(component, event, helper){
-		helper.deleteQuote(component);        
+        helper.deleteQuote(component);
     },
     showCloneModal : function(component){
 
@@ -344,12 +344,7 @@
     },
     clearOpportunity : function(component, event, helper){
 
-	    console.log('trying to select');
-
         if (!component.get('v.cloneDisabled')) {
-            console.log('should select');
-
-
             document.getElementById('opplistInput').value = null;
             document.getElementById('listInputBox').style.display = 'none';
             document.getElementById('thisOpportunity').checked = true;
@@ -383,10 +378,10 @@
             var jobNumber = document.getElementById('opplistInput').value.toString().substring(0,5);
             var opps = component.get('v.opportunities');
             opps.forEach(function(element){
-               if (element.Filtered_Job_Number__c == jobNumber){
-                   oppId = element.Id;
-                   type = 'Estimate';
-               }
+                if (element.Filtered_Job_Number__c == jobNumber){
+                    oppId = element.Id;
+                    type = 'Estimate';
+                }
             });
         } else {
             oppId   = component.get('v.recordId');
@@ -446,6 +441,24 @@
         });
         $A.enqueueAction(newQuote);
     },
+    convertToContract : function(component, event, helper){
+        component.set('v.responsePending',true);
+        var newContract = component.get('c.convertToContractApex');
+        newContract.setParams({
+            quoteId : component.get('v.quote.Id')
+        });
+        newContract.setCallback(this, function(response){
+            component.set('v.responsePending',false);
+
+            if (response.getState() === 'SUCCESS' && response.getReturnValue() !== 'error'){
+                helper.getQuote(component, 'default', true);
+                helper.showToast('Success!', 'New contract created','success');
+            } else {
+                helper.showToast('Error', 'There was an error creating a new contract', 'error');
+            }
+        });
+        $A.enqueueAction(newContract);
+    },
     handleRefresh : function(component, event, helper){
         var getRefresh = component.get('c.getRefreshApex');
         getRefresh.setParams({
@@ -494,12 +507,12 @@
         component.set('v.responsePending', true);
         component.set('v.lineUpdatesPending',true);
         var cloneGroup = component.get('c.cloneGroupApex');
-        cloneGroup.setParams({ 
+        cloneGroup.setParams({
             quoteId : component.get('v.quote.Id'),
             groupId : event.getParam('groupId')
         });
         cloneGroup.setCallback(this, function(response){
-			component.set('v.responsePending', false);
+            component.set('v.responsePending', false);
             if (response.getState() === 'SUCCESS' && response.getReturnValue()){
                 var groups = component.get('v.groups');
                 groups.push(response.getReturnValue());
@@ -509,10 +522,10 @@
                 refresh.setParams({
                     id : component.get('v.quote.Id')
                 });
-                refresh.fire();                
+                refresh.fire();
             } else {
-                helper.showToast('Error', 'There was an error cloning the group', 'error');                     
-            }                       
+                helper.showToast('Error', 'There was an error cloning the group', 'error');
+            }
         });
         $A.enqueueAction(cloneGroup);
     },
@@ -528,16 +541,16 @@
     undoAll : function(component, event, helper){
         var pendingChanges = component.get('v.pendingChanges');
         pendingChanges.length = 0;
-		component.set('v.pendingChanges', pendingChanges);
+        component.set('v.pendingChanges', pendingChanges);
         helper.getQuote(component, 'default', false);
     },
     setActiveExpenseId : function(component, event, hepler){
-    	component.set('v.activeExpenseId', event.getParam('expenseId'));
+        component.set('v.activeExpenseId', event.getParam('expenseId'));
     },
     updateLineId : function(component, event, helper) {
 
         var expenses    = component.get('v.expenses');
-        
+
         for (var x = 0; x < expenses.length; x++){
             if (expenses[x].Id === component.get('v.activeExpenseId')){
 
@@ -547,7 +560,7 @@
                 expenses.splice(x,1);
                 expenses.push(expense);
                 component.set('v.expenses',expenses);
-        		break;                                            
+                break;
             }
         }
 
@@ -569,13 +582,13 @@
         });
         updateExpense.setCallback(this, function(response){
             if (response.getState() === "SUCCESS" && response.getReturnValue()){
-                helper.showToast('Success!', 'Expense updated','success');        		
+                helper.showToast('Success!', 'Expense updated','success');
             } else {
                 helper.showToast('Error', 'There was an error updating the expense', 'error');
-                
+
             }
         });
-        $A.enqueueAction(updateExpense);     
+        $A.enqueueAction(updateExpense);
     },
     togglePrimary : function(component, event, helper){
         var isPrimary = (component.get('v.quote.SBQQ__Primary__c')) ? false : true;
@@ -595,12 +608,12 @@
                 refresh.setParams({
                     id : component.get('v.quote.Id')
                 });
-                refresh.fire(); 
+                refresh.fire();
             } else {
-                helper.showToast('Error', 'There was an error updating the quote', 'error');                
+                helper.showToast('Error', 'There was an error updating the quote', 'error');
             }
         });
-        $A.enqueueAction(togglePrimary);         
+        $A.enqueueAction(togglePrimary);
     },
     orderLines : function(component, event, helper){
 
@@ -653,7 +666,10 @@
         });
         if (csv == null) return;
 
-        filename = args.filename || 'QuoteExport.csv';
+        filename = args.filename ||
+            component.get('v.quote.SBQQ__Opportunity2__r.Name') + ' ' +
+            component.get('v.quote.Version__c') + '.csv';
+        //QuoteExport.csv';
 
         if (!csv.match(/^data:text\/csv/i)) {
             csv = 'data:text/csv;charset=utf-8,' + csv;

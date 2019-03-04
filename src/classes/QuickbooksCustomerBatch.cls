@@ -1,7 +1,7 @@
 public class QuickbooksCustomerBatch {
-	
+
 	private static String processAccounts(List<Account> accs){
-	
+
 		String accountString = '';
 
 		for (Integer x = 0; x < accs.size(); x++){
@@ -9,12 +9,12 @@ public class QuickbooksCustomerBatch {
 			// check for null fields in order to prevent Quickbooks fields being populated with 'null' string
 			String billingStreet 	 = (accs[x].BillingStreet == null) ? '' : accs[x].BillingStreet;
 			String billingCity 		 = (accs[x].BillingCity == null) ? '' : accs[x].BillingCity;
-			String billingCountry 	 = (accs[x].BillingCountry == null) ? '' : accs[x].BillingCountry;	
+			String billingCountry 	 = (accs[x].BillingCountry == null) ? '' : accs[x].BillingCountry;
 			String billingPostalCode = (accs[x].BillingPostalCode == null) ? '' : accs[x].BillingPostalCode;
-			String phone 			 = (accs[x].Phone == null) ? '' : accs[x].Phone;	 
+			String phone 			 = (accs[x].Phone == null) ? '' : accs[x].Phone;
 
-			// build json string of account details 
-			accountString = accountString + 
+			// build json string of account details
+			accountString = accountString +
 			'      {  '+
 			'         "bId":"bid' + String.valueof(x + 1) + '",'+
 			'         "operation":"create",'+
@@ -37,27 +37,27 @@ public class QuickbooksCustomerBatch {
 			'         }'+
 			'      }';
 
-			// add comma to json string if there are still accounts to add to the string 
+			// add comma to json string if there are still accounts to add to the string
 			if ((x +1) < accs.size()) {
 				accountString = accountString + ',';
-			}			
-		}    				    
+			}
+		}
 
 		return accountString;
-	}	
+	}
 
 	// callout to create a new customers object in Quickbooks
 	@Future(Callout=true)
     public static void createCustomers(Set<Id> accIds) {
 
-    	List<Account> accs = [SELECT Id, Name, Phone, BillingStreet, BillingCity, 
-    								 BillingCountry, BillingPostalCode		    						 
+    	List<Account> accs = [SELECT Id, Name, Phone, BillingStreet, BillingCity,
+    								 BillingCountry, BillingPostalCode
 		    				    FROM Account
-		    				    WHERE Id = :accIds];    	
+		    				    WHERE Id = :accIds];
 
 		String accountString = processAccounts(accs);
 
-		// declare batch container json string and insert accounts string 
+		// declare batch container json string and insert accounts string
 		String batchString = '{  '+
 			'   "BatchItemRequest":[  '+
 			accountString +
@@ -75,7 +75,7 @@ public class QuickbooksCustomerBatch {
 
         if (response.getStatusCode() == 200) {
         	System.debug('Response: ' + response.getBody());
-        	System.debug('Accounts: ' + accs);	
+        	System.debug('Accounts: ' + accs);
         	updateAccounts(response.getBody(), accs);
         } else {
             System.debug('The status code returned was not expected: ' +
@@ -87,9 +87,9 @@ public class QuickbooksCustomerBatch {
             error.Action__c 			= 'Attempt to insert new Customers';
             error.Outcome__c			= 'The status code returned was not expected: ' +
             								response.getStatusCode() + ' ' + response.getStatus();
-            insert error;						    	        	        
+            insert error;
         }
-    }	
+    }
 
     private static void updateAccounts(String queryResponse, List<Account> accounts){
 
@@ -113,15 +113,15 @@ public class QuickbooksCustomerBatch {
 
 						if (batchItem.Customer != null && batchItem.Customer.DisplayName != null && batchItem.Customer.Id != null) {
 							nameIdMap.put(batchItem.Customer.DisplayName, batchItem.Customer.Id);
-						}	                    
-	                    
+						}
+
 	                    // Skip the child start array and start object markers.
 	                    parser.skipChildren();
 	                }
 	            }
 	        }
 	    }
-    
+
 		for (Account acc : accounts) {
 			if (nameIdMap.containsKey(acc.Name)){
 				acc.QuickbooksId__c = nameIdMap.get(acc.Name);
@@ -133,7 +133,7 @@ public class QuickbooksCustomerBatch {
 	            error.Action__c 			= 'Attempt to retrieve Id from Quickbooks';
 	            error.Outcome__c			= 'No Id for the record returned';
 	            errors.add(error);
-			}		
+			}
 		}
 
 		update accountsToUpdate;
@@ -141,11 +141,11 @@ public class QuickbooksCustomerBatch {
     }
 
 
-    // inner classes used to parse the Json response 
+    // inner classes used to parse the Json response
 	public class cls_BatchItemResponse {
 		public cls_Customer Customer;
 		public String bId;	//bid1
-	}    
+	}
 
 	public class cls_Customer {
 		public Boolean Taxable;

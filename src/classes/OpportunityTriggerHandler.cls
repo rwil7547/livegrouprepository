@@ -223,15 +223,17 @@ public class OpportunityTriggerHandler {
 
 		List<SBQQ__Quote__c> quotesToConvert = new List<SBQQ__Quote__c>();
 
-		for (Opportunity opp : [SELECT Id, Legacy__c,
-									(SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
-											Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
-											Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c,
-											SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c
-									FROM SBQQ__Quotes2__r
-									WHERE SBQQ__Primary__c = TRUE)
-								FROM Opportunity
-								WHERE Id IN : oppIds]){
+		List<Opportunity> oppsInTrigger = [SELECT Id, Legacy__c,
+										(SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
+												Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
+												Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c,
+												SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c
+										FROM SBQQ__Quotes2__r
+										WHERE SBQQ__Primary__c = TRUE)
+										FROM Opportunity
+										WHERE Id IN : oppIds];
+
+			for (Opportunity opp : oppsInTrigger){
 			if (!opp.Legacy__c && !opp.SBQQ__Quotes2__r.isEmpty()
 					&& opp.SBQQ__Quotes2__r[0].Stage__c != 'Contract'
 					&& opp.SBQQ__Quotes2__r[0].Stage__c != 'Reconciliation'){
