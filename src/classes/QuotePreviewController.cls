@@ -5,10 +5,12 @@
 public class QuotePreviewController {
 
     public SBQQ__Quote__c quote {get; set;}
+    public List<SBQQ__QuoteLine__c> lines {get;set;}
     public String docType {get; set;}
     public String amendment {get; set;}
     public String ancestorName {get; set;}
 
+    public List<String> groups {get;set;}
     public Map<String,Map<String,List<SBQQ__QuoteLine__c>>> groupMap {get; set;}
     public Map<String,Decimal> groupSummary {get; set;}
     public Map<String,Integer> groupLineCount {get; set;}
@@ -16,6 +18,7 @@ public class QuotePreviewController {
     public Map<String,SBQQ__QuoteLine__c> changeMap {get; set;}
     public Map<String,String> groupAncestorMap {get;set;}
 
+    public List<String> optionalGroups {get;set;}
     public Map<String,Map<String,List<SBQQ__QuoteLine__c>>> optionalGroupMap {get; set;}
     public Map<String,Decimal> optionalGroupSummary {get; set;}
     public Map<String,Integer> optionalLineCount {get; set;}
@@ -77,26 +80,29 @@ public class QuotePreviewController {
                         SBQQ__Opportunity2__r.Filtered_Job_Number__c, Stage__c, Ancestor__c, Proposal_Introduction__c,
                         SBQQ__NetAmount__c, Optional_total__c, SBQQ__Opportunity2__r.Venue__c, SBQQ__Opportunity2__r.Location__c,
                         SBQQ__Opportunity2__r.Event_start__c, SBQQ__Opportunity2__r.Event_end__c,
-                    (SELECT Name, SBQQ__ProductFamily__c, SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
-                            SBQQ__Group__r.Name, SBQQ__Quantity__c, Days__c, SBQQ__SubscriptionTerm__c, Ancestor__c,
-                            AncestorDescription__c, AncestorQuantity__c, AncestorDays__c, AncestorPrice__c, AncestorTotal__c,
-                            Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c,SBQQ__AdditionalDiscountAmount__c
-                     FROM SBQQ__LineItems__r
-//                     ORDER BY SBQQ__Group__r.CreatedDate, SBQQ__ProductFamily__c,SBQQ__Number__c ASC),
-                     ORDER BY CreatedDate,SBQQ__Number__c ASC),
-                    (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r)
+                    (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r ORDER BY SBQQ__Number__c)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
+
+        lines = [SELECT Name, SBQQ__ProductFamily__c, SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                SBQQ__Group__r.Name, SBQQ__Quantity__c, Days__c, SBQQ__SubscriptionTerm__c, Ancestor__c,
+                AncestorDescription__c, AncestorQuantity__c, AncestorDays__c, AncestorPrice__c, AncestorTotal__c,
+                Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c,SBQQ__AdditionalDiscountAmount__c
+                FROM SBQQ__QuoteLine__c
+                WHERE SBQQ__Quote__c = :quote.Id
+                ORDER BY SBQQ__Number__c ASC];
 
         quote.Proposal_Introduction__c = ApexPages.currentPage().getParameters().get('text');
 
         docType = quote.Stage__c;
 
+        groups          = new List<String>();
         groupMap        = new Map<String,Map<String,List<SBQQ__QuoteLine__c>>>();
         groupSummary    = new Map<String,Decimal>();
         groupLineCount  = new Map<String,Integer>();
 
         if (showOptionals){
+            optionalGroups        = new List<String>();
             optionalGroupMap      = new Map<String,Map<String,List<SBQQ__QuoteLine__c>>>();
             optionalGroupSummary  = new Map<String,Decimal>();
             optionalLineCount     = new Map<String,Integer>();
@@ -140,7 +146,8 @@ public class QuotePreviewController {
             for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Name, AncestorName__c
                                                     FROM SBQQ__QuoteLineGroup__c
                                                     WHERE SBQQ__Quote__c = :quote.Id
-                                                    ORDER BY CreatedDate DESC]) {
+                                                    ORDER BY CreatedDate ASC]) {
+                groups.add(lineGroup.Name);
                 Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                 changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
                 changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
@@ -153,7 +160,7 @@ public class QuotePreviewController {
                 }
 
                 if (showOptionals){
-
+                    optionalGroups.add(lineGroup.Name);
                     Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     optionalChangeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
                     optionalChangeMap.put('Default', new List<SBQQ__QuoteLine__c>());
@@ -163,28 +170,25 @@ public class QuotePreviewController {
                 }
             }
         } else {
-            for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r) {
-                if (!groupMap.containsKey(line.SBQQ__ProductFamily__c)) {
-                    Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
-                    changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
-                    changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
-                    groupMap.put(line.SBQQ__ProductFamily__c, changeMap);
-                }
-                if (!groupSummary.containsKey(line.SBQQ__ProductFamily__c)) {
-                    groupSummary.put(line.SBQQ__ProductFamily__c, 0);
-                    groupLineCount.put(line.SBQQ__ProductFamily__c, 0);
-                }
 
+            Schema.DescribeFieldResult productFamilies = Product2.Family.getDescribe();
+            List<Schema.PicklistEntry> picklistEntries = productFamilies.getPicklistValues();
+
+            for (Schema.PicklistEntry entry : picklistEntries){
+                groups.add(entry.getLabel());
+                Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
+                changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
+                changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
+                groupMap.put(entry.getLabel(), changeMap);
+                groupSummary.put(entry.getLabel(), 0);
+                groupLineCount.put(entry.getLabel(), 0);
                 if (showOptionals){
-                    if (!optionalGroupMap.containsKey(line.SBQQ__ProductFamily__c)) {
-                        Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
-                        changeMap.put('Default', new List<SBQQ__QuoteLine__c>());
-                        optionalGroupMap.put(line.SBQQ__ProductFamily__c, changeMap);
-                    }
-                    if (!optionalGroupSummary.containsKey(line.SBQQ__ProductFamily__c)) {
-                        optionalGroupSummary.put(line.SBQQ__ProductFamily__c, 0);
-                        optionalLineCount.put(line.SBQQ__ProductFamily__c, 0);
-                    }
+                    optionalGroups.add(entry.getLabel());
+                    Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
+                    optionalChangeMap.put('Default', new List<SBQQ__QuoteLine__c>());
+                    optionalGroupMap.put(entry.getLabel(), optionalChangeMap);
+                    optionalGroupSummary.put(entry.getLabel(), 0);
+                    optionalLineCount.put(entry.getLabel(), 0);
                 }
             }
         }
@@ -206,7 +210,8 @@ public class QuotePreviewController {
 
         // assign all lines and their values to the relevant maps
         if (quote.SBQQ__LineItemsGrouped__c) {
-            for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
+//            for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
+            for (SBQQ__QuoteLine__c line : lines){
                 if (!line.SBQQ__Optional__c){
 
                     if (line.SBQQ__Group__c == null || line.SBQQ__Group__r.Name == null){
@@ -263,7 +268,8 @@ public class QuotePreviewController {
             }
 
         } else {
-            for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
+//            for (SBQQ__QuoteLine__c line : quote.SBQQ__LineItems__r){
+            for (SBQQ__QuoteLine__c line : lines){
                 if (!line.SBQQ__Optional__c) {
                     if (line.Ancestor__c == null && trackChanges) {
                         line.Added__c = true;
@@ -352,12 +358,24 @@ public class QuotePreviewController {
             }
         }
 
+        Integer groupCount = groups.size();
+        for (Integer x = 0;x < groupCount; x++){
+            if(!groupMap.containsKey(groups[x])){
+                groups.set(x,null);
+            }
+        }
+
         if (showOptionals){
             for (String optionalKey : optionalGroupMap.keySet()){
                 if (optionalGroupMap.get(optionalKey).get('Default').isEmpty()){
                     optionalGroupMap.remove(optionalKey);
                     optionalGroupSummary.remove(optionalKey);
                     optionalLineCount.remove(optionalKey);
+                }
+            }
+            for (Integer x = 0;x < groupCount; x++){
+                if(!optionalGroupMap.containsKey(optionalGroups[x])){
+                    optionalGroups.set(x,null);
                 }
             }
         }

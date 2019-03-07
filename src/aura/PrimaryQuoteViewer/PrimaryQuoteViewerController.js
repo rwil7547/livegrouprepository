@@ -209,6 +209,21 @@
             changeResponse.fire();
         });
         $A.enqueueAction(deleteGroup);
+
+        var groups = component.get('v.groups');
+        var groupNumber;
+        groups.forEach(function(group){
+            if(group.Id === event.getParam('groupId')){
+                groupNumber = group.SBQQ__Number__c;
+            }
+        });
+        groups.forEach(function (group) {
+            if(group.SBQQ__Number__c > groupNumber){
+                group.SBQQ__Number__c = group.SBQQ__Number__c -1;
+            }
+        });
+        component.set('v.groups',groups);
+
     },
     insertProducts : function(component, event, helper){
         component.set('v.lineUpdatesPending',true);
@@ -633,6 +648,52 @@
             }
         });
         $A.enqueueAction(changeSortOrder);
+    },
+    orderGroups : function(component, event, helper){
+
+        var groups = component.get('v.groups');
+        var oldPosition = event.getParam('sourcePosition');
+        var newPosition = event.getParam('targetPosition');
+
+        if (oldPosition > newPosition) {
+            groups.forEach(function(element){
+                if (element.Id === event.getParam('sourceId')){
+                    element.SBQQ__Number__c = newPosition;
+                } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
+                    element.SBQQ__Number__c = element.SBQQ__Number__c +1;
+                }
+            });
+        } else {
+            groups.forEach(function(element){
+                if (element.Id === event.getParam('sourceId')){
+                    element.SBQQ__Number__c = newPosition;
+                } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
+                    element.SBQQ__Number__c = element.SBQQ__Number__c -1;
+                }
+            });
+        }
+
+        groups.sort(function (a, b) {
+            return a.SBQQ__Number__c - b.SBQQ__Number__c;
+        });
+
+        component.set('v.groups',groups);
+
+        var changeGroupOrder = component.get('c.changeGroupSortOrderApex');
+        changeGroupOrder.setParams({
+            quoteId : component.get('v.quote.Id'),
+            groupId : event.getParam('sourceId'),
+            oldPosition : oldPosition,
+            newPosition : newPosition
+        });
+        changeGroupOrder.setCallback(this, function(response){
+            if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
+                helper.showToast('Success!', 'Group order changed','success');
+            } else {
+                helper.showToast('Error', 'There was an error changing the group order', 'error');
+            }
+        });
+        $A.enqueueAction(changeGroupOrder);
     },
     recComplete : function(component, event, helper){
 

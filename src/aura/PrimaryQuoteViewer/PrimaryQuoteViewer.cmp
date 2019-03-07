@@ -8,6 +8,7 @@
     <aura:attribute name="opportunity" type="Opportunity" />
     <aura:attribute name="opportunities" type="Opportunity[]" />
     <aura:attribute name="groups" type="SBQQ__QuoteLineGroup__c[]" />
+    <aura:attribute name="groupDragging" type="boolean" default="false" />
     <aura:attribute name="products" type="Product2[]" />
     <aura:attribute name="expenses" type="Expense__c[]" />
     <aura:attribute name="activeGroupId" type="string" />
@@ -25,9 +26,9 @@
     <aura:attribute name="lineUpdatesPending" type="boolean" default="false" />
     <aura:attribute name="pendingChanges" type="SBQQ__QuoteLine__c[]" />
     <aura:attribute name="reconciling" type="boolean" default="false" />
-    <aura:attribute name="cloneOptions" type="List" default="[{'label': 'this', 'value': 'This opportunity'},{'label': 'other', 'value': 'Another Opportunity'}]"/>    
+    <aura:attribute name="cloneOptions" type="List" default="[{'label': 'this', 'value': 'This opportunity'},{'label': 'other', 'value': 'Another Opportunity'}]"/>
     <aura:attribute name="activeExpenseId" type="string" />
-       
+
     <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
     <aura:handler name="addGroupProducts" event="c:AddGroupProducts" action="{!c.showModal}" />
     <aura:handler name="lineEdit" event="c:LineItemChange" action="{!c.editLine}"/>
@@ -42,6 +43,7 @@
     <aura:handler event="c:ExpenseDrag" action="{!c.setActiveExpenseId}" />
     <aura:handler event="c:ExpenseDrop" action="{!c.updateLineId}" />
     <aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
+    <aura:handler event="c:GroupOrderChange" action="{!c.orderGroups}" />
 
     <aura:registerEvent name="lineChangeResponse" type="c:LineChangeResponse" />
     <aura:registerEvent name="insertProductsResponse" type="c:InsertProductsResponse" />
@@ -51,68 +53,68 @@
     <aura:registerEvent name="ShowDocument" type="c:ShowDocument" />
 
     <force:recordData aura:id="forceRecordCmp"
-        recordId="{!v.recordId}"
-        layoutType="FULL"
-        fields="StageName,QuoteType__c,Contracted__c,Committed__c,Reconciling__c,Invoice_Status__c,SBQQ__PrimaryQuote__c"
-        targetFields="{!v.opportunity}"
-        mode="VIEW"
-        targetError="{!v.error}" />
+                      recordId="{!v.recordId}"
+                      layoutType="FULL"
+                      fields="StageName,QuoteType__c,Contracted__c,Committed__c,Reconciling__c,Invoice_Status__c,SBQQ__PrimaryQuote__c"
+                      targetFields="{!v.opportunity}"
+                      mode="VIEW"
+                      targetError="{!v.error}" />
 
-	<aura:renderIf isTrue="{!v.ready}">   
+    <aura:renderIf isTrue="{!v.ready}">
         <aura:renderIf isTrue="{!v.quote}">
             <lightning:layout class="slds-p-around_small quoteCardPrimary" multipleRows="true">
                 <lightning:layoutItem size="12">
-                <div style="border-bottom: 0.5px solid #d3d3d3;" class="slds-truncate buttonHolder">
-                    <aura:if isTrue="{!!v.reconciling}">
-                        <aura:if isTrue="{!v.pendingChanges.length > 0}">
-                            <lightning:button variant="brand" label="UNDO ALL CHANGES " onclick="{!c.undoAll}" />
-                            <lightning:button variant="brand" label="{!('SAVE ALL (' + v.pendingChanges.length) + ')'}" onclick="{!c.saveAll}" />
+                    <div style="border-bottom: 0.5px solid #d3d3d3;" class="slds-truncate buttonHolder">
+                        <aura:if isTrue="{!!v.reconciling}">
+                            <aura:if isTrue="{!v.pendingChanges.length > 0}">
+                                <lightning:button variant="brand" label="UNDO ALL CHANGES " onclick="{!c.undoAll}" />
+                                <lightning:button variant="brand" label="{!('SAVE ALL (' + v.pendingChanges.length) + ')'}" onclick="{!c.saveAll}" />
+                                <aura:set attribute="else">
+
+                                    <lightning:button variant="neutral" label="EXPORT" class="slds-truncate" onclick="{!c.exportQuote}"/>
+
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate'}">
+                                        <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
+                                    </aura:if>
+
+                                    <lightning:button variant="neutral" label="CLONE" onclick="{!c.showCloneModal}" class="slds-truncate"/>
+
+                                    <aura:if isTrue="{!and(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Primary__c)}">
+                                        <lightning:button variant="neutral" label="{!'RECONCILE (' + v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c + ')'}" onclick="{!c.openReconcile}" class="slds-truncate"/>
+                                    </aura:if>
+                                    <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
+                                        <!--<lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>-->
+                                        <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
+                                            <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
+                                            <lightning:button variant="neutral" label="GROUP" onclick="{!c.groupQuote}" class="slds-truncate"/>
+
+                                            <aura:set  attribute="else">
+                                                <lightning:button variant="neutral" label="UNGROUP" onclick="{!c.removeGroups}" class="slds-truncate"/>
+                                                <lightning:button variant="neutral" label="ADD GROUP" onclick="{!c.addGroup}" class="slds-truncate"/>
+                                            </aura:set>
+                                        </aura:if>
+
+                                        <aura:if isTrue="{!and(v.quote.Stage__c == 'Estimate',not(v.quote.SBQQ__Opportunity2__r.Legacy__c))}">
+                                            <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteQuote}" class="slds-truncate"/>
+                                        </aura:if>
+
+                                        <lightning:button variant="neutral" label="PREVIEW DOCUMENT" onclick="{!c.previewQuote}" class="slds-truncate"/>
+                                    </aura:if>
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c, v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed')}">
+                                        <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
+                                    </aura:if>
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
+                                        <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
+                                    </aura:if>
+
+                                </aura:set>
+                            </aura:if>
                             <aura:set attribute="else">
-
-                                <lightning:button variant="neutral" label="EXPORT" class="slds-truncate" onclick="{!c.exportQuote}"/>
-
-                                <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate'}">
-                                    <lightning:button variant="neutral" label="NEW ESTIMATE" onclick="{!c.createNewEstimate}" class="slds-truncate"/>
-                                </aura:if>
-
-                                <lightning:button variant="neutral" label="CLONE" onclick="{!c.showCloneModal}" class="slds-truncate"/>
-
-                                <aura:if isTrue="{!and(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Primary__c)}">
-                                    <lightning:button variant="neutral" label="{!'RECONCILE (' + v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c + ')'}" onclick="{!c.openReconcile}" class="slds-truncate"/>
-                                </aura:if>
-                                <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
-                                    <!--<lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>-->
-                                    <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
-                                        <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
-                                        <lightning:button variant="neutral" label="GROUP" onclick="{!c.groupQuote}" class="slds-truncate"/>
-
-                                        <aura:set  attribute="else">
-                                            <lightning:button variant="neutral" label="UNGROUP" onclick="{!c.removeGroups}" class="slds-truncate"/>
-                                            <lightning:button variant="neutral" label="ADD GROUP" onclick="{!c.addGroup}" class="slds-truncate"/>
-                                        </aura:set>
-                                    </aura:if>
-
-                                    <aura:if isTrue="{!and(v.quote.Stage__c == 'Estimate',not(v.quote.SBQQ__Opportunity2__r.Legacy__c))}">
-                                        <lightning:button variant="neutral" label="DELETE" onclick="{!c.deleteQuote}" class="slds-truncate"/>
-                                    </aura:if>
-
-                                    <lightning:button variant="neutral" label="PREVIEW DOCUMENT" onclick="{!c.previewQuote}" class="slds-truncate"/>
-                                </aura:if>
-                                <aura:if isTrue="{!and(v.opportunity.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c, v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed')}">
-                                    <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
-                                </aura:if>
-                                <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
-                                    <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
-                                </aura:if>
-
+                                <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeReconcile}" class="slds-truncate"/>
                             </aura:set>
                         </aura:if>
-                        <aura:set attribute="else">
-                            <lightning:button variant="neutral" label="CLOSE" onclick="{!c.closeReconcile}" class="slds-truncate"/>
-                        </aura:set>
-                    </aura:if>
-                </div>
-                    </lightning:layoutItem>
+                    </div>
+                </lightning:layoutItem>
                 <lightning:layoutItem size="12">
                     <div style="width:100%;display: grid;grid-template-columns: 75% 25%">
                         <div >
@@ -170,7 +172,7 @@
                                 <span>
                                     <div class="totalsField">Primary</div>
                                     <div style="text-align:center;padding-top:2px;">
-                                        <input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="{!or(not(v.editable),not(v.opportunity.QuoteType__c == 'Estimate'))}"
+                                        <input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="{!or(not(v.editable),not(v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate'))}"
                                                style="{!v.editable ? 'zoom:1.5;cursor:pointer;' : 'zoom:1.5;'}" onclick="{!c.togglePrimary}"/>
                                     </div>
                                 </span>
@@ -179,8 +181,8 @@
                                         <lightning:icon iconName="doctype:pdf" size="large" zoom="1.5" alternativeText="document"/>
                                     </span>
                                 </aura:if>
+                            </div>
                         </div>
-                    </div>
                         <aura:if isTrue="{!or(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Opportunity2__r.Legacy__c) &amp;&amp; v.quote.SBQQ__Primary__c}">
                             <div class="recPanel">
                                 <div style="display:flex;font-weight:bold;font-size:14px;margin-bottom:2px;color:white;">
@@ -192,55 +194,55 @@
                                     </aura:if>
                                 </div>
                                 <div style="font-size: 13px;">
-                                <div style="display: flex;">
-                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced'}">
-                                        <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
-                                        <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
-                                        <aura:set attribute="else">
-                                            <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
-                                            <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
-                                        </aura:set>
-                                    </aura:if>
-                                </div>
-                                <aura:if isTrue="{!not(v.quote.SBQQ__Opportunity2__r.Legacy__c)}">
                                     <div style="display: flex;">
-                                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c == 0}">
-                                            <aura:if isTrue="{!v.expenses.length != 0}">
-                                                <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
-                                                <span>All expenses assigned</span>
-                                                <aura:set attribute="else">
-                                                    <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
-                                                    <span>No expenses incurred</span>
-                                                </aura:set>
-                                            </aura:if>
+                                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced'}">
+                                            <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                            <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
                                             <aura:set attribute="else">
                                                 <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
-                                                <span>{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c} expenses unassigned</span>
+                                                <span>Project is {!v.quote.SBQQ__Opportunity2__r.Percent_Invoiced__c}% invoiced</span>
                                             </aura:set>
                                         </aura:if>
                                     </div>
-                                </aura:if>
+                                    <aura:if isTrue="{!not(v.quote.SBQQ__Opportunity2__r.Legacy__c)}">
+                                        <div style="display: flex;">
+                                            <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c == 0}">
+                                                <aura:if isTrue="{!v.expenses.length != 0}">
+                                                    <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                                    <span>All expenses assigned</span>
+                                                    <aura:set attribute="else">
+                                                        <span style="font-weight: bolder;color:green;">&#10003;</span> &nbsp;
+                                                        <span>No expenses incurred</span>
+                                                    </aura:set>
+                                                </aura:if>
+                                                <aura:set attribute="else">
+                                                    <span style="font-weight: bolder;color:red;">&#10007;</span> &nbsp;
+                                                    <span>{!v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c} expenses unassigned</span>
+                                                </aura:set>
+                                            </aura:if>
+                                        </div>
+                                    </aura:if>
 
-                                <div style="display: flex;">
-                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c &gt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
-                                        <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
-                                        <span>COS is <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c - v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}" style="currency" currencyCode="GBP"/> too high</span>
-                                    </aura:if>
-                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c &lt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
-                                        <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
-                                        <span>COS is <lightning:formattedNumber value="{!v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c - v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/> too low</span>
-                                    </aura:if>
-                                    <aura:if isTrue="{!v.quote.Cost_of_sale__c == v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
-                                        <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:green;'}">&#10003;</span> &nbsp;
-                                        <span>COS matches Quickbooks</span>
-                                    </aura:if>
-                                </div>
+                                    <div style="display: flex;">
+                                        <aura:if isTrue="{!v.quote.Cost_of_sale__c &gt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                            <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
+                                            <span>COS is <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c - v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}" style="currency" currencyCode="GBP"/> too high</span>
+                                        </aura:if>
+                                        <aura:if isTrue="{!v.quote.Cost_of_sale__c &lt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                            <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
+                                            <span>COS is <lightning:formattedNumber value="{!v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c - v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/> too low</span>
+                                        </aura:if>
+                                        <aura:if isTrue="{!v.quote.Cost_of_sale__c == v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
+                                            <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:green;'}">&#10003;</span> &nbsp;
+                                            <span>COS matches Quickbooks</span>
+                                        </aura:if>
+                                    </div>
 
                                 </div>
                             </div>
                         </aura:if>
                     </div>
-            </lightning:layoutItem>
+                </lightning:layoutItem>
             </lightning:layout>
         </aura:renderIf>
 
@@ -277,6 +279,7 @@
         <aura:iteration items="{!v.groups}" var="group">
             <div style="position:relative;margin-bottom:30px;">
                 <c:QuoteLineGroup group="{!group}"
+                                  groupDragging="{!v.groupDragging}"
                                   lines="{!group.SBQQ__LineItems__r}"
                                   editable="{!v.editable}"
                                   revEditable="{!v.revEditable}"
@@ -292,12 +295,12 @@
         <div aura:id="selectorModal" class="toggle" >
             <div class="backdrop" onclick="{!c.hideModal}"></div>
             <c:QuoteLineSelector products="{!v.products}"/>
-         </div>
+        </div>
 
 
         <aura:if isTrue="{!not(v.quote.HasDocument__c)}" >
             <div aura:id="clonePreviewModal" id="clonePreviewModal" class="toggle">
-            <div class="backdrop" onclick="{!c.hidePreview}" aura:id="previewBackdrop"></div>
+                <div class="backdrop" onclick="{!c.hidePreview}" aura:id="previewBackdrop"></div>
                 <div class="quotePreview" id="quotePreview" aura:id="quotePreview">
                     <div class="slds-grid slds-p-around_medium" style="width:100%;height:100%;position:relative;">
                         <div class="slds-col slds-size_8-of-12" style="position:relative;" >
@@ -320,13 +323,13 @@
                             <div aura:id="docSavePending" style="display:none;">
                                 <lightning:spinner  variant="brand" size="large"/>
                             </div>
-                             <div class="slds-p-around_medium" style="width:100%;">
-                                 <lightning:card title="{!v.quote.SBQQ__Opportunity2__r.Name}"
-                                                 iconName="standard:document" >
-                                     <p class="slds-p-horizontal_small slds-m-left--large">
-                                         {!v.quote.Version__c}
-                                     </p>
-                                 </lightning:card>
+                            <div class="slds-p-around_medium" style="width:100%;">
+                                <lightning:card title="{!v.quote.SBQQ__Opportunity2__r.Name}"
+                                                iconName="standard:document" >
+                                    <p class="slds-p-horizontal_small slds-m-left--large">
+                                        {!v.quote.Version__c}
+                                    </p>
+                                </lightning:card>
                             </div>
 
                             <div class="slds-p-around_medium">
@@ -365,19 +368,21 @@
                                 <div style="font-size:16px;display: none;cursor:pointer;" id="three" class="previewTab">
                                     <div>Include:</div>
                                     <input type="checkbox" aura:id="optionals" id="optionalCheckbox" onchange="{!c.setPreviewChanged}" />
-                                        <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
+                                    <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
+                                    <input type="checkbox" aura:id="optionalSummary" id="optionalSummaryCheckbox" onchange="{!c.setPreviewChanged}" />
+                                    <span onclick="{!c.selectOption}" id="optionalSummary"> &nbsp;Optionals summary</span><br/>
                                     <input type="checkbox" aura:id="vat" id="vatCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
+                                    <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
                                     <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="invoices"> &nbsp;Invoice schedule</span><br/>
+                                    <span onclick="{!c.selectOption}" id="invoices"> &nbsp;Invoice schedule</span><br/>
                                     <input type="checkbox" aura:id="fees" id="feesCheckbox"  onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
+                                    <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
                                     <input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox" onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
+                                    <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
                                     <input type="checkbox" aura:id="sla" id="slaCheckbox" onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>
+                                    <span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>
                                     <input type="checkbox" aura:id="termsAndConditions" id="termsAndConditionsCheckbox" onchange="{!c.setPreviewChanged}"/>
-                                        <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
+                                    <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
                                 </div>
 
                             </div>
@@ -395,23 +400,23 @@
                     SELECT A DESTINATION FOR THE CLONE:
                 </div>
                 <aura:if isTrue="{!not(v.cloneDisabled)}">
-                <div class="cloneBlock">
-                    <div class="cloneRadio">
-                        <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}" />
+                    <div class="cloneBlock">
+                        <div class="cloneRadio">
+                            <input type="radio" id="thisOpportunity"  onclick="{!c.clearOpportunity}" />
+                        </div>
+                        <div class="cloneText" onclick="{!c.clearOpportunity}">
+                            <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Legacy__c}">
+                                Create a new Estimate for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
+                                <aura:set attribute="else">
+                                    Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Contract' ? 'Contract Amendment' : v.quote.SBQQ__Opportunity2__r.QuoteType__c}
+                                    for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
+                                </aura:set>
+                            </aura:if>
+                        </div>
                     </div>
-                    <div class="cloneText" onclick="{!c.clearOpportunity}">
-                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Legacy__c}">
-                            Create a new Estimate for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
-                            <aura:set attribute="else">
-                                Create a new {!v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Contract' ? 'Contract Amendment' : v.quote.SBQQ__Opportunity2__r.QuoteType__c}
-                                for {!v.quote.SBQQ__Opportunity2__r.Name}<br/>
-                            </aura:set>
-                        </aura:if>
+                    <div style="text-align: center;width: 100%;font-size: 16px;margin-top: 10px;">
+                        ------ OR ------
                     </div>
-                </div>
-                <div style="text-align: center;width: 100%;font-size: 16px;margin-top: 10px;">
-                    ------ OR ------
-                </div>
                 </aura:if>
                 <div class="cloneBlock">
                     <div class="cloneRadio">
@@ -451,8 +456,8 @@
         </aura:renderIf>
 
         <aura:if isTrue="{!v.responsePending}">
-           <lightning:spinner variant="brand" size="large"/>
+            <lightning:spinner variant="brand" size="large"/>
         </aura:if>
 
-     </aura:renderIf>
+    </aura:renderIf>
 </aura:component>

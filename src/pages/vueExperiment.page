@@ -1,0 +1,453 @@
+<!--
+ - Created by Ronan Williams on 05/03/2019.
+ -->
+
+<apex:page id="vueExperiment" controller="VueTestController" lightningStylesheets="true">
+
+    <html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
+
+    <style>
+
+        body {
+            background-image: url("{!$Site.BaseUrl}/_slds/images/themes/lightning_blue/lightning_blue_background.png");
+            background-size: 100%;
+            background-repeat: no-repeat;
+            background-position: top;
+            background-color: #B0C4DF;
+            background-attachment: fixed;
+        }
+        .box {
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            background-color: white;
+            border: 0.5px solid grey;
+            margin-bottom: 10px;
+        }
+        .control {
+            position: sticky;
+            top: 5px;
+        }
+        .dimmer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin: auto;
+            height: 100vh;
+            width: 100vw;
+            background-color: white;
+            opacity: 0.75;
+        }
+        .boxLite {
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 3px;
+            padding: 5px;
+            background-color: white;
+            border: 0.5px solid lightgrey;
+            margin:4px;
+        }
+        .splitTwo {
+            display: grid;
+            grid-template-columns: 50% 50%;
+        }
+        .splitFour {
+            display: grid;
+            grid-template-columns: 25% 25% 25% 25%;
+        }
+        .control {
+            display: grid;
+            grid-template-columns: 40% 40% 20%;
+        }
+        .title {
+            font-size: 18px;
+        }
+        .options {
+            display: flex;
+            justify-content: flex-end;
+            padding-right: 15px;
+        }
+        .option {
+            margin-left: 15px;
+            padding: 4px;
+            color: white;
+            font-weight: bold;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .option:hover {
+            font-size:15px;
+        }
+        .report {
+            position: fixed;
+            width: 90%;
+            height: 90%;
+            top: 5%;
+            left:5%;
+            background-color: white;
+        }
+        .graph {
+            position: relative;
+            height: 380px;
+        }
+        .main {
+            background-color: #2c7495;
+        }
+        .second {
+            background-color: #66C1BF;
+        }
+        .third{
+            background-color: #b2a5d1;
+        }
+        .fourth{
+            background-color: #d43b8f;
+        }
+        #app {
+            width: 100%;
+            padding: 10px;
+        }
+    </style>
+
+    <div id="app">
+
+        <div class="box control title">
+            <div>{{ message }}</div>
+            <div></div>
+            <div style="text-align: right;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
+        </div>
+        <!--<div v-for="el in iterator">-->
+            <!--{{el}}-->
+        <!--</div>-->
+
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">REVENUE {{period}}</div>
+                <div class="options">
+                    <div><span class="option main">Confirmed</span></div>
+                    <div><span class="option second">Weighted</span></div>
+                    <div><span class="option third">Pipeline</span></div>
+                    <div><span class="option fourth">Target</span></div>
+                </div>
+            </div>
+            <div class="splitTwo">
+                <div class="boxLite">
+                    <div id="revenueBar" class="graph"></div>
+                </div>
+                <div class="boxLite">
+                    <div id="revenueLine" class="graph"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">GROSS PROFIT {{period}}</div>
+                <div class="options">some options</div>
+            </div>
+            <div class="splitTwo">
+                <div class="boxLite">
+                    <div class="graph"></div>
+                </div>
+                <div class="boxLite">
+                    <div class="graph"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">OPERATING COSTS {{period}}</div>
+                <div class="options">some options</div>
+            </div>
+            <div class="splitTwo">
+                <div class="boxLite">
+                    <div class="graph"></div>
+                </div>
+                <div class="boxLite">
+                    <div class="graph"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">TOTAL FIGURES {{period}}</div>
+                <div class="options">some options</div>
+            </div>
+            <div class="splitFour">
+                <div class="boxLite"></div>
+                <div class="boxLite"></div>
+                <div class="boxLite"></div>
+                <div class="boxLite"></div>
+            </div>
+        </div>
+
+
+        <br/>
+
+        <button onclick="app.showReport = !app.showReport;">{{ !showReport ? 'SHOW' : 'HIDE'}}</button>
+
+        <span v-if="showReport">
+            <div class="dimmer" onclick="app.showReport = false;"></div>
+            <div class="report box">
+                <div class="title">REVENUE REPORT {{period}}</div>
+                <div v-for="todo in todos">
+                    <apex:pageBlock>{{ todo.text }}</apex:pageBlock>
+                </div>
+            </div>
+        </span>
+
+        <br/>
+
+
+    </div>
+    <script>
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                period : 'CURRENT FY',
+                startDate : '',
+                endDate : '',
+                iterator : '',
+                opportunities : '',
+
+
+                showReport : false,
+
+                message: 'Hello Vue!',
+                todos: [
+                    { text: 'Learn JavaScript' },
+                    { text: 'Learn Vue' },
+                    { text: 'Build something awesome' }
+                ],
+                seen: true,
+
+
+                brand : {
+                    main : '#2c7495',
+                    second : '#66C1BF',
+                    third : '#b2a5d1'
+                }
+            },
+            methods: {
+                calcDate : function(){
+
+                },
+                add : function(){
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.VueTestController.getOppsApex}',
+                        function (result, event) {
+                            console.log(result);
+
+                            this.app.message = 'callback';
+
+                            if (event.status) {
+                                app.message = 'delivered';
+                                for (var x = 0; x < result.length; x++){
+                                    app.todos.push({text: result[x].Name});
+                                }
+                            }
+                        }, {
+                            escape : true
+                        }
+
+                    );
+                },
+
+                drawBar : function() {
+
+                    google.charts.load('current', {
+                        'packages': ['corechart', 'bar'], 'callback': function () {
+
+                            var chartData = new google.visualization.DataTable();
+                            chartData.addColumn('string', 'Amount');
+                            chartData.addColumn('number', 'Confirmed');
+                            chartData.addColumn('number', 'Weighted');
+                            chartData.addColumn('number', 'Pipeline');
+
+                            // var source = (isRevSnapshot) ? revenueTotalsSnapshot : revenueTotals;
+
+                            app.iterator.forEach(function (element) {
+                                var elOne = app.opportunities[element][0];
+                                var elTwo = app.opportunities[element][1];
+                                var elThree = app.opportunities[element][2];
+                                //
+                                // if (!revWeighted && revPipeline) {
+                                //     elThree = source[element][1] + source[element][2];
+                                // }
+
+                                chartData.addRow([element, elOne, elTwo, elThree]);
+                            });
+
+                            var options = {
+                                series: {
+                                    0: {
+                                        color: app.brand.main,
+                                        format: '£#,###',
+                                        enableInteractivity: false,
+                                        tooltip: "none",
+                                    },
+                                    1: {
+                                        color: app.brand.second,
+                                        format: '£#,###',
+                                        enableInteractivity: false,
+                                        tooltip: "none",
+                                    },
+                                    2: {
+                                        color: app.brand.third,
+                                        format: '£#,###',
+                                        enableInteractivity: false,
+                                        tooltip: "none",
+                                    },
+                                    3: {
+                                        color: "transparent",
+                                        enableInteractivity: true,
+                                        tooltip: "none",
+                                        annotations: {
+                                            stem: {
+                                                color: "transparent",
+                                            },
+                                            textStyle: {
+                                                color: 'black',
+                                                fontSize: 12.5,
+                                            }
+                                        }
+                                    }
+                                },
+                                fontName: 'Salesforce Sans',
+                                fontSize: 13,
+                                height: '370px',
+                                isStacked: true,
+                                hAxis: {
+                                    format: 'MMM d',
+                                    height: '30px',
+                                    slantedText: true,
+                                    slantedTextAngle: 30
+                                },
+                                vAxis: {
+                                    format: 'short'
+                                },
+                                chartArea: {
+                                    width: '90%',
+                                    height: '80%',
+                                    right: 5,
+                                    top: 5
+                                },
+                                legend: {
+                                    position: 'none',
+                                    bold: true,
+                                    alignment: 'center',
+                                    fontSize: 8
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'inAndOut',
+                                    startup: true
+                                }
+                            };
+
+
+                            var view = new google.visualization.DataView(chartData);
+                            view.setColumns([0,
+                                1,
+                                2,
+                                3, {
+                                    calc: function (dt, row) {
+                                        return 0;
+                                    },
+                                    label: "Total",
+                                    type: "number",
+                                },
+                                {
+                                    calc: function (dt, row) {
+                                        return '£' + ((dt.getValue(row, 1) + dt.getValue(row, 2) + dt.getValue(row, 3)) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                                    },
+                                    type: "string",
+                                    role: "annotation"
+                                }
+                            ]);
+
+                            var chart = new google.visualization.ColumnChart(document.getElementById('revenueBar'));
+
+                            var formatter = new google.visualization.NumberFormat({
+                                prefix: '£'
+                            });
+                            formatter.format(chartData, 1);
+                            formatter.format(chartData, 2);
+                            formatter.format(chartData, 3);
+                            chart.draw(view, options);
+
+                        }
+                    });
+                },
+
+                getBarOptions : function(){
+
+            return {
+
+            }
+        }
+
+
+
+            },
+            beforeMount() {
+
+                // set default date range
+
+                var today       = new Date();
+                var yearText    = (today.getMonth() + 1 > 3) ? today.getFullYear() : today.getFullYear() -1;
+                var startDate   = new Date(yearText, 3, 1);
+                var endDate     = new Date(yearText + 1, 2, 31);
+
+
+
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.VueTestController.getOppsApex}',
+                    function (result, event) {
+                        if (event.status) {
+                            for (var x = 0; x < result.length; x++){
+                                app.todos.push({text: result[x].Name});
+                            }
+                        }
+                    }, {
+                        escape : true
+                    }
+
+                );
+
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.VueTestController.getOppRevenueTotals}',
+                    startDate,
+                    endDate,
+                    function (result, event) {
+
+                        console.log(result);
+
+
+                        app.iterator = Object.keys(result);
+                        app.opportunities = result;
+
+                        app.drawBar();
+
+                    }, {
+                        escape : true
+                    }
+
+                );
+
+
+            }
+        })
+
+    </script>
+    </html>
+
+</apex:page>

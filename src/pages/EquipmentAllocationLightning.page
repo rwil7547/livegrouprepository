@@ -1,4 +1,4 @@
-<apex:page>
+<apex:page >
 <!-- PAGE RETIRED BY R. WILLIAMS 22/10/2018 -->
 <!--<apex:page standardController="Opportunity" extensions="ReservationController" lightningStylesheets="true">-->
     <!--<br/>-->

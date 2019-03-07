@@ -242,8 +242,5 @@ public class OpportunityTriggerHandler {
 		}
 
 		String result = PrimaryQuoteController.createContractsApex(quotesToConvert);
-
 	}
-
-
 }

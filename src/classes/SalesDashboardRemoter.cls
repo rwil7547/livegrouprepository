@@ -1300,6 +1300,11 @@ global class SalesDashboardRemoter {
                                 OR (Id IN: floatingAdjustments)
                                 ORDER BY Event_end__c ASC]){
 
+            if (opp.Name.contains('\'') || opp.Account.Name.contains('\'')){
+                System.debug('replacing');
+                opp.Name = opp.Name.replaceAll('\'','');
+                opp.Account.Name = opp.Account.Name.replaceAll('\'','');
+            }
 
             if (reportingMap.containsKey(opp.EventMonthYear__c)){
                 reportingMap.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);

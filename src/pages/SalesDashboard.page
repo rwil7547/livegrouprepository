@@ -95,20 +95,7 @@
                 background: #555;
             }
 
-            #dimmer {
-                position: fixed;
-                display: none;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                top: 0;
-                margin: auto;
-                height: 100vh;
-                width: 100vw;
-                background-color: white;
-                opacity: 0.75;
-                z-index: 99;
-            }
+buil
 
             .typeBlock, .totalsBlock, .cashBlock  {
                 width: 99%;
@@ -5197,8 +5184,8 @@
                                         AccountManager: oppRows[element].Owner.FirstName.substr(0, 1) + '. ' + oppRows[element].Owner.LastName,
                                         ProjectManager: projectMngr,
                                         Job: oppRows[element].Filtered_Job_Number__c,
-                                        Name: oppRows[element].Name.replace(/,/g, ' '),
-                                        Account: oppRows[element].Account.Name.replace(/,/g, ' '),
+                                        Name: '"' + oppRows[element].Name.replace(/,/g, ' ') + '"',
+                                        Account: '"' + oppRows[element].Account.Name.replace(/,/g, ' ') + '"',
                                         StartDate: '' + (new Date(oppRows[element].Event_end__c).getMonth() + 1) + '/' +
                                                         new Date(oppRows[element].Event_end__c).getFullYear(),
                                         EndDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),

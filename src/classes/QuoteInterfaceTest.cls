@@ -40,7 +40,7 @@ public class QuoteInterfaceTest {
             Product2 product       = new Product2();
             product.Name           = 'product' + x;
             product.Description    = 'product' + x;
-            product.Family         = 'family' + x;
+            product.Family         = 'Management & planning';
             product.IsActive       = true;
             products.add(product);
         }

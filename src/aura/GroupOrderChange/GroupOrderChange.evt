@@ -1,0 +1,10 @@
+<!--
+ - Created by Ronan Williams on 06/03/2019.
+ -->
+
+<aura:event type="APPLICATION" description="GroupOrderChange">
+    <aura:attribute name="sourceId" type="string"/>
+    <aura:attribute name="sourcePosition" type="integer"/>
+    <aura:attribute name="targetId" type="string"/>
+    <aura:attribute name="targetPosition" type="integer"/>
+</aura:event>

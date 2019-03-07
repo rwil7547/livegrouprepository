@@ -24,7 +24,7 @@ public with sharing class PrimaryQuoteController {
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
                         '(SELECT Id FROM SBQQ__LineItems__r), ' +
-                        '(SELECT Id FROM SBQQ__LineItemGroups__r) ' +
+                        '(SELECT Id, SBQQ__Number__c FROM SBQQ__LineItemGroups__r) ' +
                         'FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId ' + quoteQuery +
                         'ORDER BY SBQQ__Primary__c DESC, CreatedDate DESC LIMIT 1');
 
@@ -92,7 +92,7 @@ public with sharing class PrimaryQuoteController {
     public static List<Object> getQuoteGroups(String Id, Boolean custom){
 
         if (custom){
-            return [SELECT Id, Name, SBQQ__NetTotal__c,
+            return [SELECT Id, Name, SBQQ__NetTotal__c,CreatedDate, SBQQ__Number__c,
                         (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Group__c,
                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
@@ -101,10 +101,18 @@ public with sharing class PrimaryQuoteController {
                         FROM SBQQ__LineItems__r
                         ORDER BY SBQQ__Number__c ASC)
                     FROM SBQQ__QuoteLineGroup__c
-                    WHERE SBQQ__Quote__c = :Id];
+                    WHERE SBQQ__Quote__c = :Id
+                    ORDER BY SBQQ__Number__c ASC];
         } else {
 
             Map<String,List<SBQQ__QuoteLine__c>> groupMap = new Map<String,List<SBQQ__QuoteLine__c>>();
+
+            Schema.DescribeFieldResult productFamilies = Product2.Family.getDescribe();
+            List<Schema.PicklistEntry> picklistEntries = productFamilies.getPicklistValues();
+
+            for (Schema.PicklistEntry entry : picklistEntries){
+                groupMap.put(entry.getLabel(), new List<SBQQ__QuoteLine__c>());
+            }
 
             for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                     SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Number__c, SBQQ__Group__c,
@@ -113,7 +121,7 @@ public with sharing class PrimaryQuoteController {
                                                     SBQQ__AdditionalDiscountAmount__c
                                             FROM SBQQ__QuoteLine__c
                                             WHERE SBQQ__Quote__c = :Id
-                                            ORDER BY SBQQ__Number__c ASC]){
+                                            ORDER BY SBQQ__ProductFamily__c,SBQQ__Number__c ASC]){
 
                 String family = (line.SBQQ__ProductFamily__c == null) ? 'Unclassified products' : line.SBQQ__ProductFamily__c;
 
@@ -128,13 +136,12 @@ public with sharing class PrimaryQuoteController {
 
             for (String familyName : groupMap.keySet()){
 
-                String objString = '{ "Name" : "' + familyName + '", "Id" : "' + familyName.replaceAll('\\s+', '') + '", "SBQQ__LineItems__r": ' +
-                        JSON.serialize(groupMap.get(familyName), true) + '}';
-                Object obj = JSON.deserializeUntyped(objString);
-
-                System.debug(objString);
-
-                results.add(obj);
+                if (!groupMap.get(familyName).isEmpty()){
+                    String objString = '{ "Name" : "' + familyName + '", "Id" : "' + familyName.replaceAll('\\s+', '') + '", "SBQQ__LineItems__r": ' +
+                                       JSON.serialize(groupMap.get(familyName), true) + '}';
+                    Object obj          = JSON.deserializeUntyped(objString);
+                    results.add(obj);
+                }
             }
 
             return results;
@@ -312,9 +319,10 @@ public with sharing class PrimaryQuoteController {
 
         Savepoint sp = Database.setSavepoint();
 
-        Decimal lineItemCount = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
+        Decimal lineItemCount   = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
+        Integer groupCount      = [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE SBQQ__Quote__c = :quoteId].size();
 
-        SBQQ__QuoteLineGroup__c originalGroup = [SELECT Id, Name, SBQQ__NetTotal__c,
+        SBQQ__QuoteLineGroup__c originalGroup = [SELECT Id, Name, SBQQ__NetTotal__c, SBQQ__Number__c,
                                                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c,
                                                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
@@ -328,6 +336,7 @@ public with sharing class PrimaryQuoteController {
         SBQQ__QuoteLineGroup__c cloneGroup = new SBQQ__QuoteLineGroup__c();
         cloneGroup.Name             = originalGroup.Name + ' (clone)';
         cloneGroup.SBQQ__Quote__c   = quoteId;
+        cloneGroup.SBQQ__Number__c  = groupCount + 1;
 
         Database.SaveResult cloneInsert = Database.insert(cloneGroup);
         if (!cloneInsert.isSuccess()){
@@ -350,7 +359,7 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
-        return [SELECT Id, Name, SBQQ__NetTotal__c,
+        return [SELECT Id, Name, SBQQ__NetTotal__c, SBQQ__Number__c,
                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
@@ -365,9 +374,12 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static SBQQ__QuoteLineGroup__c insertNewGroupApex(String quoteId, Integer groupCount){
 
+        Integer groupCountInt = [SELECT Id FROM SBQQ__QuoteLineGroup__c WHERE SBQQ__Quote__c = :quoteId].size();
+
         SBQQ__QuoteLineGroup__c newGroup = new SBQQ__QuoteLineGroup__c();
         newGroup.SBQQ__Quote__c          = quoteId;
         newGroup.Name                    = 'Group' + String.valueOf(groupCount + 1);
+        newGroup.SBQQ__Number__c         = groupCountInt + 1;
 
         Database.SaveResult saveResult = Database.insert(newGroup);
         if (!saveResult.isSuccess()){
@@ -382,9 +394,10 @@ public with sharing class PrimaryQuoteController {
 
         Boolean result = false;
 
-        SBQQ__QuoteLineGroup__c lineGroup   = new SBQQ__QuoteLineGroup__c(Id = groupId);
-        List<SBQQ__QuoteLine__c> lines  = [SELECT Id FROM SBQQ__QuoteLine__c
-                                           WHERE SBQQ__Group__c = :groupId];
+        SBQQ__QuoteLineGroup__c lineGroup   = [SELECT Id FROM SBQQ__QuoteLineGroup__c
+                                               WHERE Id = :groupId];
+        List<SBQQ__QuoteLine__c> lines      = [SELECT Id FROM SBQQ__QuoteLine__c
+                                               WHERE SBQQ__Group__c = :groupId];
 
         Savepoint sp = Database.setSavepoint();
 
@@ -406,14 +419,27 @@ public with sharing class PrimaryQuoteController {
                                                 AND SBQQ__Group__c != :groupId
                                                 ORDER BY SBQQ__Number__c ASC];
 
-            Decimal count = 1;
+            Decimal lineCount = 1;
 
             for (SBQQ__QuoteLine__c line : remainingLines){
-                line.SBQQ__Number__c = count;
-                count++;
+                line.SBQQ__Number__c = lineCount;
+                lineCount++;
             }
 
-            Database.SaveResult[] updateResults = Database.update(remainingLines);
+            Database.SaveResult[] updateLineResults = Database.update(remainingLines);
+
+            List<SBQQ__QuoteLineGroup__c> remainingGroups = [SELECT Id, SBQQ__Number__c FROM SBQQ__QuoteLineGroup__c
+                                                            WHERE SBQQ__Quote__c = :quoteId
+                                                            ORDER BY SBQQ__Number__c ASC];
+
+            Decimal groupCount = 1;
+
+            for (SBQQ__QuoteLineGroup__c remainingGroup : remainingGroups){
+                remainingGroup.SBQQ__Number__c = groupCount;
+                groupCount++;
+            }
+
+            Database.SaveResult[] updateGroupResults = Database.update(remainingGroups);
 
             result = true;
         } else {
@@ -643,18 +669,63 @@ public with sharing class PrimaryQuoteController {
         return 'success';
     }
 
+    @AuraEnabled
+    public static String changeGroupSortOrderApex(String quoteId, String groupId, Integer oldPosition,
+            Integer newPosition){
+
+        List<SBQQ__QuoteLineGroup__c> groups = new List<SBQQ__QuoteLineGroup__c>();
+
+        if (oldPosition > newPosition){
+            groups = [SELECT Id, SBQQ__Number__c, SBQQ__Quote__c
+                        FROM SBQQ__QuoteLineGroup__c
+                        WHERE SBQQ__Quote__c = :quoteId
+                        AND (SBQQ__Number__c <= :oldPosition AND SBQQ__Number__c >= :newPosition)];
+
+            for (SBQQ__QuoteLineGroup__c lineGroup : groups){
+                if (lineGroup.Id == groupId){
+                    lineGroup.SBQQ__Number__c = newPosition;
+                } else {
+                    lineGroup.SBQQ__Number__c = lineGroup.SBQQ__Number__c + 1;
+                }
+            }
+        } else if (oldPosition < newPosition) {
+            groups = [
+                    SELECT Id, SBQQ__Number__c, SBQQ__Quote__c
+                    FROM SBQQ__QuoteLineGroup__c
+                    WHERE SBQQ__Quote__c = :quoteId
+                    AND (SBQQ__Number__c <= :newPosition AND SBQQ__Number__c >= :oldPosition)
+            ];
+
+            for (SBQQ__QuoteLineGroup__c lineGroup : groups) {
+                if (lineGroup.Id == groupId) {
+                    lineGroup.SBQQ__Number__c = newPosition;
+                } else {
+                    lineGroup.SBQQ__Number__c = lineGroup.SBQQ__Number__c - 1;
+                }
+            }
+        }
+
+        Database.SaveResult[] groupUpdates = Database.update(groups, true);
+        for (Database.SaveResult groupUpdate : groupUpdates){
+            if (!groupUpdate.isSuccess()){
+                return 'error';
+            }
+        }
+
+        return 'success';
+    }
 
     @AuraEnabled
     public static String convertToContractApex(String quoteId){
 
-        SBQQ__Quote__c quote = [SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
+        List<SBQQ__Quote__c> quotes = [SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
                                         Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
                                         Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c,
                                         SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c
-                                FROM SBQQ__Quote__c
-                                WHERE Id = :quoteId];
+                                        FROM SBQQ__Quote__c
+                                        WHERE Id = :quoteId];
 
-        return createContractsApex(new List<SBQQ__Quote__c>{quote});
+        return createContractsApex(quotes);
     }
 
     @AuraEnabled
@@ -699,7 +770,7 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
-        for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Id, Name, SBQQ__NetTotal__c, SBQQ__Quote__c
+        for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Id, Name, SBQQ__NetTotal__c, SBQQ__Quote__c, SBQQ__Number__c
                                             FROM SBQQ__QuoteLineGroup__c
                                             WHERE SBQQ__Quote__c IN :quoteIds]){
             SBQQ__QuoteLineGroup__c newGroup = lineGroup.clone(false,true);
@@ -826,7 +897,7 @@ public with sharing class PrimaryQuoteController {
 
         if (quote.SBQQ__LineItemsGrouped__c){
 
-            List<SBQQ__QuoteLineGroup__c> existingGroups = [SELECT Id, Name, SBQQ__NetTotal__c
+            List<SBQQ__QuoteLineGroup__c> existingGroups = [SELECT Id, Name, SBQQ__NetTotal__c, SBQQ__Number__c
                                                             FROM SBQQ__QuoteLineGroup__c
                                                             WHERE SBQQ__Quote__c = :quote.Id];
 
@@ -1091,7 +1162,8 @@ public with sharing class PrimaryQuoteController {
 
         return [SELECT Id, Name, Filtered_Job_Number__c
                 FROM Opportunity
-                WHERE QuoteType__c = 'Estimate'
+                WHERE (QuoteType__c = 'Estimate' OR
+                (StageName = 'Closed Won ' AND SBQQ__PrimaryQuote__c = NULL))
                 AND Id != :currentOppId
                 AND Legacy__c = FALSE
                 ORDER BY Filtered_Job_Number__c DESC];
@@ -1143,8 +1215,8 @@ public with sharing class PrimaryQuoteController {
         }
 
         attach.Body = body;
-        attach.Name = quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c + '' +
-                quote.Version__c;
+        attach.Name = quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c + ' ' +
+                quote.SBQQ__Opportunity2__r.Account.Name + ' ' + quote.Version__c;
         attach.IsPrivate = false;
         attach.ContentType = 'application/pdf';
 

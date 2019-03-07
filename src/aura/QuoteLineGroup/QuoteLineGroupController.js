@@ -10,11 +10,12 @@
             component.set('v.group',group);
         }
     },
+    preventDefault : function(component, event, helper){
+        event.preventDefault();
+    },
     dragOver : function(component, event, helper){
-        console.log('length is ' + component.get('v.lines').length);
-
-        if (component.get('v.customGroup') && !component.get('v.reconciling') &&
-            !component.get('v.lines').length > 0){
+        if (component.get('v.groupDragging') || (component.get('v.customGroup') && !component.get('v.reconciling') &&
+            !component.get('v.lines').length > 0)){
             event.preventDefault();
             document.getElementById(component.get('v.group.Id')).classList.add('dragOver');
         }
@@ -22,9 +23,21 @@
     dragLeave : function(component, event, helper){
         document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
     },
+    startGroupDrag : function(component, event, helper){
+        component.set('v.groupDragging',true);
+        var origin  = component.get('v.group.SBQQ__Number__c') ? component.get('v.group.SBQQ__Number__c') : 1;
+        var transferData = '{"type":"Group", ' +
+            '"id":"' + component.get('v.group.Id') + '",' +
+            '"origin":' + origin +
+            '}';
+        event.dataTransfer.setData("text/plain", transferData);
+    },
+    endGroupDrag : function(component, event, helper){
+        component.set('v.groupDragging',false);
+    },
     drop : function(component, event, helper){
         document.getElementById(component.get('v.group.Id')).classList.remove('dragOver');
-        if (component.get('v.customGroup') && !component.get('v.reconciling') &&
+        if (component.get('v.groupDragging') || component.get('v.customGroup') && !component.get('v.reconciling') &&
             !component.get('v.lines').length > 0){
 
             var data = JSON.parse(event.dataTransfer.getData("text"));
@@ -43,6 +56,20 @@
                 });
 
                 lineOrderChange.fire();
+            } else if (data.type === 'Group'){
+                if (component.get('v.group.Id') !== data.id){
+                    var groupOrderChange = $A.get('e.c:GroupOrderChange');
+
+                    var targetPosition = component.get('v.group.SBQQ__Number__c') ? component.get('v.group.SBQQ__Number__c') : 1;
+
+                    groupOrderChange.setParams({
+                        sourceId : data.id,
+                        sourcePosition : data.origin,
+                        targetPosition : targetPosition
+                    });
+
+                    groupOrderChange.fire();
+                }
             }
         }
     },
@@ -166,8 +193,6 @@
         cloneGroup.fire();
     },
     orderLines : function(component, event, helper){
-
-        console.log('group id is ' + component.get('v.group.Id') + ' and target id is ' + event.getParam('targetGroupId'));
 
         // check if group is target
         if (event.getParam('targetGroupId') === component.get('v.group.Id')){

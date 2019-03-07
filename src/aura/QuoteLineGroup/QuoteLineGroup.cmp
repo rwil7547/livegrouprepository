@@ -1,5 +1,6 @@
 <aura:component >
     <aura:attribute name="group" type="SBQQ__QuoteLineGroup__c" />
+    <aura:attribute name="groupDragging" type="boolean" default="false" />
     <aura:attribute name="lines" type="Object[]"/>
     <aura:attribute name="editable" type="boolean" default="false"/>
     <aura:attribute name="revEditable" type="boolean" default="false" />
@@ -16,6 +17,7 @@
     <aura:registerEvent name="deleteGroup" type="c:DeleteGroupEvent"/>
     <aura:registerEvent name="cloneGroup" type="c:CloneGroup" />
     <aura:registerEvent name="lineOrderChange" type="c:LineOrderChange" />
+    <aura:registerEvent name="groupOrderChange" type="c:GroupOrderChange" />
 
     <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
 	<aura:handler event="c:DeleteGroupResponse" action="{!c.handleDeleteResponse}"/>
@@ -26,11 +28,13 @@
     <aura:handler name="lineItemChange" event="c:LineItemChange" action="{!c.handleLineChange}"/>
 	<aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
     <!---->
-    <div class="group" id="{!v.group.Id}" ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}" ondrop="{!c.drop}">
+    <div class="group" id="{!v.group.Id}" ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}"
+         ondrop="{!c.drop}" draggable="{!and(v.customGroup,v.revEditable,not(lineUpdatesPending))}"
+         ondragstart="{!c.startGroupDrag}" ondragend="{!c.endGroupDrag}">
         <lightning:layout class="slds-p-around_small" multipleRows="true" >
             <lightning:layoutItem size="12" class="slds-p-around__large">
                 <div class="slds-grid" style="margin-bottom:20px;">
-                    <div class="slds-col slds-size_2-of-6" >
+                    <div class="slds-col slds-size_3-of-6" >
                         <div id="{!v.group.Id + 'name'}" class="groupName"
                              style="display:flex;" onclick="{!c.editGroupName}">
                             <div style="font-size:18px;margin-right:5px;">{!v.group.Name}</div>
@@ -42,18 +46,18 @@
                             </aura:if>
                         </div>
                         <div id="{!v.group.Id + 'nameEdit'}" style="display:none;font-size:18px;margin-right:5px;"
-                             onkeyup="{!c.saveGroupName}">
+                             onkeyup="{!c.saveGroupName}" ondragstart="{!c.preventDefault}">
                             <lightning:input type="text" value="{!v.group.Name}" maxlength="80"/>
                         </div>
                     </div>
-                    <div class="slds-col slds-size_4-of-6">
+                    <div class="slds-col slds-size_3-of-6">
                         <aura:if isTrue="{!and(v.editable,v.customGroup)}">
                             <aura:if isTrue="{!not(v.hasDocument)}">
-                                <aura:if isTrue="{!not(v.reconciling)}" >
-                                    <div style="display:flex;justify-content: flex-end;position:relative;font-size:11px;">
-                                        <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showProducts}" />
-                                        <lightning:button variant="neutral" label="CLONE GROUP" onclick="{!c.cloneGroup}" />
-                                        <lightning:button variant="neutral" label="DELETE GROUP" onclick="{!c.deleteGroup}" />
+                                <aura:if isTrue="{!not(v.reconciling)}">
+                                    <div style="display:flex;justify-content: flex-end;position:relative;font-size:11px;"  ondragstart="{!c.preventDefault}">
+                                        <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showProducts}"/>
+                                        <lightning:button variant="neutral" label="CLONE GROUP" onclick="{!c.cloneGroup}"/>
+                                        <lightning:button variant="neutral" label="DELETE GROUP" onclick="{!c.deleteGroup}"/>
                                     </div>
                                 </aura:if>
                             </aura:if>
@@ -77,12 +81,14 @@
                     <aura:iteration items="{!v.lines}" var="line">
                         <div style="position:relative;">
                             <c:QuoteLine line="{!line}"
+                                         groupDragging="{!v.groupDragging}"
                                          editable="{!v.editable}"
                                          revEditable="{!v.revEditable}"
                                          hasDocument="{!v.hasDocument}"
                                          quoteType="{!v.quoteType}"
                                          expenses="{!v.expenses}"
                                          reconciling="{!v.reconciling}"
+                                         lineUpdatesPending="{!v.lineUpdatesPending}"
                                          sortOrder="{!line.SBQQ__Number__c}"/>
                         </div>
                     </aura:iteration>

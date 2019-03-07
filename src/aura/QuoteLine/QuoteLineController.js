@@ -53,23 +53,26 @@
         helper.fireLineChange(component, line,'undo');
     },
     save : function(component, event, helper){
-
-        if (event.which === 13 && component.get('v.changed') && helper.inputValid(component)){
-            component.set('v.changed', false);
-            helper.closeEdit(component);
-            var line = component.get('v.line');
-            line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
-            helper.fireLineChange(component, line,'save');
+        if (!component.get('v.lineUpdatesPending')){
+            if (event.which === 13 && component.get('v.changed') && helper.inputValid(component)){
+                component.set('v.changed', false);
+                helper.closeEdit(component);
+                var line = component.get('v.line');
+                line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
+                helper.fireLineChange(component, line,'save');
+            }
         }
     },
     updateLine: function(component, event, helper){
-        event.stopPropagation();
-        if (helper.inputValid(component)){
-            component.set('v.changed', false);
-            helper.closeEdit(component);
-            var line = component.get('v.line');
-            line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
-            helper.fireLineChange(component, line,'save');
+        if (!component.get('v.lineUpdatesPending')){
+            event.stopPropagation();
+            if (helper.inputValid(component)){
+                component.set('v.changed', false);
+                helper.closeEdit(component);
+                var line = component.get('v.line');
+                line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
+                helper.fireLineChange(component, line,'save');
+            }
         }
     },
     cloneLine: function(component, event, helper){
@@ -141,6 +144,7 @@
     startLineDrag : function(component, event, helper){
 
         console.log('the line has started dragging');
+        event.stopPropagation();
 
         var family  = component.get('v.line.SBQQ__ProductFamily__c') ? component.get('v.line.SBQQ__ProductFamily__c') : '';
         var groupId = component.get('v.line.SBQQ__Group__c') ? component.get('v.line.SBQQ__Group__c') : family.replace(/ /g, '');
@@ -154,66 +158,73 @@
         event.dataTransfer.setData("text/plain", transferData);
     },
     dragOver : function(component, event, helper){
-        event.preventDefault();
-        component.find('line').getElement().classList.add('dragOver');
-    },
+        if (!component.get('v.groupDragging')){
+            event.preventDefault();
+            component.find('line').getElement().classList.add('dragOver');
+        }
+     },
     dragLeave : function(component, event, helper){
-        component.find('line').getElement().classList.remove('dragOver');
+        if (!component.get('v.groupDragging')) {
+            component.find('line').getElement().classList.remove('dragOver');
+        }
     },
     drop : function(component, event, helper){
-        event.stopPropagation();
-        component.find('line').getElement().classList.remove('dragOver');
+        if (!component.get('v.groupDragging')) {
 
-        var data = JSON.parse(event.dataTransfer.getData("text"));
+            event.stopPropagation();
+            component.find('line').getElement().classList.remove('dragOver');
 
-        if (data.type === 'Line'){
-            if (data.id !== component.get('v.line.Id')){
-                if (!component.get('v.line.SBQQ__Group__c')){
-                    if (data.family === component.get('v.line.SBQQ__ProductFamily__c')){
-                        var lineOrderChange = $A.get('e.c:LineOrderChange');
-                        lineOrderChange.setParams({
-                            id : data.id,
-                            oldPosition : data.origin,
-                            newPosition : component.get('v.line.SBQQ__Number__c'),
-                            sourceGroupId : data.groupId,
-                            targetGroupId : component.get('v.line.SBQQ__ProductFamily__c').replace(/ /g, ''),
-                            line : data.line
-                        });
-                        lineOrderChange.fire();
+            var data = JSON.parse(event.dataTransfer.getData("text"));
+
+            if (data.type === 'Line') {
+                if (data.id !== component.get('v.line.Id')) {
+                    if (!component.get('v.line.SBQQ__Group__c')) {
+                        if (data.family === component.get('v.line.SBQQ__ProductFamily__c')) {
+                            var lineOrderChange = $A.get('e.c:LineOrderChange');
+                            lineOrderChange.setParams({
+                                id: data.id,
+                                oldPosition: data.origin,
+                                newPosition: component.get('v.line.SBQQ__Number__c'),
+                                sourceGroupId: data.groupId,
+                                targetGroupId: component.get('v.line.SBQQ__ProductFamily__c').replace(/ /g, ''),
+                                line: data.line
+                            });
+                            lineOrderChange.fire();
+                        } else {
+                            var toastEvent = $A.get("e.force:showToast");
+                            toastEvent.setParams({
+                                "title": 'Error',
+                                "message": 'If you are not using custom groups you cannot move quote lines to another group',
+                                "type": 'error'
+                            });
+                            toastEvent.fire();
+                        }
                     } else {
-                        var toastEvent = $A.get("e.force:showToast");
-                        toastEvent.setParams({
-                            "title": 'Error',
-                            "message": 'If you are not using custom groups you cannot move quote lines to another group',
-                            "type" : 'error'
-                        });
-                        toastEvent.fire();
-                    }
-                } else {
-                    var lineOrderChange = $A.get('e.c:LineOrderChange');
+                        var lineOrderChange = $A.get('e.c:LineOrderChange');
 
-                    lineOrderChange.setParams({
-                        id : data.id,
-                        oldPosition : data.origin,
-                        newPosition : component.get('v.line.SBQQ__Number__c'),
-                        sourceGroupId : data.groupId,
-                        targetGroupId : component.get('v.line.SBQQ__Group__c'),
-                        line : data.line
-                    });
-
-                    if (component.get('v.line.SBQQ__Group__c') !== data.groupId){
                         lineOrderChange.setParams({
-                            targetGroupId : component.get('v.line.SBQQ__Group__c')
+                            id: data.id,
+                            oldPosition: data.origin,
+                            newPosition: component.get('v.line.SBQQ__Number__c'),
+                            sourceGroupId: data.groupId,
+                            targetGroupId: component.get('v.line.SBQQ__Group__c'),
+                            line: data.line
                         });
+
+                        if (component.get('v.line.SBQQ__Group__c') !== data.groupId) {
+                            lineOrderChange.setParams({
+                                targetGroupId: component.get('v.line.SBQQ__Group__c')
+                            });
+                        }
+                        lineOrderChange.fire();
                     }
-                    lineOrderChange.fire();
                 }
+            } else if (data.type === 'Expense') {
+                var dropEvent = $A.get("e.c:ExpenseDrop");
+                var line = component.get('v.line');
+                dropEvent.setParams({lineId: line.Id});
+                dropEvent.fire();
             }
-        } else if (data.type === 'Expense'){
-            var dropEvent = $A.get("e.c:ExpenseDrop");
-            var line = component.get('v.line');
-            dropEvent.setParams({ lineId : line.Id});
-            dropEvent.fire();
         }
     },
     changeSortOrder : function(component, event, helper){
