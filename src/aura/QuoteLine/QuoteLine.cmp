@@ -45,7 +45,7 @@
                 </div>
                 <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
                     <div draggable="false" onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}">
-                        <lightning:inputRichText value="{!v.line.SBQQ__Description__c}"
+                        <lightning:inputRichText value="{!v.line.Id + ' ' + v.line.SBQQ__Description__c}"
                                                  aura:id="lineform"
                                                  class="{!v.line.Id}"
                                                  disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
@@ -65,12 +65,11 @@
                             <aura:if isTrue="{!v.line.SBQQ__Product__r.SBQQ__SubscriptionTerm__c != null}">
                                     <span onkeyup="{!c.save}">
                                     <lightning:input class="{!'slds-p-top_none valInput  ' + v.line.Id}"
-                                                     type="integer"
+                                                     type="decimal"
                                                      value="{!v.line.SBQQ__SubscriptionTerm__c}"
                                                      messageWhenValueMissing="Please add a value"
                                                      aura:id="lineform"
                                                      required="true"
-                                                     min="1"
                                                      onchange="{!c.setChanged}"/>
                                     </span>
                             </aura:if>
@@ -150,7 +149,7 @@
                                 </div>
                             </aura:if>
                             <aura:if isTrue="{!not(v.changed)}">
-                                <aura:if isTrue="{!not(v.hasDocument)}">
+                                <aura:if isTrue="{!and(not(v.hasDocument),not(v.lineUpdatesPending))}">
                                     <div>
                                         <lightning:icon iconName="action:clone" alternativeText="Clone" size="small" onclick="{!c.cloneLine}" title="Clone" />
                                     </div>

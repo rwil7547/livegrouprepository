@@ -250,20 +250,20 @@ public class QuoteInterfaceTest {
 
         // test update the unit cost on a line
         returnedLines[0].SBQQ__UnitCost__c = 0;
-        String lineUpdateResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'save');
+        String lineUpdateResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'save',0.5);
         System.assertEquals(returnedLines[0].Id, lineUpdateResponse);
 
         // test set line optional
         returnedLines[0].SBQQ__Optional__c = true;
-        String lineOptionalResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'optional');
+        String lineOptionalResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'optional',0.5);
         System.assertEquals(returnedLines[0].Id, lineOptionalResponse);
 
         // test clone line
-        String lineCloneResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'clone');
+        String lineCloneResponse = PrimaryQuoteController.changeLineApex(returnedLines[0], 'clone',0.5);
         System.assertNotEquals('error', lineCloneResponse);
 
         // test delete line
-        String lineDeleteResponse = PrimaryQuoteController.changeLineApex(returnedLines[1], 'delete');
+        String lineDeleteResponse = PrimaryQuoteController.changeLineApex(returnedLines[1], 'delete',0.5);
         System.assertEquals(returnedLines[1].Id, lineDeleteResponse);
 
         // test get quote value refresh
@@ -324,7 +324,7 @@ public class QuoteInterfaceTest {
         List<SBQQ__QuoteLine__c> returnedLines = [SELECT Id, SBQQ__UnitCost__c, SBQQ__Optional__c, SBQQ__Number__c
                         FROM SBQQ__QuoteLine__c WHERE SBQQ__Quote__c = :quoteId];
 
-        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional');
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional',0.5);
 
         PageReference pdf = Page.QuotePreview;
 
@@ -396,14 +396,14 @@ public class QuoteInterfaceTest {
 
         PrimaryQuoteController.groupLinesApex(amendments[0].Id);
         returnedLines[0].SBQQ__Group__c         = null;
-        PrimaryQuoteController.changeLineApex(returnedLines[0],'save');
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'save',0.5);
         returnedLines[3].SBQQ__Optional__c      = true;
-        PrimaryQuoteController.changeLineApex(returnedLines[1],'delete');
-        PrimaryQuoteController.changeLineApex(returnedLines[2],'clone');
-        PrimaryQuoteController.changeLineApex(returnedLines[3],'optional');
+        PrimaryQuoteController.changeLineApex(returnedLines[1],'delete',0.5);
+        PrimaryQuoteController.changeLineApex(returnedLines[2],'clone',0.5);
+        PrimaryQuoteController.changeLineApex(returnedLines[3],'optional',0.5);
         returnedLines[4].SBQQ__Description__c   = 'xxx';
         returnedLines[4].SBQQ__Quantity__c      = 50;
-        PrimaryQuoteController.changeLineApex(returnedLines[4],'save');
+        PrimaryQuoteController.changeLineApex(returnedLines[4],'save',0.5);
 
         QuotePreviewController qpcGrouped = new QuotePreviewController();
 
@@ -441,8 +441,8 @@ public class QuoteInterfaceTest {
         WHERE SBQQ__Quote__c = :quoteId
         ORDER BY CreatedDate ASC];
 
-        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional');
-        PrimaryQuoteController.changeLineApex(returnedLines[1],'optional');
+        PrimaryQuoteController.changeLineApex(returnedLines[0],'optional',0.5);
+        PrimaryQuoteController.changeLineApex(returnedLines[1],'optional',0.5);
 
         PageReference pdf = Page.QuotePreview;
 

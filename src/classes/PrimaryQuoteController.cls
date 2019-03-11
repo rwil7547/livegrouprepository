@@ -102,7 +102,7 @@ public with sharing class PrimaryQuoteController {
                         ORDER BY SBQQ__Number__c ASC)
                     FROM SBQQ__QuoteLineGroup__c
                     WHERE SBQQ__Quote__c = :Id
-                    ORDER BY SBQQ__Number__c ASC];
+                    ORDER BY SBQQ__Number__c, CreatedDate ASC];
         } else {
 
             Map<String,List<SBQQ__QuoteLine__c>> groupMap = new Map<String,List<SBQQ__QuoteLine__c>>();
@@ -217,7 +217,10 @@ public with sharing class PrimaryQuoteController {
 
 
     @AuraEnabled
-    public static String changeLineApex(SBQQ__QuoteLine__c line, String operation){
+    public static String changeLineApex(SBQQ__QuoteLine__c line, String operation, Decimal days){
+
+        system.debug('trying to save a line with day value of ' + line);
+
 
         String result = 'error';
 
@@ -235,6 +238,7 @@ public with sharing class PrimaryQuoteController {
                                 FROM SBQQ__Quote__c WHERE Id = :lineLock.SBQQ__Quote__c].SBQQ__LineItemCount__c;
 
         if (operation == 'save'){
+            line.SBQQ__SubscriptionTerm__c = days;
             Database.SaveResult saveResult = Database.update(line);
             if (saveResult.isSuccess()){
                 result = line.Id;
@@ -518,7 +522,8 @@ public with sharing class PrimaryQuoteController {
                     SBQQ__Product__c        = product.Id,
                     SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                     SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
-                    SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+//                    SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+                    SBQQ__SubscriptionPricing__c = 'Fixed Price',
                     SBQQ__DefaultSubscriptionTerm__c = 1,
                     SBQQ__Quantity__c       = 1,
                     SBQQ__UnitCost__c       = unitCost,
@@ -587,7 +592,8 @@ public with sharing class PrimaryQuoteController {
                             SBQQ__Product__c        = product.Id,
                             SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                             SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
-                            SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+//                            SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
+                            SBQQ__SubscriptionPricing__c = 'Fixed Price',
                             SBQQ__DefaultSubscriptionTerm__c = 1,
                             SBQQ__Quantity__c       = 1,
                             SBQQ__UnitCost__c       = unitCost,
@@ -869,7 +875,7 @@ public with sharing class PrimaryQuoteController {
 
         if (type == 'Estimate'){
             cloneQuote.Proposal_Introduction__c =
-                    'I am please to provide a revised estimate of costs for your project, ' +
+                    'I am pleased to provide a revised estimate of costs for your project, ' +
                     parentOpp.Name + '. The following pages contain a full breakdown of ' +
                     'the costs outlined above. We look forward to hearing from you ' +
                     'at your earliest convenience.';
@@ -1216,7 +1222,7 @@ public with sharing class PrimaryQuoteController {
 
         attach.Body = body;
         attach.Name = quote.SBQQ__Opportunity2__r.Filtered_Job_Number__c + ' ' +
-                quote.SBQQ__Opportunity2__r.Account.Name + ' ' + quote.Version__c;
+                quote.SBQQ__Opportunity2__r.Account.Name + ' ' + quote.Version__c + '.pdf';
         attach.IsPrivate = false;
         attach.ContentType = 'application/pdf';
 

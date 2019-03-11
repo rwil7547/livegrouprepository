@@ -46,8 +46,10 @@
                     }
 
                     if (quote.SBQQ__Status__c !== 'Reconciliation - completed' &&
-                        (!quote.SBQQ__Opportunity2__r.Contracted__c ||
-                            (quote.SBQQ__Opportunity2__r.Contracted__c && quote.SBQQ__Primary__c))){
+                        (!quote.SBQQ__Opportunity2__r.Contracted__c &&
+                            (!quote.SBQQ__Opportunity2__r.Legacy__c ||
+                                (quote.SBQQ__Opportunity2__r.Legacy__c && quote.SBQQ__Primary__c)) ||
+                        (quote.SBQQ__Opportunity2__r.Contracted__c && quote.SBQQ__Primary__c))){
                         component.set('v.cloneDisabled',false);
                     } else {
                         component.set('v.cloneDisabled',true);
@@ -88,6 +90,9 @@
 
     },
     getGroups : function(component, Id, custom) {
+
+        console.log('getting groups');
+
         var getGroups = component.get("c.getQuoteGroups");
         getGroups.setParams({
             Id : Id,
@@ -131,9 +136,10 @@
     showToast : function(title, message, type){
         var toastEvent = $A.get("e.force:showToast");
         toastEvent.setParams({
-            "title": title,
-            "message": message,
-            "type" : type
+            title : title,
+            message : message,
+            type : type,
+            mode : 'pester'
         });
         toastEvent.fire();
     },
@@ -269,8 +275,9 @@
             '&optionals=' + optionals +
             '&invoices=' + invoices +
             '&vat=' + vat +
-            '&sla=' + 'false' +
-            '&tnc=' + 'false';
+            '&draft=true' +
+            '&sla=false' +
+            '&tnc=false';
 
         component.set('v.previewChanged',false);
 
@@ -308,7 +315,7 @@
 
             lines.forEach(function(element){
                 reportData.push({
-                    Name : '"' + element.SBQQ__Product__r.Name + '"',
+                    Name : '"' + element.SBQQ__Product__r.Name.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
                     Description : '"' + element.SBQQ__Description__c.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
                     Days : (element.SBQQ__SubscriptionTerm__c) ? element.SBQQ__SubscriptionTerm__c : ' ',
                     Quantity : element.SBQQ__Quantity__c,

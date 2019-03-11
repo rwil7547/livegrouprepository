@@ -24,7 +24,12 @@
     },
     editLine : function(component, event, helper){
 
+
+
         var line = event.getParam('line');
+
+        console.log('editing a line with subscription term of ' + line.SBQQ__SubscriptionTerm__c);
+
         if (line.attributes){
             line = {
                 'sobjectType':'SBQQ__QuoteLine__c',
@@ -55,10 +60,10 @@
 
             lineUpdate.setParams({
                 line : line,
-                operation : event.getParam('operation')
+                operation : event.getParam('operation'),
+                days : line.SBQQ__SubscriptionTerm__c
             });
             lineUpdate.setCallback(this, function(response){
-                // console.log(response.getState() + ' ' + response.getReturnValue());
                 if (response.getState() === "SUCCESS" && response.getReturnValue() !== 'error'){
                     helper.showToast('Success!', 'The quote successfully updated.','success');
                     var refresh = $A.get("e.c:Refresh");
@@ -404,6 +409,7 @@
                 type = 'Estimate';
             } else {
                 type = component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c');
+                // type = component.get('v.quote.Stage__c');
             }
         }
 
@@ -651,9 +657,9 @@
     },
     orderGroups : function(component, event, helper){
 
-        var groups = component.get('v.groups');
         var oldPosition = event.getParam('sourcePosition');
         var newPosition = event.getParam('targetPosition');
+        var groups = component.get('v.groups');
 
         if (oldPosition > newPosition) {
             groups.forEach(function(element){

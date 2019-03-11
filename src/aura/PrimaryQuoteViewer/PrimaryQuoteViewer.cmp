@@ -119,7 +119,7 @@
                     <div style="width:100%;display: grid;grid-template-columns: 75% 25%">
                         <div >
                             <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
-                                <div >{!v.quote.Version__c}</div>
+                                <div >{!v.quote.Version__c} size is {!v.groups.length}</div>
                                 <aura:if isTrue="{!not(v.editable)}">
                                     <div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="small"/></div>
                                 </aura:if>

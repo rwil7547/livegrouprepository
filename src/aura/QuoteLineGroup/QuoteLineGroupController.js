@@ -162,6 +162,8 @@
     },
     handleLineDelete : function(component, event, helper){
 
+        console.log('handling line delete');
+
         if (event.getParam('operation') === 'delete'){
 
             var lines = component.get('v.lines');
@@ -170,11 +172,14 @@
             for (var x = 0; x < lines.length; x++){
                 newLines.push(lines[x]);
                 if (lines[x].Id === event.getParam('originalId')){
+                    console.log('splicing line');
+
                     newLines.splice(x,1);
-                    component.set('v.lines', newLines);
-                    break;
+
                 }
             }
+            component.set('v.lines', newLines);
+
 
             if (!component.get('v.customGroup') && component.get('v.lines').length === 0){
                 component.destroy();

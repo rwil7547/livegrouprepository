@@ -38,9 +38,8 @@ public class QuotePreviewController {
     public Boolean showSLA {get; set;}
     public Boolean showTnCs {get; set;}
 
-
     public Boolean trackChanges {get; set;}
-
+    public Boolean draft {get; set;}
 
     public QuotePreviewController(){
 
@@ -50,6 +49,7 @@ public class QuotePreviewController {
         showVAT         = (ApexPages.currentPage().getParameters().get('vat') == 'true') ? true : false;
         showSLA         = (ApexPages.currentPage().getParameters().get('sla') == 'true') ? true : false;
         showTnCs        = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
+        draft           = (ApexPages.currentPage().getParameters().get('draft') == 'true') ? true : false;
 
         user = [SELECT Id, Name, FirstName, LastName, Phone, MobilePhone, Email
                 FROM User
@@ -80,7 +80,7 @@ public class QuotePreviewController {
                         SBQQ__Opportunity2__r.Filtered_Job_Number__c, Stage__c, Ancestor__c, Proposal_Introduction__c,
                         SBQQ__NetAmount__c, Optional_total__c, SBQQ__Opportunity2__r.Venue__c, SBQQ__Opportunity2__r.Location__c,
                         SBQQ__Opportunity2__r.Event_start__c, SBQQ__Opportunity2__r.Event_end__c,
-                    (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r ORDER BY SBQQ__Number__c)
+                    (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r ORDER BY SBQQ__Number__c ASC)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
 
@@ -146,7 +146,7 @@ public class QuotePreviewController {
             for (SBQQ__QuoteLineGroup__c lineGroup : [SELECT Name, AncestorName__c
                                                     FROM SBQQ__QuoteLineGroup__c
                                                     WHERE SBQQ__Quote__c = :quote.Id
-                                                    ORDER BY CreatedDate ASC]) {
+                                                    ORDER BY SBQQ__Number__c ASC]) {
                 groups.add(lineGroup.Name);
                 Map<String, List<SBQQ__QuoteLine__c>> changeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                 changeMap.put('Removed', new List<SBQQ__QuoteLine__c>());

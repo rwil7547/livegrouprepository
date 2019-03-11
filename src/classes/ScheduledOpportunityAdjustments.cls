@@ -6,6 +6,6 @@ public with sharing class ScheduledOpportunityAdjustments implements Schedulable
 
     public void execute(SchedulableContext ctx) {
         SalesDashboardUtils.adjustOpportunities();
-        SalesDashboardUtils.adjustCalderCommissions();
+//        SalesDashboardUtils.adjustCalderCommissions();
     }
 }

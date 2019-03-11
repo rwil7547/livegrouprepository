@@ -37,7 +37,7 @@
                     <div class="slds-col slds-size_3-of-6" >
                         <div id="{!v.group.Id + 'name'}" class="groupName"
                              style="display:flex;" onclick="{!c.editGroupName}">
-                            <div style="font-size:18px;margin-right:5px;">{!v.group.Name}</div>
+                            <div style="font-size:18px;margin-right:5px;">{!v.group.Name} pending:{!v.lineUpdatesPending}</div>
                             <aura:if isTrue="{!(v.editable &amp;&amp; v.customGroup &amp;&amp; not(v.hasDocument))}">
                                 <div style="opacity:0.5;">
                                     <lightning:icon iconName="utility:edit" alternativeText="Edit"
@@ -53,7 +53,7 @@
                     <div class="slds-col slds-size_3-of-6">
                         <aura:if isTrue="{!and(v.editable,v.customGroup)}">
                             <aura:if isTrue="{!not(v.hasDocument)}">
-                                <aura:if isTrue="{!not(v.reconciling)}">
+                                <aura:if isTrue="{!and(not(v.reconciling),not(v.lineUpdatesPending))}">
                                     <div style="display:flex;justify-content: flex-end;position:relative;font-size:11px;"  ondragstart="{!c.preventDefault}">
                                         <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showProducts}"/>
                                         <lightning:button variant="neutral" label="CLONE GROUP" onclick="{!c.cloneGroup}"/>

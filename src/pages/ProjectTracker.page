@@ -1110,7 +1110,7 @@
                 var length       = trueLength;
                 var startOfWeek  = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() - start + 1);
                 var name         = result[x].Parent_Opportunity__r.Account.Abbreviation__c + ' - ' + result[x].Name;
-                var primary      = (result[x].Primary_Service__c === 'Event App') ? 'App' : result[x].Primary_Service__c.substring(0, 3);
+                // var primary      = (result[x].Primary_Service__c === 'Event App') ? 'App' : result[x].Primary_Service__c.substring(0, 3);
                 var type         = '';
                 var recAlert     = '';
 

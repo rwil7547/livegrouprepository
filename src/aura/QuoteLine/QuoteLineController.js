@@ -99,6 +99,9 @@
     },
     processChangeResponse : function(component, event, helper){
         if (component.get('v.line.Id') === event.getParam('originalId')){
+
+            console.log('line found to process response ');
+
             component.set('v.responsePending',false);
             var operation = event.getParam('operation');
             var response = event.getParam('response');
@@ -126,11 +129,12 @@
                     component.set('v.optional', !component.get('v.optional'));
                 }
             } else if (operation === 'delete'){
-                if(response !== 'error') {
-                    component.destroy();
-                } else {
-                    component.find('line').getElement().style.display = 'block';
-                }
+                // if(response !== 'error') {
+                //     console.log('destroying a line');
+                //     component.destroy();
+                // } else {
+                //     component.find('line').getElement().style.display = 'block';
+                // }
             }
         }
     },
