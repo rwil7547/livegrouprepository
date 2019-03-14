@@ -23,12 +23,7 @@
         component.set('v.activeGroupId',null);
     },
     editLine : function(component, event, helper){
-
-
-
         var line = event.getParam('line');
-
-        console.log('editing a line with subscription term of ' + line.SBQQ__SubscriptionTerm__c);
 
         if (line.attributes){
             line = {
@@ -38,7 +33,8 @@
                 'SBQQ__Quantity__c' : line.SBQQ__Quantity__c,
                 'SBQQ__UnitCost__c' : line.SBQQ__UnitCost__c,
                 'SBQQ__ListPrice__c': line.SBQQ__ListPrice__c,
-                'SBQQ__Description__c' : line.SBQQ__Description__c
+                'SBQQ__Description__c' : line.SBQQ__Description__c,
+                'SBQQ__Number__c' : line.SBQQ__Number__c
             };
         }
 
@@ -87,7 +83,8 @@
                 changeResponse.setParams({
                     originalId : event.getParam('id'),
                     response : response.getReturnValue(),
-                    operation : event.getParam('operation')
+                    operation : event.getParam('operation'),
+                    position : component.get('v.quote.SBQQ__LineItemCount__c') + 1
                 });
                 changeResponse.fire();
 
@@ -496,6 +493,7 @@
                 quote.Gross_Margin__c       = response.getReturnValue()['Gross_Margin__c'];
                 quote.SBQQ__Primary__c      = response.getReturnValue()['SBQQ__Primary__c'];
                 quote.HasDocument__c        = response.getReturnValue()['HasDocument__c'];
+                quote.SBQQ__LineItemCount__c = response.getReturnValue()['SBQQ__LineItemCount__c'];
                 quote.SBQQ__Opportunity2__r.UnassignedExpenses__c = response.getReturnValue()['SBQQ__Opportunity2__r.UnassignedExpenses__c'];
                 quote.SBQQ__Opportunity2__r.Quote_Status__c = response.getReturnValue()['SBQQ__Opportunity2__r.Quote_Status__c'];
                 component.set('v.quote', component.get('v.quote'));
@@ -638,6 +636,7 @@
     },
     orderLines : function(component, event, helper){
 
+        component.set('v.lineUpdatesPending',true);
         var changeSortOrder = component.get('c.changeSortOrderApex');
         changeSortOrder.setParams({
             quoteId : component.get('v.quote.Id'),
@@ -647,6 +646,7 @@
             targetGroupId : event.getParam('targetGroupId')
         });
         changeSortOrder.setCallback(this, function(response){
+            component.set('v.lineUpdatesPending',false);
             if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
                 helper.showToast('Success!', 'Line order changed','success');
             } else {
@@ -657,49 +657,54 @@
     },
     orderGroups : function(component, event, helper){
 
+        component.set('v.lineUpdatesPending',true);
         var oldPosition = event.getParam('sourcePosition');
         var newPosition = event.getParam('targetPosition');
         var groups = component.get('v.groups');
 
-        if (oldPosition > newPosition) {
-            groups.forEach(function(element){
-                if (element.Id === event.getParam('sourceId')){
-                    element.SBQQ__Number__c = newPosition;
-                } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
-                    element.SBQQ__Number__c = element.SBQQ__Number__c +1;
+        if (groups){
+            if (oldPosition > newPosition) {
+                groups.forEach(function(element){
+                    if (element.Id === event.getParam('sourceId')){
+                        element.SBQQ__Number__c = newPosition;
+                    } else if (element.SBQQ__Number__c <= oldPosition && element.SBQQ__Number__c >= newPosition){
+                        element.SBQQ__Number__c = element.SBQQ__Number__c +1;
+                    }
+                });
+            } else {
+                groups.forEach(function(element){
+                    if (element.Id === event.getParam('sourceId')){
+                        element.SBQQ__Number__c = newPosition;
+                    } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
+                        element.SBQQ__Number__c = element.SBQQ__Number__c -1;
+                    }
+                });
+            }
+
+            groups.sort(function (a, b) {
+                return a.SBQQ__Number__c - b.SBQQ__Number__c;
+            });
+
+            component.set('v.groups',groups);
+
+            var changeGroupOrder = component.get('c.changeGroupSortOrderApex');
+            changeGroupOrder.setParams({
+                quoteId : component.get('v.quote.Id'),
+                groupId : event.getParam('sourceId'),
+                oldPosition : oldPosition,
+                newPosition : newPosition
+            });
+            changeGroupOrder.setCallback(this, function(response){
+                component.set('v.lineUpdatesPending',false);
+                if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
+                    helper.showToast('Success!', 'Group order changed','success');
+                } else {
+                    helper.showToast('Error', 'There was an error changing the group order', 'error');
                 }
             });
-        } else {
-            groups.forEach(function(element){
-                if (element.Id === event.getParam('sourceId')){
-                    element.SBQQ__Number__c = newPosition;
-                } else if (element.SBQQ__Number__c <= newPosition && element.SBQQ__Number__c >= oldPosition){
-                    element.SBQQ__Number__c = element.SBQQ__Number__c -1;
-                }
-            });
+            $A.enqueueAction(changeGroupOrder);
         }
 
-        groups.sort(function (a, b) {
-            return a.SBQQ__Number__c - b.SBQQ__Number__c;
-        });
-
-        component.set('v.groups',groups);
-
-        var changeGroupOrder = component.get('c.changeGroupSortOrderApex');
-        changeGroupOrder.setParams({
-            quoteId : component.get('v.quote.Id'),
-            groupId : event.getParam('sourceId'),
-            oldPosition : oldPosition,
-            newPosition : newPosition
-        });
-        changeGroupOrder.setCallback(this, function(response){
-            if (response.getState() === "SUCCESS" && response.getReturnValue() === 'success'){
-                helper.showToast('Success!', 'Group order changed','success');
-            } else {
-                helper.showToast('Error', 'There was an error changing the group order', 'error');
-            }
-        });
-        $A.enqueueAction(changeGroupOrder);
     },
     recComplete : function(component, event, helper){
 

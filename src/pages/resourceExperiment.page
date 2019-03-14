@@ -1,0 +1,354 @@
+<!--
+ - Created by Ronan Williams on 13/03/2019.
+ -->
+
+<apex:page id="resourceExperiment" lightningStylesheets="true" controller="resourceExperimentController">
+
+    <html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
+
+    <style>
+
+        body {
+            background-image: url("{!$Site.BaseUrl}/_slds/images/themes/lightning_blue/lightning_blue_background.png");
+            background-size: 100%;
+            background-repeat: no-repeat;
+            background-position: top;
+            background-color: #B0C4DF;
+            background-attachment: fixed;
+        }
+        .box {
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            padding-left: 20px;
+            background-color: white;
+            border: 0.5px solid grey;
+            margin-top: 10px;
+            min-height: 300px;
+            height: auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+
+        }
+        .entityHolder {
+            /*position:absolute;*/
+            width:97%;
+            /*height: 219px;*/
+            /*display: flex;*/
+        }
+        .dayPanelHolder {
+            width:97%;
+            /*height: 219px;*/
+            height: auto;
+            min-height: 300px;
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .dayPanel {
+            height: 100%;
+            width:4%;
+            position: relative;
+            border-left: 0.2px solid lightgrey;
+        }
+        .weekend {
+            background-color: #eaeaea;
+            width: 100%;
+            height: 100%;
+        }
+        .bottomPanel {
+            /*position: absolute;*/
+            bottom: 15px;
+            width: 97%;
+            /*border: 1px solid red;*/
+            height: 30px;
+            padding-top: 10px;
+            display: flex;
+            border-top: 0.5px solid black;
+
+        }
+        .day {
+            width: 4%;
+            margin-bottom: 5px;
+            -ms-transform: rotate(320deg); /* IE 9 */
+            -webkit-transform: rotate(320deg); /* Safari 3-8 */
+            transform: rotate(320deg);
+            text-align: left;
+            font-size: 10px;
+        }
+        .opp {
+            height: 18px;
+            padding: 1px;
+            background-color: lightblue;
+            z-index: 30;
+            border-radius: 3px;
+            border: 0.5px solid grey;
+            /*position: relative;*/
+            position: absolute;
+            width: 40px;
+            cursor: pointer;
+            padding-left: 4px;
+        }
+        .opp:hover {
+            width: 200px;
+            overflow: visible;
+            z-index: 20;
+            opacity: 0;
+
+        }
+        .control {
+            position: sticky;
+            top: 5px;
+            display: grid;
+            grid-template-columns: 20% 5% 30% 35% 10%;
+        }
+
+        .noSpill {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .dimmer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            top: 0;
+            margin: auto;
+            height: 100vh;
+            width: 100vw;
+            background-color: white;
+            opacity: 0.75;
+        }
+        #app {
+            width: 100%;
+            padding: 10px;
+        }
+
+        .row {
+            width: 100%;
+            height: 22px;
+        }
+        .backdropDayHolder {
+            position: absolute;
+            left: 10px;
+            display: flex;
+        }
+    </style>
+
+    <body>
+        <div id="app" style="width: 100%; position: relative;">
+                <div v-for="month in months" class="box">
+                    <div>{{month.name}} rows is {{month.rows.length}}</div>
+
+                    <div class="dayPanelHolder">
+
+                        <div v-for="row in month.rows" class="row">
+                            <!--<div class="row">-->
+                                <div class="backdropDayHolder">
+                                <span v-for="day in row.daysTaken" class="backdropDay">{{day}}, </span>
+                                </div>
+                                <div class="entityHolder">
+                                    <div v-for="opp in row.opps" class="opp noSpill" draggable="false"
+                                         v-bind:style="{ backgroundColor : opp.StageName == 'Closed Won' ? '#80a9ed' : '#f4dd9c',
+                                                     width : opp.length > 0 ? (opp.length * (100/month.days.length)) + '%' : 100/month.days.length + '%',
+                                                     marginLeft : (opp.offset * (100/month.days.length)) + '%'}">
+                                    <!--<div v-for="opp in row.opps" class="opp noSpill"-->
+                                         <!--v-bind:style="{ backgroundColor : opp.StageName == 'Closed Won' ? '#80a9ed' : '#f4dd9c',-->
+                                                     <!--width : opp.length > 0 ? (opp.length * 3.22) + '%' : '3.22%',-->
+                                                     <!--marginLeft : (opp.offset * 3.22) + '%'}">-->
+
+
+                                        {{opp.offset}} {{opp.Name}}</div>
+
+                                </div>
+
+                            <!--</div>-->
+                        </div>
+
+
+                        <div style="display: flex;position: relative;height: 100px;">
+                            <div v-for="day in month.days" class="dayPanel">
+                                <div v-if="day.weekend" class="weekend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bottomPanel">
+
+                        <div v-for="day in month.days" class="day">{{day.dayOfWeek + ' ' + day.day}}</div>
+
+                    </div>
+                </div>
+        </div>
+    </body>
+
+    <script>
+
+        // step 1: create a box for each month in the next 12 months
+
+        // step 2: for each box, add elements for each day
+        var app = new Vue({
+            el: '#app',
+            data: {
+                months : []
+                // opps : []
+            },
+            methods: {
+
+                checkGo : function(){
+
+                },
+                loadData : function(){
+
+                    // step 1: define months
+                    var entryDate = new Date();
+                    entryDate.setDate(1);
+
+                    for (var x = 0; x < 12; x++) {
+
+                        entryDate.setMonth(x);
+
+                        var month = {
+                            month : entryDate,
+                            name : entryDate.toISOString().slice(0, 10),
+                            days : [],
+                            opps : [],
+                            rows : [{
+                                free : true,
+                                opps : [],
+                                daysTaken : new Set()
+                            }]
+
+                        };
+
+                        for (var y = 0; y < parseInt(new Date(entryDate.getFullYear(), entryDate.getMonth() + 1, 0).getDate()); y++){
+                            var dayDate = new Date(entryDate.getFullYear(), entryDate.getMonth(), y+1).toString().substring(0,3)
+                            month.days.push({
+                                day : (y + 1),
+                                dayOfWeek : dayDate,
+                                weekend : dayDate === 'Sat' || dayDate === 'Sun'
+                            });
+                        }
+
+
+                        this.months.push(month);
+
+
+                    }
+
+
+                    // load sample data
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.resourceExperimentController.getOpps}',
+                        function (result, event) {
+                            if (event.status) {
+
+                                //console.log(response[0]);
+                                result.sort(function(a, b){return b.Lengthjs__c - a.Lengthjs__c});
+
+                                for (var x = 0; x < result.length; x++){
+                                    var month = new Date(result[x].Event_end__c).getMonth();
+
+                                    if (app.months[month]){
+
+                                        var rows = app.months[month].rows;
+
+                                        if (app.months[month].opps) {
+
+                                            var startDay    = new Date(result[x].Event_start__c).getDate();
+                                            var endDay      = new Date(result[x].Event_end__c).getDate();
+                                            result[x].length = result[x].Lengthjs__c;
+                                            result[x].offset = startDay - 1;
+
+
+                                            var rowFound = false;
+
+                                            for (var r = 0; r < rows.length; r++){
+
+                                                if (!rowFound) {
+
+                                                    var spaceAvailable = true;
+
+                                                    var counter = endDay;
+                                                    // while (counter >= startDay) {
+
+
+                                                    // console.log('for ' + result[x].Name + ' is ' + counter + ' ' + startDay + '' +
+                                                    //     ' dates are ' + );
+
+
+
+                                                    while (counter > startDay) {
+
+                                                        if (spaceAvailable) {
+                                                            if (rows[r].daysTaken.has(counter)) {
+                                                                spaceAvailable = false;
+                                                            }
+                                                        }
+
+                                                        counter = counter - 1;
+                                                    }
+
+                                                    if (spaceAvailable) {
+                                                        rows[r].opps.push(result[x]);
+
+                                                        var upper = endDay;
+                                                        while (upper >= startDay) {
+                                                            rows[r].daysTaken.add(upper);
+                                                            upper = upper - 1;
+                                                        }
+
+                                                        rowFound = true;
+                                                    }
+                                                }
+                                            }
+
+                                            if (!rowFound){
+
+                                                var newRow = {
+                                                    free : false,
+                                                    opps : [],
+                                                    daysTaken : new Set()
+                                                };
+                                                newRow.opps.push(result[x]);
+
+                                                var upper = endDay;
+                                                // while (upper >= startDay) {
+                                                while (upper > startDay) {
+                                                    newRow.daysTaken.add(upper);
+                                                    upper = upper - 1;
+                                                }
+
+                                                rows.push(newRow);
+
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+                        }, {
+                            escape : true
+                        }
+                    );
+
+                }
+
+            },
+            beforeMount() {
+
+                this.loadData();
+            }
+        })
+
+    </script>
+
+    </html>
+</apex:page>

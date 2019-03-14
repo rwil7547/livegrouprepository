@@ -2,4 +2,5 @@
     <aura:attribute name="originalId" type="string" />
     <aura:attribute name="response" type="string" />
     <aura:attribute name="operation" type="string" />
+    <aura:attribute name="position" type="integer" />
 </aura:event>

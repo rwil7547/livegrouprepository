@@ -268,7 +268,7 @@ public class QuoteInterfaceTest {
 
         // test get quote value refresh
         Map<String,Object> refreshMap = PrimaryQuoteController.getRefreshApex(quoteId);
-        System.assertEquals(8,refreshMap.size());
+        System.assertEquals(9,refreshMap.size());
 
 
     }

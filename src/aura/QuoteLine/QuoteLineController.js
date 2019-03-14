@@ -100,8 +100,6 @@
     processChangeResponse : function(component, event, helper){
         if (component.get('v.line.Id') === event.getParam('originalId')){
 
-            console.log('line found to process response ');
-
             component.set('v.responsePending',false);
             var operation = event.getParam('operation');
             var response = event.getParam('response');
@@ -110,6 +108,7 @@
             } else if (operation === 'clone' && response !== 'error'){
                 var line = Object.assign({},component.get('v.line'));
                 line.Id = event.getParam('response');
+                line.SBQQ__Number__c = event.getParam('position');
                 var clonedLine = component.getEvent('clonedLine');
                 clonedLine.setParams({
                     line : line,

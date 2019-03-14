@@ -13,14 +13,15 @@ public with sharing class PrimaryQuoteController {
                         'SBQQ__Status__c, SBQQ__NetAmount__c, ' +
                         'Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c, CreatedDate,' +
                         'Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__PriceBook__c, HasDocument__c, Locked__c, ' +
-                        'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
+                        'SBQQ__Opportunity2__r.Account.Name, SBQQ__Opportunity2__r.Account.SOWRecipient__c, SBQQ__Opportunity2__r.QuoteType__c, DocumentLocked__c,' +
                         'SBQQ__Opportunity2__r.Contracted__c, SBQQ__Opportunity2__r.Reconciling__c, ' +
                         'SBQQ__LineItemsGrouped__c, SBQQ__Opportunity2__c, SBQQ__Opportunity2__r.Name, ' +
                         'SBQQ__Opportunity2__r.StageName, SBQQ__Opportunity2__r.Committed__c, Event_End__c, ' +
                         'SBQQ__Opportunity2__r.Quickbooks_COS__c, SBQQ__Opportunity2__r.COSRemaining__c, ' +
                         'SBQQ__Opportunity2__r.UnassignedExpenses__c,SBQQ__Opportunity2__r.Quote_Status__c,' +
-                        'SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c,' +
+                        'SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c, SBQQ__LineItemCount__c,' +
                         'SBQQ__Opportunity2__r.Percent_Invoiced__c, SBQQ__Opportunity2__r.Invoice_Status__c,' +
+                        'SOW_Entity_Name__c, SOW_Entity_Name_Caps__c, SOW_Service_Description__c, SOW_Services__c,' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
                         '(SELECT Id FROM SBQQ__LineItems__r), ' +
@@ -36,7 +37,7 @@ public with sharing class PrimaryQuoteController {
         Map<String,Object> responseMap = new Map<String,Object>();
 
         SBQQ__Quote__c quote = [SELECT Id, SBQQ__NetAmount__c, SBQQ__LineItemsGrouped__c, HasDocument__c,
-                                        Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c,
+                                        SBQQ__LineItemCount__c, Cost_of_sale__c, Gross_Profit__c, Gross_Margin__c, SBQQ__Primary__c,
                                         SBQQ__Opportunity2__r.UnassignedExpenses__c, SBQQ__Opportunity2__r.Quote_Status__c
                                 FROM SBQQ__Quote__c WHERE Id = :quoteId];
 
@@ -46,6 +47,7 @@ public with sharing class PrimaryQuoteController {
         responseMap.put('Gross_Margin__c',quote.Gross_Margin__c);
         responseMap.put('SBQQ__Primary__c',quote.SBQQ__Primary__c);
         responseMap.put('HasDocument__c',quote.HasDocument__c);
+        responseMap.put('SBQQ__LineItemCount__c',quote.SBQQ__LineItemCount__c);
         responseMap.put('SBQQ__Opportunity2__r.UnassignedExpenses__c',quote.SBQQ__Opportunity2__r.UnassignedExpenses__c);
         responseMap.put('SBQQ__Opportunity2__r.Quote_Status__c',quote.SBQQ__Opportunity2__r.Quote_Status__c);
 
@@ -269,6 +271,7 @@ public with sharing class PrimaryQuoteController {
                                                     AND SBQQ__Quote__c = :lineLock.SBQQ__Quote__c];
 
                 for (SBQQ__QuoteLine__c li : lines){
+                    system.debug('processing line ' + li + ' cos num is ' + line.SBQQ__Number__c);
                     if (li.SBQQ__Number__c != null){
                         li.SBQQ__Number__c = li.SBQQ__Number__c - 1;
                     }
@@ -760,7 +763,7 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.Version__c               = 'Contract';
             cloneQuote.Proposal_Introduction__c =
                             'Thank you for confirming your intention to proceed with our support for your project, ' +
-                            quote.SBQQ__Opportunity2__r.Name + '.\nThe following pages contain a full ' +
+                            quote.SBQQ__Opportunity2__r.Name + '. The following pages contain a full ' +
                             'breakdown of the costs outlined above. In the event that your requirements ' +
                             'change, we will provide an updated contract amendment for your approval, ' +
                             'which will outline any changes to the services agreed to in this document.';

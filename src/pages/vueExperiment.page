@@ -32,6 +32,10 @@
         .control {
             position: sticky;
             top: 5px;
+            z-index: 200;
+            display: grid;
+            grid-template-columns: 20% 5% 30% 35% 10%;
+
         }
         .dimmer {
             position: fixed;
@@ -53,6 +57,21 @@
             border: 0.5px solid lightgrey;
             margin:4px;
         }
+        .labelBlock {
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bolder;
+        }
+        .valueBlock {
+            position: relative;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
         .splitTwo {
             display: grid;
             grid-template-columns: 50% 50%;
@@ -60,10 +79,6 @@
         .splitFour {
             display: grid;
             grid-template-columns: 25% 25% 25% 25%;
-        }
-        .control {
-            display: grid;
-            grid-template-columns: 40% 40% 20%;
         }
         .title {
             font-size: 18px;
@@ -108,6 +123,23 @@
         .fourth{
             background-color: #d43b8f;
         }
+        .customButton{
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .customDates {
+            display: flex;
+        }
+        .customDates > * {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding-left: 6px;
+            padding-right: 6px;
+            vertical-align: middle;
+        }
         #app {
             width: 100%;
             padding: 10px;
@@ -116,14 +148,32 @@
 
     <div id="app">
 
-        <div class="box control title">
-            <div>{{ message }}</div>
+        <div class="box control">
+            <div>
+                <select onchange="app.changeDate('preset',this.value)" id="datePicklist">
+                    <option value="CURRENT FY">CURRENT FY</option>
+                    <option value="PREVIOUS FY">PREVIOUS FY</option>
+                    <option value="NEXT FY">NEXT FY</option>
+                    <option value="PAST AND NEXT 6 MONTHS">PAST AND NEXT 6 MONTHS</option>
+                    <option value="LAST 12 MONTHS">LAST 12 MONTHS</option>
+                    <option value="NEXT 12 MONTHS">NEXT 12 MONTHS</option>
+                    <option value="CUSTOM" disabled="true" hidden="true">CUSTOM</option>
+                </select>
+            </div>
+            <div style="padding-top: 8px" id="orOption">- OR -</div>
+
+            <div class="customDates" onchange="app.checkGo()">
+                    <div style="padding-top: 8px;">FROM:</div>
+                    <div><input id="start" type="date" style="width: 160px;" min="2015-10-01" v-model="startDate"/></div>
+                    <div style="padding-top: 8px;">TO:</div>
+                    <div><input id="end" type="date" style="width: 160px;" min="2015-10-01" v-model="endDate"/></div>
+                    <span v-if="showGo">
+                        <div><input style="margin-top: 4px;" class="customButton" type="button" value="GO"/></div>
+                    </span>
+            </div>
             <div></div>
             <div style="text-align: right;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
         </div>
-        <!--<div v-for="el in iterator">-->
-            <!--{{el}}-->
-        <!--</div>-->
 
         <div class="box">
             <div class="splitTwo">
@@ -148,14 +198,19 @@
         <div class="box">
             <div class="splitTwo">
                 <div class="title">GROSS PROFIT {{period}}</div>
-                <div class="options">some options</div>
+                <div class="options">
+                    <div><span class="option main">Confirmed</span></div>
+                    <div><span class="option second">Weighted</span></div>
+                    <div><span class="option third">Pipeline</span></div>
+                    <div><span class="option fourth">Opex</span></div>
+                </div>
             </div>
             <div class="splitTwo">
                 <div class="boxLite">
-                    <div class="graph"></div>
+                    <div id="profitBar" class="graph"></div>
                 </div>
                 <div class="boxLite">
-                    <div class="graph"></div>
+                    <div id="profitBar" class="graph"></div>
                 </div>
             </div>
         </div>
@@ -167,27 +222,88 @@
             </div>
             <div class="splitTwo">
                 <div class="boxLite">
-                    <div class="graph"></div>
+                    <div id="opexBar" class="graph"></div>
                 </div>
                 <div class="boxLite">
-                    <div class="graph"></div>
+                    <div id="opexLine" class="graph"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">NET PROFIT {{period}}</div>
+                <div class="options">some options</div>
+            </div>
+            <div class="splitTwo">
+                <div class="boxLite">
+                    <div id="netProfitBar" class="graph"></div>
+                </div>
+                <div class="boxLite">
+                    <div id="netProfitLine" class="graph"></div>
                 </div>
             </div>
         </div>
 
         <div class="box">
             <div class="splitTwo">
-                <div class="title">TOTAL FIGURES {{period}}</div>
+                <div class="title">TOTAL CONFIRMED FIGURES {{period}}</div>
                 <div class="options">some options</div>
             </div>
             <div class="splitFour">
-                <div class="boxLite"></div>
-                <div class="boxLite"></div>
-                <div class="boxLite"></div>
-                <div class="boxLite"></div>
+                <div class="boxLite">
+                    <div class="labelBlock">Revenue</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Gross profit</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Operating cost</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Net profit</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
             </div>
+            <span v-if="showChanges">
+            <div class="splitFour">
+                <div class="boxLite">
+                    <div class="labelBlock">Change last 7 days</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Change last 7 days</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Change last 7 days</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+                <div class="boxLite">
+                    <div class="labelBlock">Change last 7 days</div>
+                    <div class="valueBlock">{{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                </div>
+            </div>            </span>
         </div>
 
+        <div class="box">
+            <div class="splitTwo">
+                <div class="title">
+                    <span>CASH FLOW {{period}}</span>
+                    <span v-if="manageAllowed">
+                        <input class="customButton" type="button" value="MANAGE"/>
+                    </span>
+                </div>
+                <div class="options">some options</div>
+            </div>
+                <div class="boxLite">
+                    <div id="cashFlowLine" class="graph"></div>
+                </div>
+        </div>
 
         <br/>
 
@@ -213,43 +329,151 @@
             el: '#app',
             data: {
                 period : 'CURRENT FY',
+                today : '',
+                yearText : '',
                 startDate : '',
                 endDate : '',
-                iterator : '',
-                opportunities : '',
+                // iterator : '',
+                // cashIterator : '',
+                graphData : '',
+                cashGraphData : '',
 
-
+                showGo : false,
                 showReport : false,
+                showChanges : true,
+                preset : true,
+                manageAllowed : true,
 
-                message: 'Hello Vue!',
                 todos: [
                     { text: 'Learn JavaScript' },
                     { text: 'Learn Vue' },
                     { text: 'Build something awesome' }
                 ],
-                seen: true,
-
 
                 brand : {
-                    main : '#2c7495',
-                    second : '#66C1BF',
-                    third : '#b2a5d1'
+                    // main : '#2c7495',
+                    // second : '#66C1BF',
+                    // third : '#b2a5d1',
+                    revenue : {
+                        main : '#235b76',
+                        second : '#307fa4',
+                        third : '#43b0e2'
+                    },
+                    profit : {
+                        main : '#498a88',
+                        second : '#5fb4b2',
+                        third : '#81f3f1'
+                    },
+                    opex : {
+                        main : '#b13077',
+                        second : '#ef43a1',
+                        third : '#ff48ac'
+                    },
+                    netProfit : {
+                        main : '#726985',
+                        second : '#9085a9',
+                        third : '#b2a5d1'
+                    },
+                    cashFlow : {
+                        main : '#276684',
+                        second : '#368eb7',
+                        third : '#43b0e2'
+                    }
+
                 }
             },
             methods: {
-                calcDate : function(){
+                changeDate : function(type, val){
+                    if (type === 'preset') {
+                        app.period = val;
 
+                        if (val === 'CURRENT FY'){
+                            app.startDate   = new Date(app.yearText, 3, 1);
+                            app.endDate     = new Date(app.yearText + 1, 2, 31);
+                            app.showChanges = true;
+                        } else if (val === 'NEXT FY'){
+                            app.startDate   = new Date(app.yearText + 1, 3, 1);
+                            app.endDate     = new Date(app.yearText + 2, 2, 31);
+                            app.showChanges = true;
+                        } else if (val === 'PREVIOUS FY'){
+                            app.startDate   = new Date(app.yearText - 1, 3, 1);
+                            app.endDate     = new Date(app.yearText, 2, 31);
+                            app.showChanges = false;
+                        } else if (val === 'PAST AND NEXT 6 MONTHS'){
+                            app.startDate   = new Date(app.today.getFullYear(), app.today.getMonth() -6, 1);
+                            app.endDate     = new Date(app.today.getFullYear(), app.today.getMonth() +6, 0);
+                            app.showChanges = false;
+                        } else if (val === 'LAST 12 MONTHS'){
+                            app.startDate   = new Date(app.today.getFullYear(), app.today.getMonth() -12, 1);
+                            app.endDate     = new Date(app.today.getFullYear(), app.today.getMonth(), 0);
+                            app.showChanges = false;
+                        } else if (val === 'NEXT 12 MONTHS'){
+                            app.startDate   = new Date(app.today.getFullYear(), app.today.getMonth(), 1);
+                            app.endDate     = new Date(app.today.getFullYear(), app.today.getMonth() + 11, 0);
+                            app.showChanges = false;
+                        }
+                    } else if (type === 'datePicker'){
+                        app.showChanges = false;
+                        document.getElementById('snapshots').style.visibility = 'hidden';
+
+                        app.startDate   = new Date(document.getElementById('start').value);
+                        app.endDate     = new Date(document.getElementById('end').value);
+
+                        document.getElementById('datePicklist').value = 'CUSTOM';
+
+                    }
+                    app.loadData();
                 },
+
+                checkGo : function(){
+                    if (typeof app.startDate === 'string' && typeof app.endDate === 'string' &&
+                        Date.parse(app.startDate) && Date.parse(app.endDate) &&
+                        Date.parse(app.startDate) <= Date.parse(app.endDate)){
+                        app.showGo = true;
+                    } else {
+                        app.showGo = false;
+                    }
+                },
+                loadData : function(){
+
+                    // step 1: get all performance figures
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.VueTestController.getOppRevenueTotals}',
+                        this.startDate,
+                        this.endDate,
+                        function (result, event) {
+                            var iterator = Object.keys(result['revenue']);
+                            app.graphData = result;
+                            app.drawBar('revenue',app.graphData['revenue'], iterator);
+                            app.drawLine('revenue', app.graphData['revenue'], iterator);
+                            app.drawBar('profit', app.graphData['profit'], iterator);
+                            app.drawBar('opex', app.graphData['opex'], iterator);
+                            app.drawBar('netProfit', app.graphData['netProfit'], iterator);
+                        }, {
+                            escape : true
+                        }
+                    );
+
+                    // step 2: get all cashflow figures
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.VueTestController.getBalances}',
+                        this.startDate,
+                        this.endDate,
+                        function (result, event) {
+                            var cashIterator = Object.keys(result);
+                            app.cashGraphData = result;
+                            app.drawLine('cashFlow', app.cashGraphData, cashIterator);
+                        }, {
+                            escape : true
+                        }
+                    );
+                },
+
                 add : function(){
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.VueTestController.getOppsApex}',
                         function (result, event) {
-                            console.log(result);
-
-                            this.app.message = 'callback';
-
                             if (event.status) {
-                                app.message = 'delivered';
                                 for (var x = 0; x < result.length; x++){
                                     app.todos.push({text: result[x].Name});
                                 }
@@ -257,11 +481,10 @@
                         }, {
                             escape : true
                         }
-
                     );
                 },
 
-                drawBar : function() {
+                drawBar : function(type, graphData, iterator) {
 
                     google.charts.load('current', {
                         'packages': ['corechart', 'bar'], 'callback': function () {
@@ -274,10 +497,16 @@
 
                             // var source = (isRevSnapshot) ? revenueTotalsSnapshot : revenueTotals;
 
-                            app.iterator.forEach(function (element) {
-                                var elOne = app.opportunities[element][0];
-                                var elTwo = app.opportunities[element][1];
-                                var elThree = app.opportunities[element][2];
+                            iterator.forEach(function (element) {
+                                // var elOne = graphData[type][element][0];
+                                // var elTwo = graphData[type][element][1];
+                                // var elThree = graphData[type][element][2];
+
+
+                                var elOne = graphData[element][0];
+                                var elTwo = graphData[element][1];
+                                var elThree = graphData[element][2];
+
                                 //
                                 // if (!revWeighted && revPipeline) {
                                 //     elThree = source[element][1] + source[element][2];
@@ -289,22 +518,22 @@
                             var options = {
                                 series: {
                                     0: {
-                                        color: app.brand.main,
+                                        color: app.brand[type].main,
                                         format: '£#,###',
                                         enableInteractivity: false,
-                                        tooltip: "none",
+                                        tooltip: "none"
                                     },
                                     1: {
-                                        color: app.brand.second,
+                                        color: app.brand[type].second,
                                         format: '£#,###',
                                         enableInteractivity: false,
-                                        tooltip: "none",
+                                        tooltip: "none"
                                     },
                                     2: {
-                                        color: app.brand.third,
+                                        color: app.brand[type].third,
                                         format: '£#,###',
                                         enableInteractivity: false,
-                                        tooltip: "none",
+                                        tooltip: "none"
                                     },
                                     3: {
                                         color: "transparent",
@@ -312,47 +541,19 @@
                                         tooltip: "none",
                                         annotations: {
                                             stem: {
-                                                color: "transparent",
+                                                color: "transparent"
                                             },
                                             textStyle: {
                                                 color: 'black',
-                                                fontSize: 12.5,
+                                                fontSize: 12.5
                                             }
                                         }
                                     }
                                 },
-                                fontName: 'Salesforce Sans',
-                                fontSize: 13,
-                                height: '370px',
-                                isStacked: true,
-                                hAxis: {
-                                    format: 'MMM d',
-                                    height: '30px',
-                                    slantedText: true,
-                                    slantedTextAngle: 30
-                                },
-                                vAxis: {
-                                    format: 'short'
-                                },
-                                chartArea: {
-                                    width: '90%',
-                                    height: '80%',
-                                    right: 5,
-                                    top: 5
-                                },
-                                legend: {
-                                    position: 'none',
-                                    bold: true,
-                                    alignment: 'center',
-                                    fontSize: 8
-                                },
-                                animation: {
-                                    duration: 500,
-                                    easing: 'inAndOut',
-                                    startup: true
-                                }
+                                isStacked: true
                             };
 
+                            options = Object.assign(app.getOptions(), options);
 
                             var view = new google.visualization.DataView(chartData);
                             view.setColumns([0,
@@ -363,7 +564,7 @@
                                         return 0;
                                     },
                                     label: "Total",
-                                    type: "number",
+                                    type: "number"
                                 },
                                 {
                                     calc: function (dt, row) {
@@ -374,7 +575,7 @@
                                 }
                             ]);
 
-                            var chart = new google.visualization.ColumnChart(document.getElementById('revenueBar'));
+                            var chart = new google.visualization.ColumnChart(document.getElementById(type + 'Bar'));
 
                             var formatter = new google.visualization.NumberFormat({
                                 prefix: '£'
@@ -387,27 +588,138 @@
                         }
                     });
                 },
+                drawLine : function(type, graphData, iterator){
+                    google.charts.load('current', {
+                        packages: ['corechart', 'line'],'callback': function () {
 
-                getBarOptions : function(){
-
-            return {
-
-            }
-        }
+                            var chartData = new google.visualization.DataTable();
 
 
+                            // var source = (isRevSnapshot) ? revenueTotalsSnapshot : revenueTotals;
+
+                            if (type === 'cashFlow'){
+                                chartData.addColumn('string', 'Date');
+                                chartData.addColumn('number', 'Pipeline');
+                                chartData.addColumn('number', 'Weighted');
+                                chartData.addColumn('number', 'Confirmed');
+
+                                iterator.forEach(function (element) {
+                                    var elOne = graphData[element][3];
+                                    var elTwo = graphData[element][2];
+                                    var elThree = graphData[element][1];
+                                    //
+                                    // if (!revWeighted && revPipeline) {
+                                    //     elThree = source[element][1] + source[element][2];
+                                    // }
+
+                                    chartData.addRow([element, elOne, elTwo, elThree]);
+                                });
+                            } else {
+                                chartData.addColumn('string', 'Date');
+                                chartData.addColumn('number', 'Target');
+                                chartData.addColumn('number', 'Pipeline');
+                                chartData.addColumn('number', 'Weighted');
+                                chartData.addColumn('number', 'Confirmed');
+
+                                iterator.forEach(function (element) {
+                                    var elOne = graphData[element][6];
+                                    var elTwo = graphData[element][5];
+                                    var elThree = graphData[element][4];
+                                    //
+                                    // if (!revWeighted && revPipeline) {
+                                    //     elThree = source[element][1] + source[element][2];
+                                    // }
+
+                                    chartData.addRow([element, graphData[element][3], elOne, elTwo, elThree]);
+                                });
+                            }
+
+                            // iterator.forEach(function (element) {
+                            //
+                            //     var elThree = (revPipeline) ? source[element][6] : null;
+                            //     var elTwo = (revWeighted) ? source[element][5] : null;
+                            //     var elOne = (revConfirmed) ? source[element][4] : null;
+                            //
+                            //     data.addRow([element, source[element][3], elThree, elTwo, elOne]);
+                            // });
+
+                            var options = {
+                                series: {
+                                    0: {
+                                        color: '#556B2F',
+                                        format: '£#,###'
+                                    },
+                                    1: {
+                                        color: app.brand[type].main,
+                                        format: '£#,###'
+                                    },
+                                    2: {
+                                        color: app.brand[type].second,
+                                        format: '£#,###'
+                                    },
+                                    3: {
+                                        color: app.brand[type].third,
+                                        format: '£#,###'
+                                    }
+                                }
+                            };
+
+                            options = Object.assign(app.getOptions(), options);
+
+                            var chart = new google.visualization.LineChart(document.getElementById(type + 'Line'));
+                            var formatter = new google.visualization.NumberFormat({
+                                prefix: '£'
+                            });
+                            formatter.format(chartData, 1);
+                            formatter.format(chartData, 2);
+                            formatter.format(chartData, 3);
+
+                            chart.draw(chartData, options);
+                        }
+                    });
+                },
+                getOptions : function(){
+                    return {
+                        fontName: 'Salesforce Sans',
+                        fontSize: 13,
+                        height: '370px',
+                        hAxis: {
+                            format: 'MMM d',
+                            height: '30px',
+                            slantedText: true,
+                            slantedTextAngle: 30
+                        },
+                        vAxis: {
+                            format: 'short'
+                        },
+                        chartArea: {
+                            width: '90%',
+                            height: '80%',
+                            right: 5,
+                            top: 5
+                        },
+                        legend: {
+                            position: 'none',
+                            bold: true,
+                            alignment: 'center',
+                            fontSize: 8
+                        },
+                        animation: {
+                            duration: 500,
+                            easing: 'inAndOut',
+                            startup: true
+                        }
+                    }
+                }
 
             },
             beforeMount() {
 
                 // set default date range
-
-                var today       = new Date();
-                var yearText    = (today.getMonth() + 1 > 3) ? today.getFullYear() : today.getFullYear() -1;
-                var startDate   = new Date(yearText, 3, 1);
-                var endDate     = new Date(yearText + 1, 2, 31);
-
-
+                this.today       = new Date();
+                this.yearText    = (this.today.getMonth() + 1 > 3) ? this.today.getFullYear() : this.today.getFullYear() -1;
+                this.startDate   = new Date(this.yearText, 3, 1);
+                this.endDate     = new Date(this.yearText + 1, 2, 31);
 
                 Visualforce.remoting.Manager.invokeAction(
                     '{!$RemoteAction.VueTestController.getOppsApex}',
@@ -420,30 +732,9 @@
                     }, {
                         escape : true
                     }
-
                 );
 
-                Visualforce.remoting.Manager.invokeAction(
-                    '{!$RemoteAction.VueTestController.getOppRevenueTotals}',
-                    startDate,
-                    endDate,
-                    function (result, event) {
-
-                        console.log(result);
-
-
-                        app.iterator = Object.keys(result);
-                        app.opportunities = result;
-
-                        app.drawBar();
-
-                    }, {
-                        escape : true
-                    }
-
-                );
-
-
+                this.loadData();
             }
         })
 

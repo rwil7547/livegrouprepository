@@ -11,7 +11,7 @@
     <aura:attribute name="lineUpdatesPending" type="boolean" default="false" />
     <aura:attribute name="reconciling" type="boolean" default="false" />
     <aura:attribute name="expenses" type="Expense__c[]" />
-    
+
     <aura:registerEvent name="groupNameChangeUp" type="c:GroupNameChangeUp"/>
     <aura:registerEvent name="addGroupProducts" type="c:AddGroupProducts"/>
     <aura:registerEvent name="deleteGroup" type="c:DeleteGroupEvent"/>
@@ -20,16 +20,16 @@
     <aura:registerEvent name="groupOrderChange" type="c:GroupOrderChange" />
 
     <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
-	<aura:handler event="c:DeleteGroupResponse" action="{!c.handleDeleteResponse}"/>
+    <aura:handler event="c:DeleteGroupResponse" action="{!c.handleDeleteResponse}"/>
     <aura:handler event="c:InsertProductsResponse" action="{!c.handleAddLinesResponse}" />
     <aura:handler event="c:GroupResponsePending" action="{!c.responsePending}"/>
     <aura:handler name="clonedLine" event="c:ClonedLine" action="{!c.handleLineCloned}" />
-	<aura:handler event="c:LineChangeResponse" action="{!c.handleLineDelete}" />
+    <aura:handler event="c:LineChangeResponse" action="{!c.handleLineDelete}" />
     <aura:handler name="lineItemChange" event="c:LineItemChange" action="{!c.handleLineChange}"/>
-	<aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
+    <aura:handler event="c:LineOrderChange" action="{!c.orderLines}" />
     <!---->
     <div class="group" id="{!v.group.Id}" ondragover="{!c.dragOver}" ondragleave="{!c.dragLeave}"
-         ondrop="{!c.drop}" draggable="{!and(v.customGroup,v.revEditable,not(lineUpdatesPending))}"
+         ondrop="{!c.drop}" draggable="{!not(v.lineUpdatesPending) &amp;&amp; v.customGroup &amp;&amp; !v.hasDocument}"
          ondragstart="{!c.startGroupDrag}" ondragend="{!c.endGroupDrag}">
         <lightning:layout class="slds-p-around_small" multipleRows="true" >
             <lightning:layoutItem size="12" class="slds-p-around__large">
@@ -37,7 +37,7 @@
                     <div class="slds-col slds-size_3-of-6" >
                         <div id="{!v.group.Id + 'name'}" class="groupName"
                              style="display:flex;" onclick="{!c.editGroupName}">
-                            <div style="font-size:18px;margin-right:5px;">{!v.group.Name} pending:{!v.lineUpdatesPending}</div>
+                            <div style="font-size:18px;margin-right:5px;">{!v.group.Name}</div>
                             <aura:if isTrue="{!(v.editable &amp;&amp; v.customGroup &amp;&amp; not(v.hasDocument))}">
                                 <div style="opacity:0.5;">
                                     <lightning:icon iconName="utility:edit" alternativeText="Edit"
@@ -103,7 +103,7 @@
                         <aura:if isTrue="{!not(v.lineUpdatesPending)}">
                             <span>
                                 <lightning:formattedNumber value="{!v.group.cosTotal}"
-                                                   style="currency" currencyCode="GBP"/>
+                                                           style="currency" currencyCode="GBP"/>
                             </span>
                             <aura:set attribute="else">
                                 <p class="saving"><span>.</span><span>.</span><span>.</span></p>
@@ -115,7 +115,7 @@
                         <aura:if isTrue="{!not(v.lineUpdatesPending)}">
                             <span>
                                 <lightning:formattedNumber value="{!v.group.revTotal}"
-                                                   style="currency" currencyCode="GBP"/>
+                                                           style="currency" currencyCode="GBP"/>
                             </span>
                             <aura:set attribute="else">
                                 <p class="saving"><span>.</span><span>.</span><span>.</span></p>
@@ -126,10 +126,10 @@
                 </div>
             </div>
 
-        <aura:if isTrue="{!v.responsePending}">
-            <lightning:spinner variant="brand" size="small"/>
-        </aura:if>
-    </lightning:layout>
+            <aura:if isTrue="{!v.responsePending}">
+                <lightning:spinner variant="brand" size="small"/>
+            </aura:if>
+        </lightning:layout>
     </div>
-       	
+
 </aura:component>

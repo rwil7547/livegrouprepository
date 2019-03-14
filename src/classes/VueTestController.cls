@@ -68,16 +68,80 @@ public class VueTestController {
     }
 
     @RemoteAction
-    public static Map<String,List<Decimal>> getOppRevenueTotals(String start, String endD){
+    public static Map<Date, List<Object>> getBalances(String start, String endD){
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
 
-        Map<String,List<Decimal>> revenueAggregates = buildMap(start,endD);
+        Map<Date, List<Object>> balanceMap = new Map<Date, List<Object>>();
+
+        Date iterator = startDate;
+
+        while (iterator <= endDate){
+            balanceMap.put(iterator, new List<Object>{'',null,null,null,null});
+            iterator = iterator.addDays(1);
+        }
+
+        for (QBBalance__c b : [SELECT Date__c, DayMonthYear__c, Confirmed__c, Weighted__c,
+                Predictive__c
+        FROM QBBalance__c
+        WHERE Date__c >= :startDate
+        AND Date__c <= :endDate
+        ORDER BY Date__c ASC]){
+            balanceMap.get(b.Date__c)[0] = b.DayMonthYear__c;
+            balanceMap.get(b.Date__c)[1] = b.Confirmed__c;
+        }
+
+
+        for (CashFlow__c c : [SELECT Date__c, DayMonthYear__c, Balance__c, BalancePlus__c,
+                BalancePredict__c
+        FROM CashFlow__c
+        WHERE Date__c >= :startDate
+        AND Date__c <= :endDate]){
+            balanceMap.get(c.Date__c)[0] = c.DayMonthYear__c;
+            balanceMap.get(c.Date__c)[1] = c.Balance__c;
+            balanceMap.get(c.Date__c)[2] = c.Balance__c;
+            balanceMap.get(c.Date__c)[3] = c.BalancePlus__c;
+            balanceMap.get(c.Date__c)[4] = c.BalancePredict__c;
+        }
+
+        return balanceMap;
+    }
+
+    @RemoteAction
+//    public static Map<String,Map<String,List<Decimal>>> getOppRevenueTotals(String start, String endD){
+    public static Map<String,Object> getOppRevenueTotals(String start, String endD){
+
+        Date startDate      = Date.valueOf(start);
+        Date endDate        = Date.valueOf(endD);
+
+//        Map<String,Map<String,List<Decimal>>> figuresMap = new Map<String,Map<String,List<Decimal>>>();
+        Map<String,Object> figuresMap                   = new Map<String,Object>();
+        Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
+        Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
+        Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
+        Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
+        Map<String,Decimal> totals                      = new Map<String,Decimal>();
+        totals.put('revenue', 0);
+        totals.put('profit', 0);
+        totals.put('opex', 0);
+        totals.put('netProfit', 0);
+
+
+        // work out if start date and end date are not clean start and end dates
+        Decimal numberOfDaysStart   = Date.daysInMonth(startDate.year(), startDate.month());
+        Decimal daysMissing         = startDate.day() - 1;
+        Decimal startPortion        = (numberOfDaysStart - daysMissing) / numberOfDaysStart;
+
+        Decimal numberOfDaysEnd     = Date.daysInMonth(endDate.year(), endDate.month());
+        Decimal dayCountEnd         = endDate.day();
+        Decimal endPortion          = (numberOfDaysEnd - (numberOfDaysEnd - dayCountEnd)) / numberOfDaysEnd;
 
         List<String> months = new List<String>();
         months.addAll(revenueAggregates.keySet());
 
+
+        // get all committed opp data
         for (Opportunity opp : [SELECT Amount_Calder__c, Probability, StageName,
                                         EventMonthYear__c, Committed__c, CommittedRevenue__c, CommittedProfit__c,
                                         Gross_profit_2__c, Event_End_Grouping__c,
@@ -88,20 +152,30 @@ public class VueTestController {
                                 AND Event_end__c <= :endDate]){
 
             if (opp.Committed__c){
+                totals.put('revenue',totals.get('revenue') + opp.CommittedRevenue__c);
+                totals.put('profit',totals.get('profit') + opp.CommittedProfit__c);
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
+                profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
             } else if (opp.StageName == 'Closed Won') {
+                totals.put('revenue',totals.get('revenue') + opp.Amount_Calder__c);
+                totals.put('profit',totals.get('profit') + opp.Gross_profit_2__c);
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
+                profitAggregates.get(opp.EventMonthYear__c)[0] += opp.Gross_profit_2__c;
             } else {
                 revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Calder__c * opp.Probability) / 100;
+                profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
                 revenueAggregates.get(opp.EventMonthYear__c)[2] += opp.Amount_Calder__c - (opp.Amount_Calder__c * opp.Probability) / 100;
+                profitAggregates.get(opp.EventMonthYear__c)[2] += opp.Gross_profit_2__c - (opp.Gross_profit_2__c * opp.Probability) / 100;
+
             }
         }
 
-        for (Adjustment__c adj : [SELECT Revenue__c, EventMonthYear__c
+        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, EventMonthYear__c
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate]) {
             revenueAggregates.get(adj.EventMonthYear__c)[0] += adj.Revenue__c;
+            profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
         }
 
         List<SalesTarget__c> targets = [SELECT Revenue__c, EventMonthYear__c
@@ -109,11 +183,7 @@ public class VueTestController {
                                         WHERE Month__c >= :startDate
                                         AND Month__c <= :endDate];
 
-        for (SalesTarget__c target : [SELECT Revenue__c, EventMonthYear__c
-                                        FROM SalesTarget__c
-                                        WHERE Month__c >= :startDate
-                                        AND Month__c <= :endDate]) {
-
+        for (SalesTarget__c target : targets) {
             revenueAggregates.get(target.EventMonthYear__c)[3] = target.Revenue__c;
         }
 
@@ -138,68 +208,74 @@ public class VueTestController {
             }
         }
 
-        return revenueAggregates;
-    }
+        List<QBProfitAndLoss__c> results = [SELECT Actual__c, Budget__c, Grouping__c,
+                                                    Month__c, EventMonthYear__c, QBUpdated__c
+                                            FROM QBProfitAndLoss__c
+                                            WHERE Month__c >= :startDate.toStartOfMonth()
+                                            AND Month__c <= :endDate
+                                            AND Opex__c = TRUE
+                                            ORDER BY Month__c DESC];
 
-    @RemoteAction
-    public static Map<String,List<Decimal>> getOppProfitTotals(String start, String endD){
+        for (QBProfitAndLoss__c qpl : results) {
 
-        Date startDate      = Date.valueOf(start);
-        Date endDate        = Date.valueOf(endD);
+            Decimal multiplier = 1;
 
-        Map<String,List<Decimal>> profitAggregates = buildMap(start,endD);
-
-        List<String> months = new List<String>();
-        months.addAll(profitAggregates.keySet());
-
-        for (Opportunity opp : [SELECT Gross_profit_2__c, Probability, Event_End_Grouping__c, StageName,
-                EventMonthString__c, EventMonthYear__c, Committed__c, CommittedProfit__c
-        FROM Opportunity
-        WHERE StageName != 'Closed Lost'
-        AND Event_end__c >= :startDate
-        AND Event_end__c <= :endDate]){
-
-            if (opp.Committed__c){
-                profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
-            } else if (opp.StageName == 'Closed Won') {
-                profitAggregates.get(opp.EventMonthYear__c)[0] += opp.Gross_profit_2__c;
-            } else {
-                profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
-                profitAggregates.get(opp.EventMonthYear__c)[2] += opp.Gross_profit_2__c - (opp.Gross_profit_2__c * opp.Probability) / 100;
+            if (qpl.Month__c.month() == startDate.month()) {
+                multiplier = startPortion;
+            } else if (qpl.Month__c.month() == endDate.month()) {
+                multiplier = endPortion;
             }
-        }
 
-        for (Adjustment__c adj : [SELECT Profit__c, EventMonthYear__c
-        FROM Adjustment__c
-        WHERE Month__c >= :startDate
-        AND Month__c <= :endDate]) {
-            profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
+            if (qpl.QBUpdated__c) {
+                opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
+            } else {
+                opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
+            }
+            opexAggregates.get(qpl.EventMonthYear__c)[2] += ((qpl.Budget__c - qpl.Actual__c) * multiplier);
+            opexAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Budget__c * multiplier);
+
+            if (qpl.Grouping__c == 'Payroll'){
+                opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
+            } else if (qpl.Grouping__c == 'IT'){
+                opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
+            } else if (qpl.Grouping__c == 'Bus Dev'){
+                opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
+            } else if (qpl.Grouping__c == 'Office'){
+                opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
+            } else if (qpl.Grouping__c == 'Other'){
+                opexAggregates.get(qpl.EventMonthYear__c)[10] += (qpl.Actual__c * multiplier);
+            }
         }
 
         for (Integer x = 0; x < months.size(); x++){
 
-            profitAggregates.get(months[x])[4] += profitAggregates.get(months[x])[0];
-            profitAggregates.get(months[x])[5] += profitAggregates.get(months[x])[0];
-            profitAggregates.get(months[x])[6] += profitAggregates.get(months[x])[0];
-            profitAggregates.get(months[x])[5] += profitAggregates.get(months[x])[1];
-            profitAggregates.get(months[x])[6] += profitAggregates.get(months[x])[2] + profitAggregates.get(months[x])[1];
+            opexAggregates.get(months[x])[4] += opexAggregates.get(months[x])[0] + opexAggregates.get(months[x])[1];
+            opexAggregates.get(months[x])[5] += opexAggregates.get(months[x])[3];
 
-            Integer y = months.size() -1;
+            Integer y = months.size() - 1;
 
             while (y > x){
-                profitAggregates.get(months[y])[4] += profitAggregates.get(months[x])[0];
-                profitAggregates.get(months[y])[5] += profitAggregates.get(months[x])[0];
-                profitAggregates.get(months[y])[6] += profitAggregates.get(months[x])[0];
-                profitAggregates.get(months[y])[5] += profitAggregates.get(months[x])[1];
-                profitAggregates.get(months[y])[6] += profitAggregates.get(months[x])[2] + profitAggregates.get(months[x])[1];
+                opexAggregates.get(months[y])[4] += opexAggregates.get(months[x])[0] + opexAggregates.get(months[x])[1];
+                opexAggregates.get(months[y])[5] += opexAggregates.get(months[x])[3];
                 y--;
             }
         }
 
-        return profitAggregates;
+        for (Integer x = 0; x < months.size(); x++){
+            netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[0]);
+            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[0]);
+            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[0]);
+
+        }
+
+        figuresMap.put('revenue',revenueAggregates);
+        figuresMap.put('profit',profitAggregates);
+        figuresMap.put('opex',opexAggregates);
+        figuresMap.put('netProfit',netProfitAggregates);
+        figuresMap.put('totals',totals);
+
+        return figuresMap;
     }
-
-
 
     @RemoteAction
     public static List<Opportunity> getOppsApex(){

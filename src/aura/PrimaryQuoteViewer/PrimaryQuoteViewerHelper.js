@@ -262,10 +262,13 @@
         var userId      = component.find('ourContact').get("v.value");
         var contactId   = component.find('quoteContact').get("v.value");
         var text        = encodeURIComponent(component.find('documentText').get("v.value"));
-        // var text        = component.find('documentText').get("v.value");
+        // // var text        = component.find('documentText').get("v.value");
         var optionals   = document.getElementById('optionalCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
+        var isSOW       = component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
+                            && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
+                            && component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c') !== 'Reconciliation';
 
         document.getElementById('quotePreviewIFrame').src = '/apex/QuotePreview?' +
             'id=' + quoteId +
@@ -277,7 +280,8 @@
             '&vat=' + vat +
             '&draft=true' +
             '&sla=false' +
-            '&tnc=false';
+            '&tnc=false' +
+            '&isSOW=' + isSOW;
 
         component.set('v.previewChanged',false);
 

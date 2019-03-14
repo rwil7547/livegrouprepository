@@ -100,8 +100,10 @@
 
                                         <lightning:button variant="neutral" label="PREVIEW DOCUMENT" onclick="{!c.previewQuote}" class="slds-truncate"/>
                                     </aura:if>
-                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c, v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed')}">
-                                        <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c)}">
+                                        <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed'}">
+                                            <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
+                                        </aura:if>
                                     </aura:if>
                                     <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
                                         <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
@@ -119,7 +121,7 @@
                     <div style="width:100%;display: grid;grid-template-columns: 75% 25%">
                         <div >
                             <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
-                                <div >{!v.quote.Version__c} size is {!v.groups.length}</div>
+                                <div >{!v.quote.Version__c}</div>
                                 <aura:if isTrue="{!not(v.editable)}">
                                     <div style="margin-left:5px;margin-top:-3px;"><lightning:icon iconName="utility:lock" alternativeText="Locked" size="small"/></div>
                                 </aura:if>
@@ -305,7 +307,7 @@
                     <div class="slds-grid slds-p-around_medium" style="width:100%;height:100%;position:relative;">
                         <div class="slds-col slds-size_8-of-12" style="position:relative;" >
                             <div style="width:100%;height:100%;position:relative;">
-                                <iframe src="" style="position:relative;"
+                                <iframe src="/apex/quotePreview" style="position:relative;"
                                         width="100%" height="100%" framebroder="0" id="quotePreviewIFrame"/>
                             </div>
                         </div>
@@ -338,6 +340,9 @@
                                     <lightning:tab label="CONTACTS" id="one"></lightning:tab>
                                     <lightning:tab label="TEXT" id="two"></lightning:tab>
                                     <lightning:tab label="SETTINGS" id="three" ></lightning:tab>
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,v.quote.Version__c == 'Contract')}">
+                                        <lightning:tab label="SOW" id="four"></lightning:tab>
+                                    </aura:if>
                                 </lightning:tabset>
 
                                 <div style="font-size:16px;" id="one" class="previewTab">
@@ -384,6 +389,22 @@
                                     <input type="checkbox" aura:id="termsAndConditions" id="termsAndConditionsCheckbox" onchange="{!c.setPreviewChanged}"/>
                                     <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
                                 </div>
+
+                                <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,v.quote.Version__c == 'Contract')}">
+
+                                    <div style="font-size:16px;display: none;" id="four" class="previewTab">
+                                        <div>Entity name:</div>
+                                        <lightning:input type="text" value="{!v.quote.SOW_Entity_Name__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
+                                        <br/>
+                                        <div>Services:</div>
+                                        <lightning:input type="text" value="{!v.quote.SOW_Services__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
+                                        <br/>
+                                        <div>Service description:</div>
+                                        <lightning:input type="text" value="{!v.quote.SOW_Services__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
+                                        <br/>
+
+                                    </div>
+                                </aura:if>
 
                             </div>
                         </div>

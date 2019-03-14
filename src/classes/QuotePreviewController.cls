@@ -38,6 +38,7 @@ public class QuotePreviewController {
     public Boolean showSLA {get; set;}
     public Boolean showTnCs {get; set;}
 
+    public Boolean isSOW {get; set;}
     public Boolean trackChanges {get; set;}
     public Boolean draft {get; set;}
 
@@ -50,8 +51,9 @@ public class QuotePreviewController {
         showSLA         = (ApexPages.currentPage().getParameters().get('sla') == 'true') ? true : false;
         showTnCs        = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
         draft           = (ApexPages.currentPage().getParameters().get('draft') == 'true') ? true : false;
+        isSOW           = (ApexPages.currentPage().getParameters().get('isSOW') == 'true') ? true : false;
 
-        user = [SELECT Id, Name, FirstName, LastName, Phone, MobilePhone, Email
+        user = [SELECT Id, Name, Title, FirstName, LastName, Phone, MobilePhone, Email
                 FROM User
                 WHERE Id = :ApexPages.currentPage().getParameters().get('userId')];
 
@@ -65,7 +67,7 @@ public class QuotePreviewController {
         }
 
         contact = [SELECT Id, Name, FirstName, LastName, Account.Name, MailingStreet, MailingCity, MailingCountry, MailingPostalCode,
-                            Email, Phone, MobilePhone
+                            Email, Phone, MobilePhone, Title
                     FROM Contact
                     WHERE Id = :ApexPages.currentPage().getParameters().get('contactId')];
 
@@ -80,6 +82,7 @@ public class QuotePreviewController {
                         SBQQ__Opportunity2__r.Filtered_Job_Number__c, Stage__c, Ancestor__c, Proposal_Introduction__c,
                         SBQQ__NetAmount__c, Optional_total__c, SBQQ__Opportunity2__r.Venue__c, SBQQ__Opportunity2__r.Location__c,
                         SBQQ__Opportunity2__r.Event_start__c, SBQQ__Opportunity2__r.Event_end__c,
+                        SOW_Entity_Name__c, SOW_Entity_Name_Caps__c, SOW_Service_Description__c, SOW_Services__c,
                     (SELECT Name, Id, SBQQ__NetTotal__c FROM SBQQ__LineItemGroups__r ORDER BY SBQQ__Number__c ASC)
                 FROM SBQQ__Quote__c
                 WHERE Id = :ApexPages.currentPage().getParameters().get('id')];
@@ -106,6 +109,10 @@ public class QuotePreviewController {
             optionalGroupMap      = new Map<String,Map<String,List<SBQQ__QuoteLine__c>>>();
             optionalGroupSummary  = new Map<String,Decimal>();
             optionalLineCount     = new Map<String,Integer>();
+        }
+
+        if (isSOW){
+            amendment = '& Statement of Work for EYGS';
         }
 
         if (quote.Stage__c != 'Estimate' && quote.Version__c !=  'Contract'){
