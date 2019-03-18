@@ -306,6 +306,14 @@
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
 
+        var isSOW       = component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
+            && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
+            && component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c') !== 'Reconciliation';
+
+        var SOWEntity   = component.find('sowEntity') ? component.find('sowEntity').get('v.value') : '';
+        var SOWServices = component.find('sowServices') ? component.find('sowServices').get('v.value') : '';
+        var SOWDate     = component.find('sowDate') ? component.find('sowDate').get('v.value') : '';
+
         var saveDocument = component.get('c.saveDocumentApex');
         saveDocument.setParams({
             quoteId : component.get('v.quote.Id'),
@@ -317,7 +325,11 @@
             invoices : invoices,
             vat : vat,
             sla : 'false',
-            tnc : 'false'
+            tnc : 'false',
+            isSOW : isSOW,
+            SOWEntity : SOWEntity,
+            SOWServices : SOWServices,
+            SOWDate : SOWDate
         });
         saveDocument.setCallback(this, function(response){
             component.find('docSavePending').getElement().style.display = 'none';

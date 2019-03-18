@@ -21,7 +21,7 @@ public with sharing class PrimaryQuoteController {
                         'SBQQ__Opportunity2__r.UnassignedExpenses__c,SBQQ__Opportunity2__r.Quote_Status__c,' +
                         'SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c, SBQQ__LineItemCount__c,' +
                         'SBQQ__Opportunity2__r.Percent_Invoiced__c, SBQQ__Opportunity2__r.Invoice_Status__c,' +
-                        'SOW_Entity_Name__c, SOW_Entity_Name_Caps__c, SOW_Service_Description__c, SOW_Services__c,' +
+                        'SOW_Entity_Name__c, SOW_Entity_Name_Caps__c, SOW_Service_Description__c, SOW_Services__c, SOWDate__c,' +
                         '(SELECT Id, SBQQ__OutputFormat__c FROM SBQQ__R00N70000001lX7YEAU__r ' +
                         'ORDER BY CreatedDate), ' +
                         '(SELECT Id FROM SBQQ__LineItems__r), ' +
@@ -231,7 +231,8 @@ public with sharing class PrimaryQuoteController {
                                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c,
                                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                             SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Quote__c,
-                                            SBQQ__AdditionalDiscountAmount__c
+                                            SBQQ__AdditionalDiscountAmount__c, SBQQ__SubscriptionPricing__c,
+                                            SBQQ__DefaultSubscriptionTerm__c
                                         FROM SBQQ__QuoteLine__c
                                         WHERE Id = :line.Id
                                         LIMIT 1 FOR UPDATE];
@@ -333,6 +334,7 @@ public with sharing class PrimaryQuoteController {
                                                 (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c,
                                                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
+                                                        SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c,
                                                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
                                                         SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c
                                                 FROM SBQQ__LineItems__r)
@@ -730,7 +732,8 @@ public with sharing class PrimaryQuoteController {
         List<SBQQ__Quote__c> quotes = [SELECT Id, Version__c, SBQQ__Status__c, SBQQ__NetAmount__c, SBQQ__Opportunity2__c,
                                         Cost_of_sale__c, Gross_Margin__c, Stage__c, Gross_Profit__c, SBQQ__Primary__c,
                                         Proposal_Introduction__c, Proposal_Conclusion__c, SBQQ__LineItemsGrouped__c,
-                                        SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c
+                                        SBQQ__Opportunity2__r.Name, SBQQ__Opportunity2__r.Filtered_Job_Number__c,
+                                        SBQQ__Opportunity2__r.Account.SOWRecipient__c
                                         FROM SBQQ__Quote__c
                                         WHERE Id = :quoteId];
 
@@ -1182,7 +1185,7 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static Boolean saveDocumentApex(String quoteId, String oppId,
             String userId, String contactId, String text, String optionals, String invoices,
-            String vat, String sla, String tnc) {
+            String vat, String sla, String tnc, String isSOW, String SOWEntity, String SOWDate, String SOWServices) {
 
         Boolean result = false;
 
@@ -1211,6 +1214,10 @@ public with sharing class PrimaryQuoteController {
         pdf.getParameters().put('vat',vat);
         pdf.getParameters().put('sla',sla);
         pdf.getParameters().put('tnc',tnc);
+        pdf.getParameters().put('isSOW',isSOW);
+        pdf.getParameters().put('SOWEntity',SOWEntity);
+        pdf.getParameters().put('SOWDate',SOWDate);
+        pdf.getParameters().put('SOWServices',SOWServices);
 
         // create the new attachment
         Attachment attach = new Attachment();

@@ -82,6 +82,8 @@ public class PeopleHRCallout {
 
                 for (JSONParserPeopleHRHoliday.cls_Result result : parsedResults.Result) {
 
+                    system.debug(result);
+
                     holidays.add(new Holiday__c(
                             Employee__c     = emp.Id,
                             PeopleHRId__c   = result.AnnualLeaveTxnId,
@@ -104,7 +106,7 @@ public class PeopleHRCallout {
         }
     }
 
-    private static Set<String> getHolidayIds(Date fallback){
+    public static Set<String> getHolidayIds(Date fallback){
 
         Set<String> holidayIds = new Set<String>();
 

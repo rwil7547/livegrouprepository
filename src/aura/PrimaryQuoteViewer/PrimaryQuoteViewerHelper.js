@@ -262,13 +262,19 @@
         var userId      = component.find('ourContact').get("v.value");
         var contactId   = component.find('quoteContact').get("v.value");
         var text        = encodeURIComponent(component.find('documentText').get("v.value"));
-        // // var text        = component.find('documentText').get("v.value");
         var optionals   = document.getElementById('optionalCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
         var isSOW       = component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
                             && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
                             && component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c') !== 'Reconciliation';
+
+        var SOWEntity   = component.find('sowEntity') ? component.find('sowEntity').get('v.value') : '';
+        var SOWServices = component.find('sowServices') ? component.find('sowServices').get('v.value') : '';
+        var SOWDate     = component.find('sowDate') ? component.find('sowDate').get('v.value') : '';
+
+        console.log('date is ' + SOWDate);
+
 
         document.getElementById('quotePreviewIFrame').src = '/apex/QuotePreview?' +
             'id=' + quoteId +
@@ -281,7 +287,10 @@
             '&draft=true' +
             '&sla=false' +
             '&tnc=false' +
-            '&isSOW=' + isSOW;
+            '&isSOW=' + isSOW +
+            '&SOWEntity=' + SOWEntity +
+            '&SOWServices=' + SOWServices +
+            '&SOWDate=' + SOWDate;
 
         component.set('v.previewChanged',false);
 

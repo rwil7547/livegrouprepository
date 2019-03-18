@@ -10,10 +10,10 @@ public with sharing class resourceExperimentController {
         List<Opportunity> opportunities = [SELECT Id, Name, Event_start__c, Event_end__c, StageName, Length__c
                                             FROM Opportunity
                                             WHERE Event_end__c = THIS_YEAR
-                                            AND Event_end__c < :Date.today().addDays(90)
-                                            AND StageName != 'Closed Won'
-                                            ORDER BY StageName DESC
-                                            LIMIT 15];
+                                            AND Event_end__c < :Date.today().addDays(190)
+                                            AND StageName != 'Closed Lost'
+                                            ORDER BY IsClosed DESC
+                                            LIMIT 155];
 
         List<Opportunity> clones = new List<Opportunity>();
 
@@ -36,41 +36,7 @@ public with sharing class resourceExperimentController {
                     cloneOpp.Event_end__c   = (x == (months -1)) ? opp.Event_end__c : cloneOpp.Event_start__c.addMonths(1).toStartOfMonth().addDays(-1);
                     cloneOpp.Lengthjs__c    = cloneOpp.Event_start__c.daysBetween(cloneOpp.Event_end__c) + 1;
                     clones.add(cloneOpp);
-
-
-
                 }
-
-
-//
-//                system.debug('months is ' + months);
-//
-//
-//                system.debug('initial opp is ' + opp.Event_start__c + '  ' + opp.Event_end__c);
-//
-//
-//                Boolean opener = true;
-//
-//                while (months >= 1){
-//
-//                    Opportunity cloneOpp    = opp.clone(true,true);
-//
-//
-////                    cloneOpp.Event_start__c = (months > 1) ? opp.Event_start__c.toStartOfMonth().addMonths(months) : opp.Event_end__c.toStartOfMonth();
-//                    cloneOpp.Event_start__c = (months > 1) ? opp.Event_start__c.toStartOfMonth().addMonths(months) :
-//                                                             opp.Event_end__c.toStartOfMonth().addMonths(-1);
-//                    cloneOpp.Event_end__c   = opener ? opp.Event_end__c : cloneOpp.Event_start__c.addMonths(1).addDays(-1);
-//                    cloneOpp.Lengthjs__c    = cloneOpp.Event_start__c.daysBetween(cloneOpp.Event_end__c) + 1;
-//                    clones.add(cloneOpp);
-//
-//                    if (opener) opener = false;
-//
-//                    months--;
-//
-//                    system.debug('clone opp has val of ' + cloneOpp.Event_start__c + '  ' + cloneOpp.Event_end__c);
-//
-//
-//                }
 
                 opp.Event_end__c    = opp.Event_start__c.addMonths(1).toStartOfMonth().addDays(-1);
                 opp.Lengthjs__c     = opp.Event_start__c.daysBetween(opp.Event_end__c) + 1;

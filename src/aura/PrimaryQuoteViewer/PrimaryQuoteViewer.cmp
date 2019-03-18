@@ -394,13 +394,13 @@
 
                                     <div style="font-size:16px;display: none;" id="four" class="previewTab">
                                         <div>Entity name:</div>
-                                        <lightning:input type="text" value="{!v.quote.SOW_Entity_Name__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
+                                        <lightning:input type="text" value="{!v.quote.SOW_Entity_Name__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowEntity"/>
+                                        <br/>
+                                        <div>SOW expiry date:</div>
+                                        <lightning:input type="date" value="{!v.quote.SOWDate__c ? v.quote.SOWDate__c : v.quote.Event_End__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowDate"/>
                                         <br/>
                                         <div>Services:</div>
-                                        <lightning:input type="text" value="{!v.quote.SOW_Services__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
-                                        <br/>
-                                        <div>Service description:</div>
-                                        <lightning:input type="text" value="{!v.quote.SOW_Services__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowName"/>
+                                        <lightning:input type="text" value="{!v.quote.SOW_Services__c}"  onchange="{!c.setPreviewChanged}" aura:id="sowServices"/>
                                         <br/>
 
                                     </div>
