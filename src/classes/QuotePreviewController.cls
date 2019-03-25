@@ -94,6 +94,7 @@ public class QuotePreviewController {
                 Changed__c, FiguresChanged__c, Added__c, SBQQ__Optional__c,SBQQ__AdditionalDiscountAmount__c
                 FROM SBQQ__QuoteLine__c
                 WHERE SBQQ__Quote__c = :quote.Id
+                AND SBQQ__Hidden__c != TRUE
                 ORDER BY SBQQ__Number__c ASC];
 
         quote.Proposal_Introduction__c = ApexPages.currentPage().getParameters().get('text');
@@ -123,6 +124,8 @@ public class QuotePreviewController {
         if (quote.Stage__c != 'Estimate' && quote.Version__c !=  'Contract'){
 
             trackChanges = true;
+
+            system.debug('Setting tracked changes to true');
 
             if (quote.Stage__c == 'Contract' && quote.Version__c !=  'Contract'){
                 amendment = quote.Version__c.replace('Contract ','');

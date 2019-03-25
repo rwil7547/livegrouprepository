@@ -340,7 +340,9 @@
                                     <lightning:tab label="CONTACTS" id="one"></lightning:tab>
                                     <lightning:tab label="TEXT" id="two"></lightning:tab>
                                     <lightning:tab label="SETTINGS" id="three" ></lightning:tab>
-                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,v.quote.Version__c == 'Contract')}">
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,
+                                                    v.quote.SBQQ__Opportunity2__r.StageName == 'Closed Won',
+                                                    v.quote.SBQQ__Opportunity2__r.QuoteType__c != 'Reconciliation')}">
                                         <lightning:tab label="SOW" id="four"></lightning:tab>
                                     </aura:if>
                                 </lightning:tabset>
@@ -372,6 +374,13 @@
 
                                 <div style="font-size:16px;display: none;cursor:pointer;" id="three" class="previewTab">
                                     <div>Include:</div>
+
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,
+                                                    v.quote.SBQQ__Opportunity2__r.StageName == 'Closed Won',
+                                                    v.quote.SBQQ__Opportunity2__r.QuoteType__c != 'Reconciliation')}">
+                                        <input type="checkbox" aura:id="sow" id="sowCheckbox" checked="{!v.quote.Version__c == 'Contract'}" onchange="{!c.setPreviewChanged}" />
+                                        <span onclick="{!c.selectOption}" id="sow"> &nbsp;Statement of Work</span><br/>
+                                    </aura:if>
                                     <input type="checkbox" aura:id="optionals" id="optionalCheckbox" onchange="{!c.setPreviewChanged}" />
                                     <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
                                     <input type="checkbox" aura:id="optionalSummary" id="optionalSummaryCheckbox" onchange="{!c.setPreviewChanged}" />
@@ -390,7 +399,9 @@
                                     <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
                                 </div>
 
-                                <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,v.quote.Version__c == 'Contract')}">
+                                <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,
+                                                    v.quote.SBQQ__Opportunity2__r.StageName == 'Closed Won',
+                                                    v.quote.SBQQ__Opportunity2__r.QuoteType__c != 'Reconciliation')}">
 
                                     <div style="font-size:16px;display: none;" id="four" class="previewTab">
                                         <div>Entity name:</div>

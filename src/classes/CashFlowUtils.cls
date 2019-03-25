@@ -9,7 +9,7 @@ public class CashFlowUtils {
         List<CashFlow__c> flows = [SELECT Id, Date__c, In__c, Out__c,
                                         InPlus__c, OutPlus__c,
                                         InDescription__c, OutDescription__c,
-                                        Balance__c, BalancePlus__c, BalancePredict__c
+                                        Balance__c, BalancePlus__c, BalancePredict__c, Number__c
                                 FROM CashFlow__c
                                 ORDER BY Date__c ASC];
 

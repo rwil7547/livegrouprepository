@@ -53,9 +53,11 @@
         var valid = (!isNaN(component.get('v.line.SBQQ__Quantity__c')) &&
                      component.get('v.line.SBQQ__Quantity__c') >  0 &&
                      !isNaN(component.get('v.line.SBQQ__UnitCost__c')) &&
-                     component.get('v.line.SBQQ__UnitCost__c') >= 0 &&
-                     !isNaN(component.get('v.line.SBQQ__ListPrice__c')) &&
-                     component.get('v.line.SBQQ__ListPrice__c') >= 0);
+                     // component.get('v.line.SBQQ__UnitCost__c') >= 0 &&
+                     !isNaN(component.get('v.line.SBQQ__ListPrice__c'))
+            // &&
+                     // component.get('v.line.SBQQ__ListPrice__c') >= 0
+        );
 
         console.log('initial valid claim is ' + valid);
 

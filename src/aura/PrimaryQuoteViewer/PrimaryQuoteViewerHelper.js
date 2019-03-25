@@ -265,12 +265,13 @@
         var optionals   = document.getElementById('optionalCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
-        var isSOW       = component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
-                            && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
-                            && component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c') !== 'Reconciliation';
+        var isSOW       = document.getElementById('sowCheckbox') ? document.getElementById('sowCheckbox').checked : false;
+            // component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
+            //                 && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
+            //                 && component.get('v.quote.SBQQ__Opportunity2__r.QuoteType__c') !== 'Reconciliation';
 
-        var SOWEntity   = component.find('sowEntity') ? component.find('sowEntity').get('v.value') : '';
-        var SOWServices = component.find('sowServices') ? component.find('sowServices').get('v.value') : '';
+        var SOWEntity   = component.find('sowEntity') ? encodeURIComponent(component.find('sowEntity').get('v.value')) : '';
+        var SOWServices = component.find('sowServices') ? encodeURIComponent(component.find('sowServices').get('v.value')) : '';
         var SOWDate     = component.find('sowDate') ? component.find('sowDate').get('v.value') : '';
 
         console.log('date is ' + SOWDate);
@@ -328,8 +329,10 @@
 
             lines.forEach(function(element){
                 reportData.push({
-                    Name : '"' + element.SBQQ__Product__r.Name.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
-                    Description : '"' + element.SBQQ__Description__c.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
+                    // Name : '"' + element.SBQQ__Product__r.Name.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
+                    Name : '\"' + element.SBQQ__Product__r.Name.replace('\'','') + '\"',
+                    // Description : '"' + element.SBQQ__Description__c.replace(/(<([^>]+)>)/ig,"").replace(/,/g, "").replace(/\n/g, "") + '"',
+                    Description : '\"' + element.SBQQ__Description__c.replace('\'','') + '\"',
                     Days : (element.SBQQ__SubscriptionTerm__c) ? element.SBQQ__SubscriptionTerm__c : ' ',
                     Quantity : element.SBQQ__Quantity__c,
                     UnitCost : element.SBQQ__UnitCost__c,

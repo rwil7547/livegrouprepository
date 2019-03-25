@@ -7,10 +7,11 @@ public with sharing class resourceExperimentController {
     @RemoteAction
     public static List<Opportunity> getOpps(){
 
-        List<Opportunity> opportunities = [SELECT Id, Name, Event_start__c, Event_end__c, StageName, Length__c
+        List<Opportunity> opportunities = [SELECT Id, Name, Event_start__c, Event_end__c, StageName, Length__c,
+                                                Job_Number__c, Owner.Name, OwnerId, Project_Manager__c, Project_Manager__r.Name
                                             FROM Opportunity
                                             WHERE Event_end__c = THIS_YEAR
-                                            AND Event_end__c < :Date.today().addDays(190)
+                                            AND Event_end__c < :Date.today().addDays(390)
                                             AND StageName != 'Closed Lost'
                                             ORDER BY IsClosed DESC
                                             LIMIT 155];
@@ -30,7 +31,7 @@ public with sharing class resourceExperimentController {
                 for (Integer x = 0; x < months; x++){
 
 
-                    Opportunity cloneOpp    = opp.clone(true,true);
+                    Opportunity cloneOpp    = opp.clone(true,true,true, true);
 
                     cloneOpp.Event_start__c = opp.Event_start__c.addMonths(x + 1).toStartOfMonth();
                     cloneOpp.Event_end__c   = (x == (months -1)) ? opp.Event_end__c : cloneOpp.Event_start__c.addMonths(1).toStartOfMonth().addDays(-1);
@@ -54,6 +55,31 @@ public with sharing class resourceExperimentController {
 
 
         return opportunities;
+
+    }
+
+    @RemoteAction
+    public static List<SBQQ__QuoteLine__c> getLines(){
+
+        List<SBQQ__QuoteLine__c> lines = [SELECT Id, SBQQ__Quote__r.SBQQ__Opportunity2__r.Event_start__c,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Event_end__c,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Length__c,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Job_Number__c,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Project_Manager__c,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Project_Manager__r.Name,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.OwnerId,
+                                                SBQQ__Quote__r.SBQQ__Opportunity2__r.Owner.Name,
+                                                SBQQ__ProductFamily__c, SBQQ__Description__c
+                                          FROM SBQQ__QuoteLine__c
+                                          WHERE SBQQ__Quote__r.SBQQ__Primary__c = TRUE
+                                          AND SBQQ__Quote__r.SBQQ__Opportunity2__c != NULL
+                                          AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName != 'Closed Lost'
+                                          AND SBQQ__ProductFamily__c = 'On-site & delivery'];
+
+        return lines;
+
+
 
     }
 

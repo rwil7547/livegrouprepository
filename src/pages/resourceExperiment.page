@@ -7,10 +7,13 @@
     <html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
-
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
     <style>
 
         body {
@@ -32,21 +35,30 @@
             min-height: 300px;
             height: auto;
             position: relative;
-            display: flex;
+            /*display: flex;*/
             flex-direction: column;
+            justify-content: flex-end;
+            padding-top: 70px;
+            padding-bottom: 50px;
 
         }
         .entityHolder {
             width:97%;
         }
         .dayPanelHolder {
-            width:97%;
+            width:99.5%;
             height: auto;
             min-height: 50px;
             position: relative;
             display: flex;
             flex-direction: column-reverse;
-            border-top: 0.5px solid lightgrey;
+        }
+        .keyType {
+            border-radius: 4px;
+            border: 0.5px solid lightgrey;
+            margin-top: 9px;
+            margin-bottom: 3px;
+            padding-left: 4px;
         }
         .dayPanel {
             height: 100%;
@@ -60,6 +72,7 @@
             height: 100%;
         }
         .bottomPanel {
+            position: absolute;
             bottom: 15px;
             width: 97%;
             height: 30px;
@@ -87,19 +100,33 @@
             width: 40px;
             cursor: pointer;
             padding-left: 4px;
+            /*resize: horizontal;*/
+            /*overflow: auto;*/
+        }
+        .expanded {
+            height: 38px !important;
+            min-width: 300px !important;
+            z-index: 31 !important;
+            font-weight: bolder !important;
         }
         .opp:hover {
-            width: 200px;
-            overflow: visible;
-            z-index: 20;
+            width: auto;
         }
         .control {
             position: sticky;
             top: 5px;
-            display: grid;
-            grid-template-columns: 20% 5% 30% 35% 10%;
+            height: 100px;
+            z-index: 100;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            padding-left: 20px;
+            background-color: white;
+            border: 0.5px solid grey;
+            margin-top: 10px;
+            min-height: 300px;
+            flex-direction: column;
         }
-
         .noSpill {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -134,40 +161,122 @@
         .monthTitle {
             font-size: 20px;
             font-weight: bolder;
+            position: absolute;
+            top: 20px;
+        }
+        .keyTitle {
+            font-size: 16px;
+            color: lightgrey;
+        }
+        .keyMemberHolder {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .keyMember {
+            padding: 4px;
+            border-radius: 50%;
+            color: white;
+            background-color: lightblue;
+            margin: 5px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .dark {
+            background-color: darkblue;
+        }
+        .resize {
+            cursor: ew-resize !important;
+            position: absolute;
+            width: 10px;
+            z-index: 31;
+            height: 100%;
+            top: 0;
+        }
+        .left {
+            left: 0;
+        }
+        .right {
+            right: 0;
         }
     </style>
 
     <body>
+    <!--<div id="resizable" class="resizable">-->
+        <!--&lt;!&ndash;<h3 class="ui-widget-header">Resizable</h3>&ndash;&gt;-->
+        <!--<h3 >Resizable</h3>-->
+    <!--</div>-->
+
+
         <div id="app" style="width: 100%; position: relative;">
-                <div v-for="month in months" class="box">
-                    <!--<div>{{month.name}} rows is {{month.rows.length}} and keys are {{month}}</div>-->
-                    <div class="monthTitle">{{month.name}}</div>
 
 
-                    <!--ONE OF THESE FOR EACH ITERATOR-->
+            <div class="control" style="min-height: 100px;height: 100px;">
+                <div style="display: flex;">
+                    <button value="JOB NO" v-on:click="sortData('Job_Number__c')">JOB NO</button>
+                    <button value="OWNER" v-on:click="sortData('OwnerName')">OWNER</button>
+                    <button value="OWNER" v-on:click="sortData('StageName')">STAGE</button>
+                    <button value="PROJECT MANAGER" v-on:click="sortData('PMName')">PROJECT MANAGER</button>
+                    <button value="PROJECT MANAGER" v-on:click="sortData('PMName')">ACCOUNT</button>
+                </div>
+                <div class="keyMemberHolder">
+                    <template v-for="value in keyMembers[activeKey]">
+                        <div class="keyMember noSpill"
+                             v-on:click="filter = value.name"
+                             v-bind:class="{ dark : filter === value.name}">
+                                {{value.name}}
+                        </div>
+                    </template>
+                </div>
+            </div>
 
-                    <template v-for="value in month.stageKeys" v-if="value.rows.length != 0">
-                    <!--<template v-for="(value, key, index) in month.stageKeys" >-->
-                    <!--<template v-for="(list, key) in Array.from(month.stageKeys)" >-->
+            <div v-for="month in months" class="box">
+                <!--<div>{{month.name}} rows is {{month.rows.length}} and keys are {{month}}</div>-->
+                <div class="monthTitle">{{month.name}}</div>
 
-                        <!--{{value.rows}}-->
-                        <!--{{ value }} - {{ key }} - {{ index }}-->
+                <!--<div id="resizable" class="resizable">-->
+                <!--<h3 class="ui-widget-header">Resizable</h3>-->
+                <!--</div>-->
 
-                        {{value.name}}
+                <!--ONE OF THESE FOR EACH ITERATOR-->
+
+                <template v-for="value in month[activeKey]" v-if="value.rows.length != 0 && (!filter || value.name === filter)">
+
+
+                    <!--<div id="resizable" class="resizable">-->
+                        <!--<h3 class="ui-widget-header">Resizable</h3>-->
+                    <!--</div>-->
+
+
+                    <div class="keyType">
+                        <span class="keyTitle">{{value.name}}</span>
                         <div class="dayPanelHolder">
 
-                            <!--<template v-for="row in month.rows">-->
-                            <!--<template v-for="row in key.rows">-->
                             <template v-for="row in value.rows">
-                                <!--{{row.daysTaken}}-->
+
+                                <!--<div id="resizable" class="resizable">-->
+                                    <!--<h3 class="ui-widget-header">Resizable</h3>-->
+                                <!--</div>-->
+
+
                                 <div class="row">
                                     <div class="entityHolder">
                                         <template v-for="opp in row.opps" >
-                                            <div class="opp noSpill" draggable="false"
+                                            <div class="opp noSpill resizable"  v-bind:id="opp.Id"
                                                  v-bind:style="{ backgroundColor : opp.StageName == 'Closed Won' ? '#80a9ed' : '#f4dd9c',
                                                          width : opp.length > 0 ? (opp.length * (100/month.days.length)) + '%' : 100/month.days.length + '%',
-                                                         marginLeft : (opp.offset * (100/month.days.length)) + '%'}">
-                                                {{opp.StageName}} {{opp.Name}}
+                                                         marginLeft : (opp.offset * (100/month.days.length)) + '%'}"
+                                                 v-bind:class="{expanded : opp.Id === activeId}"
+                                                 v-on:click="activeId = opp.Id"
+                                                 draggable="true"
+                                                 v-on:drag="setDraggable()"
+                                                >
+                                                <div class="resize left"></div>
+                                                <div class="draggable">{{opp.Job_Number__c}} {{opp.Owner.Name}}</div>
+                                                <div class="resize right"></div>
                                             </div>
                                         </template>
 
@@ -183,23 +292,16 @@
                             <!--</div>-->
                             <!--</div>-->
                         </div>
-
-
-                    </template>
-
-                    <!--END ONE OF THESE FOR EACH ITERATOR-->
-
-
-
-
-
-
-
-
-                    <div class="bottomPanel">
-                        <div v-for="day in month.days" class="day">{{day.dayOfWeek + ' ' + day.day}}</div>
                     </div>
+
+                </template>
+
+                <!--END ONE OF THESE FOR EACH ITERATOR-->
+
+                <div class="bottomPanel">
+                    <div v-for="day in month.days" class="day">{{day.dayOfWeek + ' ' + day.day}}</div>
                 </div>
+            </div>
         </div>
     </body>
 
@@ -212,177 +314,150 @@
             el: '#app',
             data: {
                 months : [],
-                categories : ['all','stage','person','type'],
-                opps : []
+                // categories : ['all','stage','person','product'],
+                opps : [],
+                activeKey : '',
+                activeId : '',
+                loadedKeys : new Set(),
+                keyMembers : {
+                    'StageName': {},
+                    'Job_Number__c': {},
+                    'OwnerName': {},
+                    'PMName': {}
+                },
+                filter : ''
             },
             methods: {
 
-                checkGo : function(){
+                setDraggable : function(){
+                    if (!event.target.classList.contains('draggable')){
+                        event.target.classList.add('draggable');
+                        dragElement(event.target.id);
 
+                    }
+                    // console.log('v changed called ' + event.target.classList);
                 },
-                sortData : function() {
+
+                sortData : function(keyType) {
+
+                    keyType = keyType.toString();
+                    // keyType = '\"' + keyType + '\"';
+
+                    this.activeKey  = keyType;
+                    this.filter     = '';
+
+                    if (!this.loadedKeys.has(keyType)){
+                        this.loadedKeys.add(keyType);
+
+                        var result = this.opps;
+
+                        result.sort(function (a, b) {
+                            return b.Lengthjs__c - a.Lengthjs__c
+                        });
+
+                        // at this point here we would iterate through all records for each key
+                        for (var x = 0; x < result.length; x++) {
+
+                            var month = new Date(result[x].Event_end__c).getMonth();
+
+                            if (app.months[month]) {
+
+                                // DEFINE DATE PARAMETERS
+                                var startDay        = new Date(result[x].Event_start__c).getDate();
+                                var endDay          = new Date(result[x].Event_end__c).getDate();
+                                result[x].length    = result[x].Lengthjs__c;
+                                result[x].offset    = startDay - 1;
+                                result[x].OwnerName = result[x].Owner.Name;
+                                result[x].PMName    = (result[x].Project_Manager__c) ?
+                                                        result[x].Project_Manager__r.Name : 'Missing PM';
 
 
 
-                    var entryDate = new Date();
-                    entryDate.setDate(1);
 
-                    for (var x = 0; x < 12; x++) {
-
-                        entryDate.setMonth(x);
-
-                        var month = {
-                            month : entryDate,
-                            name : entryDate.toString().slice(4, 8) + ' ' + entryDate.toString().slice(10, 15),
-                            days : [],
-                            stageKeys : {
-                                'Repeat Prospect' : {name : 'Repeat Prospect',rows :[]},
-                                'Pipeline prospect' : {name : 'Pipeline prospect',rows :[]},
-                                'Costed prospect' : {name : 'Costed prospect',rows :[]},
-                                'Closed Won' : {name : 'Closed Won',rows :[]}
-                            },
-                            oppKeys : {},
-                            personKeys : {},
-                            typeKeys : {},
-                            activeKey : 'all'
-                        };
-
-                        for (var y = 0; y < parseInt(new Date(entryDate.getFullYear(), entryDate.getMonth() + 1, 0).getDate()); y++){
-                            var dayDate = new Date(entryDate.getFullYear(), entryDate.getMonth(), y+1).toString().substring(0,3)
-                            month.days.push({
-                                day : (y + 1),
-                                dayOfWeek : dayDate,
-                                weekend : dayDate === 'Sat' || dayDate === 'Sun'
-                            });
-                        }
-
-                        this.months.push(month);
-                    }
-
-                    // load sample data
-                    Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.resourceExperimentController.getOpps}',
-                        function (result, event) {
-                            if (event.status) {
-                                this.opps = result;
-                                // Vue.set(app, 'opps', result);
-                                console.log('assigning result to opps');
-                            }
-                        }
-                    );
+                                var entryKey = result[x][keyType];
 
 
-                    // load sample data
-                    <!--Visualforce.remoting.Manager.invokeAction(-->
-                    <!--'{!$RemoteAction.resourceExperimentController.getOpps}',-->
-                    <!--function (result, event) {-->
-                    <!--if (event.status) {-->
 
-                    // if (!app){
-                    //     this.loadData();
-                    // }
+                                if (!this.keyMembers[keyType][entryKey]){
+                                    this.keyMembers[keyType][entryKey] = {name : entryKey};
+                                }
 
-                    var result = this.opps;
+                                // console.log(this.keyMembers[keyType]);
 
-                    console.log('result is' + result);
+                                // console.log('the entry key is ' + keyType);
 
-                    //console.log(response[0]);
-                    result.sort(function (a, b) {
-                        return b.Lengthjs__c - a.Lengthjs__c
-                    });
+                                // work out the relevant key
+                                if (!app.months[month][keyType][entryKey]) {
+                                    app.months[month][keyType][entryKey] = {name : entryKey, rows: []};
+                                }
+
+                                var rows = app.months[month][keyType][entryKey].rows;
 
 
-                    // at this point here we would iterate through all records for each key
-                    for (var x = 0; x < result.length; x++) {
-
-                        var month = new Date(result[x].Event_end__c).getMonth();
-
-                        if (app.months[month]) {
-
-                            var stageName = result[x].StageName;
-
-                            // work out the relevant key
-                            if (!app.months[month].stageKeys[stageName]) {
-                                app.months[month].stageKeys[stageName] = {rows: []};
-                            }
-
-                            var rows = app.months[month].stageKeys[stageName].rows;
-
-                            var startDay = new Date(result[x].Event_start__c).getDate();
-                            var endDay = new Date(result[x].Event_end__c).getDate();
-                            result[x].length = result[x].Lengthjs__c;
-                            result[x].offset = startDay - 1;
 
 
-                            var rowFound = false;
+                                var rowFound = false;
 
-                            // check all existing rows for space
-                            for (var r = 0; r < rows.length; r++) {
+                                // check all existing rows for space
+                                for (var r = 0; r < rows.length; r++) {
 
-                                // only continue to check if a free row has not been found
-                                if (!rowFound) {
+                                    // only continue to check if a free row has not been found
+                                    if (!rowFound) {
 
-                                    // assume that space is available until it is not
-                                    var spaceAvailable = true;
+                                        // assume that space is available until it is not
+                                        var spaceAvailable = true;
 
-                                    var counter = endDay;
+                                        var counter = endDay;
 
-                                    while (counter >= startDay) {
-                                        if (spaceAvailable) {
-                                            if (rows[r].daysTaken.has(counter)) {
-                                                spaceAvailable = false;
+                                        while (counter >= startDay) {
+                                            if (spaceAvailable) {
+                                                if (rows[r].daysTaken.has(counter)) {
+                                                    spaceAvailable = false;
+                                                }
                                             }
-                                        }
-                                        counter = counter - 1;
-                                    }
-
-                                    if (spaceAvailable) {
-                                        rows[r].opps.push(result[x]);
-
-                                        var upper = endDay;
-                                        while (upper >= startDay) {
-                                            rows[r].daysTaken.add(upper);
-                                            upper = upper - 1;
+                                            counter = counter - 1;
                                         }
 
-                                        rowFound = true;
+                                        if (spaceAvailable) {
+                                            rows[r].opps.push(result[x]);
+
+                                            var upper = endDay;
+                                            while (upper >= startDay) {
+                                                rows[r].daysTaken.add(upper);
+                                                upper = upper - 1;
+                                            }
+
+                                            rowFound = true;
+                                        }
                                     }
                                 }
-                            }
 
-                            if (!rowFound) {
-                                var newRow = {
-                                    free: false,
-                                    opps: [],
-                                    daysTaken: new Set()
-                                };
-                                newRow.opps.push(result[x]);
+                                if (!rowFound) {
+                                    var newRow = {
+                                        free: false,
+                                        opps: [],
+                                        daysTaken: new Set()
+                                    };
+                                    newRow.opps.push(result[x]);
 
-                                var upper = endDay;
-                                while (upper >= startDay) {
-                                    newRow.daysTaken.add(upper);
-                                    upper = upper - 1;
+                                    var upper = endDay;
+                                    while (upper >= startDay) {
+                                        newRow.daysTaken.add(upper);
+                                        upper = upper - 1;
+                                    }
+
+                                    rows.push(newRow);
                                 }
-
-                                rows.push(newRow);
                             }
-                        }
                     }
-                    // }
 
-                    // app.months.forEach(function(element){
-                    //     var keys = Object.keys(element.stageKeys);
-                    //     for (x = 0; x < keys.length; x++){
-                    //         Vue.set(element.stageKeys, keys[x], {rows : element.stageKeys[keys[x]].rows});
-                    //     }
-                    //     Vue.set(element.stageKeys, '', '');
-                    // });
+                    // enableResize();
 
-                    //     }, {
-                    //         escape : true
-                    //     }
-                    // );
-                    // }
+
+                        var els = document.getElementsByClassName('draggable');
+
+                        console.log('size is ' + els.length);
+                    }
                 },
                 loadData : function(){
                     // step 1: define months
@@ -397,16 +472,16 @@
                             month : entryDate,
                             name : entryDate.toString().slice(4, 8) + ' ' + entryDate.toString().slice(10, 15),
                             days : [],
-                            stageKeys : {
+                            'StageName' : {
                                 'Repeat Prospect' : {name : 'Repeat Prospect',rows :[]},
                                 'Pipeline prospect' : {name : 'Pipeline prospect',rows :[]},
                                 'Costed prospect' : {name : 'Costed prospect',rows :[]},
                                 'Closed Won' : {name : 'Closed Won',rows :[]}
                             },
-                            oppKeys : {},
-                            personKeys : {},
-                            typeKeys : {},
-                            activeKey : 'all'
+                            'Job_Number__c' : {},
+                            'OwnerName' : {},
+                            'PMName' : {},
+                            productKeys : {}
                         };
 
                         for (var y = 0; y < parseInt(new Date(entryDate.getFullYear(), entryDate.getMonth() + 1, 0).getDate()); y++){
@@ -426,21 +501,81 @@
                         '{!$RemoteAction.resourceExperimentController.getOpps}',
                         function (result, event) {
                             if (event.status) {
-                                this.opps = result;
-                                // Vue.set(app, 'opps', result);
-                                console.log('assigning result to opps');
+                                app.opps = result;
+                                app.sortData('StageName');
                             }
                         }
                     );
-
-                    this.sortData();
-
                 }
             },
             beforeMount() {
-                this.sortData();
+                this.loadData();
             }
-        })
+        });
+
+        // function enableResize() {
+        //     $( ".opp" ).resizable({
+        //         containment: "parent"
+        //     });
+        //     console.log('making resizable');
+        // }
+        // $( function() {
+        //     $( ".resizable" ).resizable();
+        // } );
+
+
+        //Make the DIV element draggagle:
+
+
+        function change(Id){
+            console.log('ive been changed');
+        }
+
+        //dragElement(document.getElementById("mydiv"));
+
+        function dragElement(elmntId) {
+
+            var elmnt = document.getElementById(elmntId);
+
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            if (document.getElementById(elmnt.id + "header")) {
+                /* if present, the header is where you move the DIV from:*/
+                document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+            } else {
+                /* otherwise, move the DIV from anywhere inside the DIV:*/
+                elmnt.onmousedown = dragMouseDown;
+            }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // get the mouse cursor position at startup:
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                // call a function whenever the cursor moves:
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // calculate the new cursor position:
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // set the element's new position:
+                // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                /* stop moving when mouse button is released:*/
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
 
     </script>
 
