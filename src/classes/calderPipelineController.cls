@@ -30,7 +30,9 @@ public class calderPipelineController {
                         (SELECT SBQQ__DocumentId__c FROM R00N700000029COgEAM
                         WHERE SBQQ__Quote__r.SBQQ__Primary__c = TRUE)
                 FROM Opportunity
-                WHERE Calder_Opportunity__c = True
+                WHERE Calder_Opportunity__c = TRUE
+                AND Event_end__c != NULL
+                AND Event_start__c != NULL
                 AND StageName != 'Closed Lost'
                 ORDER BY Event_end__c DESC
         ]);

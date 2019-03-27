@@ -48,9 +48,9 @@ public class QuickbooksBudgetCallout {
         List<QBProfitAndLoss__c> entriesToDelete    = new List<QBProfitAndLoss__c>();
 
         for (QBProfitAndLoss__c pnlEntry : Database.query('SELECT Id, Budget__c, Actual__c, BudgetSource__c, ' +
-                                            'ForecastSource__c, Month__c, Nominal__c ' +
-                                            'FROM QBProfitAndLoss__c ' +
-                                            'WHERE Month__c = ' + fiscalYear)){
+                                                          'ForecastSource__c, Month__c, Nominal__c ' +
+                                                          'FROM QBProfitAndLoss__c ' +
+                                                          'WHERE Month__c = ' + fiscalYear)){
             entriesToDelete.add(pnlEntry);
         }
 
@@ -79,6 +79,9 @@ public class QuickbooksBudgetCallout {
                             for (JSONParserQBOProfitAndLoss.cls_Row row2 : row.Rows.Row) {
                                 if (row2.Summary != null) {
                                     String parent = row2.Summary.ColData[0].value.substring(6);
+
+//                                    system.debug('on the pnl the parent is ' + parent);
+
                                     if (row2.Rows != null) {
                                         for (JSONParserQBOProfitAndLoss.cls_Row row3 : row2.Rows.Row) {
                                             String identifier   = calloutDate.month() + row3.ColData[0].value;
@@ -125,15 +128,19 @@ public class QuickbooksBudgetCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
-                system.debug(startDate);
+                System.debug(startDate);
 
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
 
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
-                    String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
+//                    String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
+                    String parent       = detail.AccountRef.name;
                     String identifier   = budgetDate.month() + detail.AccountRef.name;
+
+                    System.debug('on the budget the parent is ' + parent);
+
 
                     if (entriesMap.containsKey(identifier)){
                         entriesMap.get(identifier).Budget__c         = detail.Amount;
@@ -175,13 +182,28 @@ public class QuickbooksBudgetCallout {
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 
                     if (budgetDate > closeMonth) {
-                        String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
+//                        String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
+                        String parent       = detail.AccountRef.name;
                         String identifier = budgetDate.month() + detail.AccountRef.name;
 
+                        System.debug('on the forecast the parent is ' + detail);
+
+
+
+                        System.debug('for budget date ' + budgetDate.month());
+
                         if (entriesMap.containsKey(identifier)) {
+
+                            System.debug('a key was found and added value  ' + detail.Amount);
+
+
                             entriesMap.get(identifier).Actual__c = detail.Amount;
                             entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
                         } else {
+
+                            System.debug('a new key had to be added for value  ' + detail.Amount);
+
+
                             entriesMap.put(
                                 identifier,
                                 new QBProfitAndLoss__c(
@@ -211,6 +233,29 @@ public class QuickbooksBudgetCallout {
         }
 
         return true;
+    }
+
+    public static Map<String,String> getNominalParents(){
+
+        return new Map<String,String>{
+                'Events Revenue' => 'Revenue',
+                'Other Income' => 'Revenue',
+                'Rebates' => 'Revenue',
+
+                'Events COS' => 'Cost of Sales',
+                'Amex Charges' => 'Cost of Sales',
+
+                'Gross Salaries' => 'Payroll',
+                'Employers National Insurance' => 'Payroll',
+                'Pension Costs' => 'Payroll',
+                'Bonuses' => 'Payroll',
+                'Death in Service Insurance' => 'Payroll',
+                'Private Health Insurance & Staff Healthcare' => 'Payroll',
+                'Freelancers' => 'Payroll'
+
+        };
+
+
     }
 
 }

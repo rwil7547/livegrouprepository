@@ -128,7 +128,8 @@ public class QuotePreviewController {
             system.debug('Setting tracked changes to true');
 
             if (quote.Stage__c == 'Contract' && quote.Version__c !=  'Contract'){
-                amendment = quote.Version__c.replace('Contract ','');
+                amendment = (amendment != null) ? quote.Version__c.replace('Contract ','') + ' ' + amendment
+                            : quote.Version__c.replace('Contract ','');
                 quote.Version__c = 'Contract';
             }
 
@@ -242,6 +243,9 @@ public class QuotePreviewController {
                     } else {
 
                         if (changeMap != null && changeMap.containsKey(line.Ancestor__c)){
+
+                            system.debug('found a line which has changed');
+
                             SBQQ__QuoteLine__c oldLine = changeMap.get(line.Ancestor__c);
                             if (oldLine.SBQQ__Description__c != line.SBQQ__Description__c){
                                 line.AncestorDescription__c = oldLine.SBQQ__Description__c;

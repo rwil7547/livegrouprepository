@@ -4,27 +4,103 @@
 
 public class CashFlowUtils {
 
+
+    public static Map<String,Integer> getMonthSplit(){
+
+//        Map<>
+
+//        Map<String,Integer> monthSplit = new Map<String,Integer>();
+        Map<String,Integer> monthSplit = new Map<String,Integer>();
+
+        Date iteratorDate = Date.today().toStartOfMonth().toStartOfWeek().addDays(3);
+
+        while (iteratorDate < Date.today().addYears(2)){
+
+            String monthKey = String.valueOf(iteratorDate.year()) + String.valueOf(iteratorDate.month());
+
+            if (!monthSplit.containsKey(monthKey)){
+                monthSplit.put(monthKey,0);
+            }
+
+            monthSplit.put(monthKey, monthSplit.get(monthKey) + 1);
+
+            iteratorDate = iteratorDate.addDays(7);
+        }
+
+
+        for (String monthKey : monthSplit.keySet()){
+
+
+        }
+
+
+        return monthSplit;
+
+    }
+
+
+    public static List<CashFlowEntry__c> getBudgetEntries(){
+
+        Map<String,Integer> monthSplit = getMonthSplit();
+
+
+        Map<String,List<CashFlowEntry__c>> budgetEntries = new Map<String,List<CashFlowEntry__c>>();
+
+        List<QBProfitAndLoss__c> pnlEntries = [SELECT Id, Parent__c, Grouping__c, Budget__c
+                                                FROM QBProfitAndLoss__c
+                                                WHERE Month__c >= :Date.today()];
+
+        for (QBProfitAndLoss__c pnlEntry : pnlEntries){
+
+            if (!budgetEntries.containsKey(String.valueOf(pnlEntry.Month__c) + pnlEntry.Grouping__c)){
+                budgetEntries.put(String.valueOf(pnlEntry.Month__c) + pnlEntry.Grouping__c, new List<CashFlowEntry__c>());
+
+            }
+
+//            for (CashFlowEntry__c entr)
+
+
+        }
+
+
+
+        return null;
+
+    }
+
+
+
+//    public static Map<>
+
+
+
     public static Map<Date,CashFlow__c> getFlowMap() {
 
-        List<CashFlow__c> flows = [SELECT Id, Date__c, In__c, Out__c,
-                                        InPlus__c, OutPlus__c,
-                                        InDescription__c, OutDescription__c,
-                                        Balance__c, BalancePlus__c, BalancePredict__c, Number__c
+//        List<CashFlow__c> flows = [SELECT Id, Date__c, In__c, Out__c,
+//                                        InPlus__c, OutPlus__c,
+//                                        InDescription__c, OutDescription__c,
+//                                        Balance__c, BalancePlus__c, BalancePredict__c, Number__c
+//                                FROM CashFlow__c
+//                                ORDER BY Date__c ASC];
+
+
+
+        List<CashFlow__c> flows = [SELECT Id, Date__c
                                 FROM CashFlow__c
                                 ORDER BY Date__c ASC];
 
         Map<Date,CashFlow__c> flowMap = new Map<Date, CashFlow__c>();
 
         for (CashFlow__c flow : flows){
-            flow.In__c            = 0;
-            flow.Out__c           = 0;
-            flow.InPlus__c        = 0;
-            flow.OutPlus__c       = 0;
-            flow.InPredict__c     = 0;
-            flow.OutPredict__c    = 0;
-            flow.OutPlus__c       = 0;
-            flow.InDescription__c = '';
-            flow.OutDescription__c = '';
+//            flow.In__c            = 0;
+//            flow.Out__c           = 0;
+//            flow.InPlus__c        = 0;
+//            flow.OutPlus__c       = 0;
+//            flow.InPredict__c     = 0;
+//            flow.OutPredict__c    = 0;
+//            flow.OutPlus__c       = 0;
+//            flow.InDescription__c = '';
+//            flow.OutDescription__c = '';
             flowMap.put(flow.Date__c,flow);
         }
 

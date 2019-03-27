@@ -36,7 +36,7 @@
             <div class="paddedCol">
                 <div style="font-weight:bold;font-size:14px;">
                     <span>{!(v.optional ? 'OPTIONAL: ' + v.line.SBQQ__Product__r.Name
-                        : v.line.SBQQ__Product__r.Name)}</span>{!v.line.SBQQ__SubscriptionPricing__c}
+                        : v.line.SBQQ__Product__r.Name)}</span>
                     <aura:if isTrue="{!v.line.SBQQ__AdditionalDiscountAmount__c}">
                         <span style="color:lightcoral;"><br/>Discounted by:
                             <lightning:formattedNumber value="{!v.line.SBQQ__AdditionalDiscountAmount__c}" style="currency" currencyCode="GBP" />
@@ -116,7 +116,7 @@
                                                    style="currency" currencyCode="GBP" />
                     </div>
                     <div class="right">
-                        <aura:if isTrue="{!and(v.editmode,v.revEditable)}">
+                        <aura:if isTrue="{!and(not(v.line.SBQQ__Hidden__c),v.editmode,v.revEditable)}">
                             <span onkeyup="{!c.save}">
                         <lightning:input class="{!'slds-p-top_none valInput  ' + v.line.Id}"
                                          type="decimal"

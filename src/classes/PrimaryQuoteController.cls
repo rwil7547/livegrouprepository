@@ -98,7 +98,7 @@ public with sharing class PrimaryQuoteController {
                         (SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Group__c,
                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c,
+                            SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Number__c, SBQQ__Hidden__c,
                             SBQQ__AdditionalDiscountAmount__c
                         FROM SBQQ__LineItems__r
                         ORDER BY SBQQ__Number__c ASC)
@@ -119,7 +119,7 @@ public with sharing class PrimaryQuoteController {
             for (SBQQ__QuoteLine__c line : [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c,
                                                     SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c, SBQQ__Number__c, SBQQ__Group__c,
                                                     SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
-                                                    SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                                                    SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Hidden__c,
                                                     SBQQ__AdditionalDiscountAmount__c
                                             FROM SBQQ__QuoteLine__c
                                             WHERE SBQQ__Quote__c = :Id
@@ -154,7 +154,7 @@ public with sharing class PrimaryQuoteController {
     public static List<Product2> getProductsApex(){
 
         return [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
-                        SBQQ__SubscriptionPricing__c,
+                        SBQQ__SubscriptionPricing__c, SBQQ__Hidden__c,
                 (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                 WHERE SBQQ__Active__c = TRUE LIMIT 1),
                 (SELECT UnitPrice FROM PricebookEntries
@@ -227,7 +227,7 @@ public with sharing class PrimaryQuoteController {
         String result = 'error';
 
         SBQQ__QuoteLine__c lineLock = [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Number__c,
-                                            SBQQ__Quantity__c, SBQQ__Group__c,
+                                            SBQQ__Quantity__c, SBQQ__Group__c, SBQQ__Hidden__c,
                                             SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Optional__c,
                                             SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                             SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Quote__c,
@@ -335,7 +335,7 @@ public with sharing class PrimaryQuoteController {
                                                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c,
                                                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                         SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c,
-                                                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
+                                                        SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Hidden__c,
                                                         SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c
                                                 FROM SBQQ__LineItems__r)
                                                 FROM SBQQ__QuoteLineGroup__c
@@ -373,7 +373,7 @@ public with sharing class PrimaryQuoteController {
                         SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c,
                         SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c,
-                        SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c
+                        SBQQ__Optional__c, SBQQ__AdditionalDiscountAmount__c, SBQQ__Hidden__c
                 FROM SBQQ__LineItems__r)
                 FROM SBQQ__QuoteLineGroup__c
                 WHERE Id = :cloneGroup.Id];
@@ -512,7 +512,8 @@ public with sharing class PrimaryQuoteController {
 
         List<SBQQ__QuoteLine__c> lines = new List<SBQQ__QuoteLine__c>();
 
-        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionPricing__c,
+        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
+                                        SBQQ__SubscriptionPricing__c, SBQQ__Hidden__c,
                                     (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                                     WHERE SBQQ__Active__c = TRUE LIMIT 1),
                                     (SELECT UnitPrice FROM PricebookEntries
@@ -527,7 +528,6 @@ public with sharing class PrimaryQuoteController {
                     SBQQ__Product__c        = product.Id,
                     SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                     SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
-//                    SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
                     SBQQ__SubscriptionPricing__c = 'Fixed Price',
                     SBQQ__DefaultSubscriptionTerm__c = 1,
                     SBQQ__Quantity__c       = 1,
@@ -536,7 +536,8 @@ public with sharing class PrimaryQuoteController {
                     SBQQ__NetPrice__c       = unitPrice,
                     SBQQ__Group__c          = groupId,
                     SBQQ__Quote__c          = quoteId,
-                    SBQQ__Number__c         = lineItemCount + 1
+                    SBQQ__Number__c         = lineItemCount + 1,
+                    SBQQ__Hidden__c         = product.SBQQ__Hidden__c
                 )
             );
 
@@ -560,7 +561,7 @@ public with sharing class PrimaryQuoteController {
 
             return [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Quantity__c, SBQQ__Number__c,
                         SBQQ__Group__c, SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__SubscriptionTerm__c,
-                        SBQQ__Product__r.SBQQ__SubscriptionTerm__c,
+                        SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__Hidden__c,
                         SBQQ__ListPrice__c, SBQQ__NetTotal__c, SBQQ__Description__c
                     FROM SBQQ__QuoteLine__c
                     WHERE Id IN :lineIdSet];
@@ -580,7 +581,8 @@ public with sharing class PrimaryQuoteController {
 
         Decimal lineItemCount = [SELECT SBQQ__LineItemCount__c FROM SBQQ__Quote__c WHERE Id = :quoteId].SBQQ__LineItemCount__c;
 
-        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionPricing__c,
+        for (Product2 product : [SELECT Id, Name, Description, Family, SBQQ__SubscriptionTerm__c,
+                                        SBQQ__SubscriptionPricing__c, SBQQ__Hidden__c,
                                 (SELECT SBQQ__UnitCost__c FROM SBQQ__Costs__r
                                 WHERE SBQQ__Active__c = TRUE LIMIT 1),
                                 (SELECT UnitPrice FROM PricebookEntries
@@ -605,7 +607,8 @@ public with sharing class PrimaryQuoteController {
                             SBQQ__ListPrice__c      = unitPrice,
                             SBQQ__NetPrice__c       = unitPrice,
                             SBQQ__Quote__c          = quoteId,
-                            SBQQ__Number__c         = lineItemCount + 1
+                            SBQQ__Number__c         = lineItemCount + 1,
+                            SBQQ__Hidden__c         = product.SBQQ__Hidden__c
                     )
             );
 
@@ -765,11 +768,10 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.Stage__c                 = 'Contract';
             cloneQuote.Version__c               = 'Contract';
             cloneQuote.Proposal_Introduction__c =
-                            'Thank you for confirming your intention to proceed with our support for your project, ' +
-                            quote.SBQQ__Opportunity2__r.Name + '. The following pages contain a full ' +
-                            'breakdown of the costs outlined above. In the event that your requirements ' +
-                            'change, we will provide an updated contract amendment for your approval, ' +
-                            'which will outline any changes to the services agreed to in this document.';
+                            'You\'re ready. We\'re ready. Let\'s get this show on the road! ' +
+                            'Here\'s the legal stuff for ' + quote.SBQQ__Opportunity2__r.Name + ', get it signed-off, ' +
+                            'and we can get started. Don\'t worry, if things change, we\'ll get it all updated ' +
+                            'and sent back to you for approval. ';
 
             quoteMap.put(quote.Id, cloneQuote);
         }
@@ -804,7 +806,7 @@ public with sharing class PrimaryQuoteController {
                                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                                 SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
                                                 SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c, SBQQ__Optional__c,
-                                                SBQQ__AdditionalDiscountAmount__c
+                                                SBQQ__AdditionalDiscountAmount__c, SBQQ__Hidden__c
                                         FROM SBQQ__QuoteLine__c
                                         WHERE SBQQ__Quote__c IN :quoteIds]){
 
@@ -881,23 +883,20 @@ public with sharing class PrimaryQuoteController {
 
         if (type == 'Estimate'){
             cloneQuote.Proposal_Introduction__c =
-                    'I am pleased to provide a revised estimate of costs for your project, ' +
-                    parentOpp.Name + '. The following pages contain a full breakdown of ' +
-                    'the costs outlined above. We look forward to hearing from you ' +
-                    'at your earliest convenience.';
+                    'We\'ve listened and changed things up for ' +
+                    parentOpp.Name + '. Over the next few pages, you\'ll get the complete picture ' +
+                    'of the costs above. Just let us know as soon as you\'re happy, and we can get fired up.';
         } else if (type == 'Contract'){
             cloneQuote.Proposal_Introduction__c =
-                    'I am pleased to provide an amended contract for your project, ' +
-                    parentOpp.Name + '.\nThe following pages contain a full breakdown of ' +
-                    'the costs outlined above, including an outline of anything we\'ve added, ' +
-                    'removed or changed since the previous version of this contract. ' +
-                    'We look forward to hearing from you at your earliest convenience.';
+                    'Don\'t panic, we\'ve got it all sorted. Here\'s your amended contract for ' +
+                    parentOpp.Name + '. It\'s all here, anything we\'ve added, removed or changed. ' +
+                    'Happy? Great! Get it signed-off and we\'ll take care of the rest.';
         } else if (type == 'Reconciliation'){
             cloneQuote.Proposal_Introduction__c =
-                    'Following the completion of your event I am pleased to provide you with an ' +
-                    'up-to-date reconciliation of costs. The following pages contain a full breakdown ' +
-                    'of the costs outlined above, including an outline of what we’ve added, removed or changed ' +
-                    'since the previous version of this contract.';
+                    'The show is over, the stress is done, and it\'s time for a moment to reflect ' +
+                    'on what you\'ve accomplished. Here\'s your up-to-date reconciliation for ' +
+                    parentOpp.Name + '. You\'ll find a full breakdown of the costs on the next few pages, ' +
+                    'and we\'ve highlighted anything that\'s changed. We can\'t wait to get started on the next project.';
         }
 
         Database.SaveResult quoteInsert     = Database.insert(cloneQuote);
@@ -934,7 +933,8 @@ public with sharing class PrimaryQuoteController {
                                 SBQQ__UnitCost__c, Line_total_cost__c, Days__c, SBQQ__Number__c, SBQQ__Optional__c,
                                 SBQQ__Product__r.SBQQ__SubscriptionTerm__c, SBQQ__SubscriptionTerm__c,
                                 SBQQ__SubscriptionPricing__c, SBQQ__DefaultSubscriptionTerm__c, SBQQ__ListPrice__c,
-                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c, SBQQ__AdditionalDiscountAmount__c
+                                SBQQ__NetTotal__c, SBQQ__Description__c, SBQQ__Group__c,
+                                SBQQ__AdditionalDiscountAmount__c, SBQQ__Hidden__c
                         FROM SBQQ__QuoteLine__c
                         WHERE SBQQ__Quote__c = :quote.Id];
 
@@ -1025,10 +1025,10 @@ public with sharing class PrimaryQuoteController {
         newQuote.SBQQ__Primary__c         = false;
         newQuote.Stage__c                 = 'Estimate';
         newQuote.Version__c               = 'Estimate ' + (count.size() + 1);
-        newQuote.Proposal_Introduction__c = 'Thank you for asking us to submit an estimate of costs for ' +
-                                            opp.Name + '. The following pages contain a full breakdown of ' +
-                                            'the costs outlined above. We look forward to hearing from you ' +
-                                            'at your earliest convenience.';
+        newQuote.Proposal_Introduction__c = 'We\'re ready and raring to get started work on ' +
+                                            opp.Name + '. Over the next few pages, you\'ll get the ' +
+                                            'complete picture of the costs above. Excited? Great! ' +
+                                            'We are too. Let\'s get to work.';
         newQuote.SBQQ__PriceBook__c       = [SELECT Id FROM Pricebook2 WHERE Name = 'Default'].Id;
 
         Database.SaveResult quoteInsert   = Database.insert(newQuote);
