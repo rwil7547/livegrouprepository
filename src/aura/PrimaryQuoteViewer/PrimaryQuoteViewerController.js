@@ -40,8 +40,31 @@
 
         if (event.getParam('operation') === 'uncommitted'){
             var pendingChanges = component.get('v.pendingChanges');
-            pendingChanges.push(line);
+            // pendingChanges.forEach(function(element){
+            //    if (element.Id === line.Id){
+            //
+            //    }
+            // });
+            // pendingChanges.push(line);
+            // component.set('v.pendingChanges',pendingChanges);
+
+            var duplicate = false;
+
+            for (var x = 0; x < pendingChanges.length; x++){
+                if (pendingChanges[x].Id === event.getParam('id')){
+                    pendingChanges[x] = line;
+                    duplicate = true;
+                }
+            }
+
+            if (!duplicate){
+                pendingChanges.push(line);
+            }
+
+
             component.set('v.pendingChanges',pendingChanges);
+
+
         } else if (event.getParam('operation') === 'undo'){
             var pendingChanges = component.get('v.pendingChanges');
             for (var x = 0; x < pendingChanges.length; x++){

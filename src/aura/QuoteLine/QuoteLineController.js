@@ -26,8 +26,8 @@
         helper.closeEdit(component);
     },
     setChanged: function (component, event, helper) {
-        if (!component.get('v.changed')  && event.which !== 37 && event.which !== 38
-            && event.which !== 39 && event.which !== 40) {
+        // if (!component.get('v.changed')  && event.which !== 37 && event.which !== 38
+        if (event.which !== 37 && event.which !== 38 && event.which !== 39 && event.which !== 40) {
             component.set('v.changed', true);
             helper.fireLineChange(component, component.get('v.line'), 'uncommitted');
         }

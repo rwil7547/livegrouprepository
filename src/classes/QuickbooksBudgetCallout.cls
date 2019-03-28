@@ -18,6 +18,8 @@ public class QuickbooksBudgetCallout {
 
     public static Boolean updateOpexForecast(String budgetId, String forecastId, String year, String closeMonthString) {
 
+        Map<String,String> nominalParents = getNominalParents();
+
         String fiscalYear;
         Integer yearsToAdd;
         Date startDate;
@@ -80,28 +82,41 @@ public class QuickbooksBudgetCallout {
                                 if (row2.Summary != null) {
                                     String parent = row2.Summary.ColData[0].value.substring(6);
 
-//                                    system.debug('on the pnl the parent is ' + parent);
+                                    system.debug('on the pnl the parent contains ' + row2.Summary.ColData);
 
-                                    if (row2.Rows != null) {
-                                        for (JSONParserQBOProfitAndLoss.cls_Row row3 : row2.Rows.Row) {
-                                            String identifier   = calloutDate.month() + row3.ColData[0].value;
+                                    String identifier   = calloutDate.month() + parent;
 
-                                            if (entriesMap.containsKey(identifier)) {
-                                                entriesMap.get(identifier).Actual__c = Decimal.valueOf(row3.ColData[1].value);
-                                                entriesMap.get(identifier).Parent__c = parent;
-                                                entriesMap.get(identifier).QBUpdated__c = true;
-                                            } else {
-                                                QBProfitAndLoss__c qbp = new QBProfitAndLoss__c();
-                                                qbp.Nominal__c = row3.ColData[0].value;
-                                                qbp.Parent__c = parent;
-                                                qbp.Actual__c = Decimal.valueOf(row3.ColData[1].value);
-                                                qbp.Budget__c = 0;
-                                                qbp.Month__c = calloutDate;
-                                                qbp.QBUpdated__c = true;
-                                                entriesMap.put(identifier, qbp);
-                                            }
-                                        }
-                                    }
+
+                                    QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
+                                    qbp.Nominal__c          = parent;
+                                    qbp.Parent__c           = parent;
+                                    qbp.Actual__c           = Decimal.valueOf(row2.Summary.ColData[1].value);
+                                    qbp.Budget__c           = 0;
+                                    qbp.Month__c            = calloutDate;
+                                    qbp.QBUpdated__c        = true;
+                                    entriesMap.put(identifier, qbp);
+
+
+//                                    if (row2.Rows != null) {
+//                                        for (JSONParserQBOProfitAndLoss.cls_Row row3 : row2.Rows.Row) {
+//                                            String identifier   = calloutDate.month() + row3.ColData[0].value;
+//
+//                                            if (entriesMap.containsKey(identifier)) {
+//                                                entriesMap.get(identifier).Actual__c = Decimal.valueOf(row3.ColData[1].value);
+//                                                entriesMap.get(identifier).Parent__c = parent;
+//                                                entriesMap.get(identifier).QBUpdated__c = true;
+//                                            } else {
+//                                                QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
+//                                                qbp.Nominal__c          = row3.ColData[0].value;
+//                                                qbp.Parent__c           = parent;
+//                                                qbp.Actual__c           = Decimal.valueOf(row3.ColData[1].value);
+//                                                qbp.Budget__c           = 0;
+//                                                qbp.Month__c            = calloutDate;
+//                                                qbp.QBUpdated__c        = true;
+//                                                entriesMap.put(identifier, qbp);
+//                                            }
+//                                        }
+//                                    }
                                 }
                             }
                         }
@@ -136,10 +151,10 @@ public class QuickbooksBudgetCallout {
 
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 //                    String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-                    String parent       = detail.AccountRef.name;
+//                    String parent       = detail.AccountRef.name;
                     String identifier   = budgetDate.month() + detail.AccountRef.name;
 
-                    System.debug('on the budget the parent is ' + parent);
+//                    System.debug('on the budget the parent is ' + parent);
 
 
                     if (entriesMap.containsKey(identifier)){
@@ -150,7 +165,8 @@ public class QuickbooksBudgetCallout {
                             identifier,
                             new  QBProfitAndLoss__c(
                                 Nominal__c  = detail.AccountRef.name,
-                                Parent__c   = parent,
+                                Parent__c   = nominalParents.containsKey(detail.AccountRef.name) ?
+                                              nominalParents.get(detail.AccountRef.name) : '',
                                 Month__c    = budgetDate,
                                 Budget__c   = detail.Amount,
                                 Actual__c   = 0,
@@ -194,7 +210,7 @@ public class QuickbooksBudgetCallout {
 
                         if (entriesMap.containsKey(identifier)) {
 
-                            System.debug('a key was found and added value  ' + detail.Amount);
+                            System.debug('a key ' + identifier + ' was found and added value  ' + detail.Amount);
 
 
                             entriesMap.get(identifier).Actual__c = detail.Amount;
@@ -208,7 +224,8 @@ public class QuickbooksBudgetCallout {
                                 identifier,
                                 new QBProfitAndLoss__c(
                                     Nominal__c  = detail.AccountRef.name,
-                                    Parent__c   = parent,
+                                    Parent__c   = nominalParents.containsKey(detail.AccountRef.name) ?
+                                                  nominalParents.get(detail.AccountRef.name) : '',
                                     Month__c    = budgetDate,
                                     Budget__c   = 0,
                                     Actual__c   = detail.Amount,
@@ -235,27 +252,88 @@ public class QuickbooksBudgetCallout {
         return true;
     }
 
+//    public static Map<String,String> getNominalMap
+
     public static Map<String,String> getNominalParents(){
 
         return new Map<String,String>{
-                'Events Revenue' => 'Revenue',
-                'Other Income' => 'Revenue',
-                'Rebates' => 'Revenue',
+                'Events Revenue'        => 'Revenue',
+                'Other Income'          => 'Revenue',
+                'Rebates'               => 'Revenue',
 
-                'Events COS' => 'Cost of Sales',
-                'Amex Charges' => 'Cost of Sales',
+                'Events COS'            => 'Cost of Sales',
+                'Amex Charges'          => 'Cost of Sales',
 
-                'Gross Salaries' => 'Payroll',
+                'Gross Salaries'        => 'Payroll',
                 'Employers National Insurance' => 'Payroll',
-                'Pension Costs' => 'Payroll',
-                'Bonuses' => 'Payroll',
+                'Pension Costs'         => 'Payroll',
+                'Bonuses'               => 'Payroll',
                 'Death in Service Insurance' => 'Payroll',
                 'Private Health Insurance & Staff Healthcare' => 'Payroll',
-                'Freelancers' => 'Payroll'
+                'Freelancers'           => 'Payroll',
+                'Company Events'        => 'Payroll',
+                'Employee Gifts'        => 'Payroll',
+
+                'Management Fee Live Group' => 'Management Fees',
+
+                'Training'              => 'Training & Recruitment',
+                'Recruitment'           => 'Training & Recruitment',
+
+                'Rent'                  => 'Property, Insurance and Infrastructure costs',
+                'Business Rates	'        => 'Property, Insurance and Infrastructure costs',
+                'Utility Bills - Electricity, Gas, Water' => 'Property, Insurance and Infrastructure costs',
+                'Repairs and Renewals (deleted)' => 'Property, Insurance and Infrastructure costs',
+                'Cleaning'              => 'Property, Insurance and Infrastructure costs',
+                'Premises Expenses	'    => 'Property, Insurance and Infrastructure costs',
+                'Other Property Repairs & Maintenance' => 'Property, Insurance and Infrastructure costs',
+                'Other Insurance'       => 'Property, Insurance and Infrastructure costs',
+
+
+                'Client Hospitality'    => 'PR, Advertising & Marketing',
+                'Exhibitions/Fairs'     => 'PR, Advertising & Marketing',
+                'Gifts and Samples'     => 'PR, Advertising & Marketing',
+                ' Tender Costs & Lost Opportunities' => 'PR, Advertising & Marketing',
+                'Marketing services'    => 'PR, Advertising & Marketing',
+
+                'Operational Meeting Expenses' => 'Travel and subsistence',
+                'Business Meals'        => 'Travel and subsistence',
+                'Business Development - Meetings' => 'Travel and subsistence',
+                'Business Travel (Trains, Parking, Taxis, Mileage)' => 'Travel and subsistence',
+                'Business Accommodation' => 'Travel and subsistence',
+                'Employee Meals - Office based' => 'Travel and subsistence',
+
+                'Vehicle Fuel'          => 'Motor expenses',
+                'Vehicle Repairs and Servicing' => 'Motor expenses',
+                'Vehicle Lease'         => 'Motor expenses',
+                'Vehicle Insurance'     => 'Motor expenses',
+                'Miscellaneous Motor Expenses' => 'Motor expenses',
+                'Congestion Charges'    => 'Motor expenses',
+                'Motor Fines'           => 'Motor expenses',
+
+                'Domain Registration and Servers Maintenance' => 'IT costs',
+                'Computer Software'     => 'IT costs',
+                'Computer Hardware'     => 'IT costs',
+                'Computer Sundries'     => 'IT costs',
+                'Internet lines'        => 'IT costs',
+                'Telephone - Mobile & Landline' => 'IT costs',
+
+                'Printing'              => 'Office costs',
+                'Postage and Carriage'  => 'Office costs',
+                'Office Stationery'     => 'Office costs',
+                'Badges'                => 'Office costs',
+                'Office Costs (teas coffees etc)' => 'Office costs',
+
+                'Maintenance of IP'     => 'Maintenance and Development of IP',
+                'Research & Development of IP' => 'Maintenance and Development of IP',
+
+                'Legal Fees'            => 'Legal & Professional Fees',
+                'Accountancy Fees'      => 'Legal & Professional Fees',
+                'Companies House'       => 'Legal & Professional Fees',
+                'Administration Fees'   => 'Legal & Professional Fees',
+
+                'Donations'             => 'Other',
+                'Subscriptions'         => 'Other'
 
         };
-
-
     }
-
 }
