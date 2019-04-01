@@ -228,6 +228,27 @@ public class CashFlowUtils {
         return (revenueVAT - (cosVAT + opexVAT));
     }
 
+    public static Decimal calculateBudgetVAT(Date startDate, Date endDate){
+
+        Decimal vat = 0;
+
+        for (AggregateResult ar : [SELECT SUM(Actual__c)actual, Category__c
+                                    FROM QBProfitAndLoss__c
+                                    WHERE (Category__c = 'Revenue' OR Category__c = 'Cost of sales' OR Category__c = 'Expense')
+                                    AND Month__c >= :startDate
+                                    AND Month__c <= :endDate
+                                    GROUP BY Category__c]){
+
+            if ((String)ar.get('Category__c') == 'Revenue'){
+                vat += (Decimal)ar.get('actual') * 0.2;
+            } else {
+                vat -= (Decimal)ar.get('actual') * 0.15;
+            }
+        };
+
+        return vat;
+    }
+
 
     public static Map<Date,List<Opportunity>> getPedictiveCashFlow(){
 

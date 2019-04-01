@@ -328,6 +328,8 @@
         var optionals   = document.getElementById('optionalCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
+        var tnc         = document.getElementById('termsAndConditionsCheckbox').checked;
+        var signed      = document.getElementById('signatureCheckbox').checked;
 
         var isSOW       = component.get('v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c')
             && component.get('v.quote.SBQQ__Opportunity2__r.StageName') === 'Closed Won'
@@ -348,7 +350,8 @@
             invoices : invoices,
             vat : vat,
             sla : 'false',
-            tnc : 'false',
+            tnc : tnc,
+            signed : signed,
             isSOW : isSOW,
             SOWEntity : SOWEntity,
             SOWServices : SOWServices,

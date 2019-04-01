@@ -28,6 +28,7 @@ public class QuotePreviewController {
     public User user {get; set;}
     public String userSignature {get; set;}
     public Contact contact {get; set;}
+    public Boolean contactSign {get;set;}
 
     public String theme {get; set;}
     public String theme2 {get; set;}
@@ -52,6 +53,7 @@ public class QuotePreviewController {
         showTnCs        = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
         draft           = (ApexPages.currentPage().getParameters().get('draft') == 'true') ? true : false;
         isSOW           = (ApexPages.currentPage().getParameters().get('isSOW') == 'true') ? true : false;
+        contactSign     = (ApexPages.currentPage().getParameters().get('signed') == 'true') ? true : false;
 
         user = [SELECT Id, Name, Title, FirstName, LastName, Phone, MobilePhone, Email
                 FROM User

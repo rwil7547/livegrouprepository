@@ -389,14 +389,16 @@
                                     <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
                                     <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
                                     <span onclick="{!c.selectOption}" id="invoices"> &nbsp;Invoice schedule</span><br/>
-                                    <input type="checkbox" aura:id="fees" id="feesCheckbox"  onchange="{!c.setPreviewChanged}"/>
-                                    <span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>
-                                    <input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox" onchange="{!c.setPreviewChanged}"/>
-                                    <span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>
-                                    <input type="checkbox" aura:id="sla" id="slaCheckbox" onchange="{!c.setPreviewChanged}"/>
-                                    <span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>
+                                    <!--<input type="checkbox" aura:id="fees" id="feesCheckbox"  onchange="{!c.setPreviewChanged}"/>-->
+                                    <!--<span onclick="{!c.selectOption}" id="fees"> &nbsp;Delegate fee disclaimer</span><br/>-->
+                                    <!--<input type="checkbox" aura:id="paymentTerms" id="paymentTermsCheckbox" onchange="{!c.setPreviewChanged}"/>-->
+                                    <!--<span onclick="{!c.selectOption}" id="paymentTerms"> &nbsp;Payment terms &amp; conditions</span><br/>-->
+                                    <!--<input type="checkbox" aura:id="sla" id="slaCheckbox" onchange="{!c.setPreviewChanged}"/>-->
+                                    <!--<span onclick="{!c.selectOption}" id="sla"> &nbsp;Service Level Agreement</span><br/>-->
                                     <input type="checkbox" aura:id="termsAndConditions" id="termsAndConditionsCheckbox" onchange="{!c.setPreviewChanged}"/>
                                     <span onclick="{!c.selectOption}" id="termsAndConditions"> &nbsp;Terms &amp; Conditions</span><br/>
+                                    <input type="checkbox" aura:id="signature" id="signatureCheckbox" onchange="{!c.setPreviewChanged}" disabled="{!v.quote.Stage == 'Estimate'}"/>
+                                    <span onclick="{!c.selectOption}" id="signature"> &nbsp;Client signature</span><br/>
                                 </div>
 
                                 <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Account.SOWRecipient__c,

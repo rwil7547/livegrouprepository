@@ -859,7 +859,7 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
-        Opportunity parentOpp = [SELECT Id, Event_end__c, Contracted__c, Reconciling__c, Name, Legacy__c,
+        Opportunity parentOpp = [SELECT Id, Event_end__c, Contracted__c, Reconciling__c, Name, Legacy__c, Pricebook2Id,
                                     (SELECT Version__c FROM SBQQ__Quotes2__r
                                     WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
                                 FROM Opportunity WHERE Id = :oppId];
@@ -1001,10 +1001,16 @@ public with sharing class PrimaryQuoteController {
             }
         }
 
+        if (parentOpp.Pricebook2Id == null){
+            parentOpp.Pricebook2Id = cloneQuote.SBQQ__PriceBook__c;
+            parentOpp.SBQQ__QuotePricebookId__c = cloneQuote.SBQQ__PriceBook__c;
+        }
+
         if (primary){
             parentOpp.SBQQ__PrimaryQuote__c = cloneQuote.Id;
-            update parentOpp;
         }
+
+        update parentOpp;
 
         update priorQuotes;
 
@@ -1032,6 +1038,7 @@ public with sharing class PrimaryQuoteController {
         newQuote.SBQQ__PriceBook__c       = [SELECT Id FROM Pricebook2 WHERE Name = 'Default'].Id;
 
         Database.SaveResult quoteInsert   = Database.insert(newQuote);
+
         if (quoteInsert.isSuccess()){
 
             Database.SaveResult oppUpdate  = Database.update(
@@ -1185,7 +1192,7 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static Boolean saveDocumentApex(String quoteId, String oppId,
             String userId, String contactId, String text, String optionals, String invoices,
-            String vat, String sla, String tnc, String isSOW, String SOWEntity, String SOWDate, String SOWServices) {
+            String vat, String sla, String tnc, String signed, String isSOW, String SOWEntity, String SOWDate, String SOWServices) {
 
         Boolean result = false;
 
@@ -1213,6 +1220,7 @@ public with sharing class PrimaryQuoteController {
         pdf.getParameters().put('invoices',invoices);
         pdf.getParameters().put('vat',vat);
         pdf.getParameters().put('sla',sla);
+        pdf.getParameters().put('signed',signed);
         pdf.getParameters().put('tnc',tnc);
         pdf.getParameters().put('isSOW',isSOW);
         pdf.getParameters().put('SOWEntity',SOWEntity);

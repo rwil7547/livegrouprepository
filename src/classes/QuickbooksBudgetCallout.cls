@@ -18,7 +18,8 @@ public class QuickbooksBudgetCallout {
 
     public static Boolean updateOpexForecast(String budgetId, String forecastId, String year, String closeMonthString) {
 
-        Map<String,String> nominalParents = getNominalParents();
+        // get current nominal map
+        Map<String,List<String>> parentInfo = getNominalMap();
 
         String fiscalYear;
         Integer yearsToAdd;
@@ -60,7 +61,6 @@ public class QuickbooksBudgetCallout {
         if (fiscalYear == 'THIS_FISCAL_YEAR'){
             Date calloutDate = startDate;
 
-            system.debug('start date is ' + startDate + ' and closeMonth is ' + closeMonth);
             while (calloutDate <= closeMonth) {
 
                 String start = calloutDate.year() + '-' + calloutDate.month() + '-' + calloutDate.day();
@@ -80,43 +80,18 @@ public class QuickbooksBudgetCallout {
                         if (row.Rows != null) {
                             for (JSONParserQBOProfitAndLoss.cls_Row row2 : row.Rows.Row) {
                                 if (row2.Summary != null) {
-                                    String parent = row2.Summary.ColData[0].value.substring(6);
-
-                                    system.debug('on the pnl the parent contains ' + row2.Summary.ColData);
-
+                                    String parent = row2.Summary.ColData[0].value.split(' ',3)[2];
                                     String identifier   = calloutDate.month() + parent;
-
 
                                     QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
                                     qbp.Nominal__c          = parent;
                                     qbp.Parent__c           = parent;
+                                    qbp.Category__c         = parentInfo.get(parent)[1];
                                     qbp.Actual__c           = Decimal.valueOf(row2.Summary.ColData[1].value);
                                     qbp.Budget__c           = 0;
                                     qbp.Month__c            = calloutDate;
                                     qbp.QBUpdated__c        = true;
                                     entriesMap.put(identifier, qbp);
-
-
-//                                    if (row2.Rows != null) {
-//                                        for (JSONParserQBOProfitAndLoss.cls_Row row3 : row2.Rows.Row) {
-//                                            String identifier   = calloutDate.month() + row3.ColData[0].value;
-//
-//                                            if (entriesMap.containsKey(identifier)) {
-//                                                entriesMap.get(identifier).Actual__c = Decimal.valueOf(row3.ColData[1].value);
-//                                                entriesMap.get(identifier).Parent__c = parent;
-//                                                entriesMap.get(identifier).QBUpdated__c = true;
-//                                            } else {
-//                                                QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
-//                                                qbp.Nominal__c          = row3.ColData[0].value;
-//                                                qbp.Parent__c           = parent;
-//                                                qbp.Actual__c           = Decimal.valueOf(row3.ColData[1].value);
-//                                                qbp.Budget__c           = 0;
-//                                                qbp.Month__c            = calloutDate;
-//                                                qbp.QBUpdated__c        = true;
-//                                                entriesMap.put(identifier, qbp);
-//                                            }
-//                                        }
-//                                    }
                                 }
                             }
                         }
@@ -129,9 +104,6 @@ public class QuickbooksBudgetCallout {
             }
         }
 
-        Set<String> nonOpex =
-                new Set<String>{'Events Revenue', 'Other Income', 'Discounts given','Rebates',
-                                'Discounts/Refunds Given', 'Events COS', 'Amex Charges'};
 
         // obtain callout information and call Quickbooks change data capture web service
         String budgetQuery = 'query?query=select%20%2a%20from%20budget%20where%20id%20%3d%20%27' + budgetId + '%27&minorversion=4';
@@ -143,30 +115,25 @@ public class QuickbooksBudgetCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
-                System.debug(startDate);
-
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
 
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
-//                    String parent       = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-//                    String parent       = detail.AccountRef.name;
-                    String identifier   = budgetDate.month() + detail.AccountRef.name;
-
-//                    System.debug('on the budget the parent is ' + parent);
-
+                    String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
 
                     if (entriesMap.containsKey(identifier)){
-                        entriesMap.get(identifier).Budget__c         = detail.Amount;
-                        entriesMap.get(identifier).BudgetSource__c   = parsedResults.QueryResponse.Budget[0].Name;
+                        entriesMap.get(identifier).Budget__c         += detail.Amount;
+                        if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name){
+                            entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                        }
                     } else {
                         entriesMap.put(
                             identifier,
                             new  QBProfitAndLoss__c(
-                                Nominal__c  = detail.AccountRef.name,
-                                Parent__c   = nominalParents.containsKey(detail.AccountRef.name) ?
-                                              nominalParents.get(detail.AccountRef.name) : '',
+                                Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
+                                Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
+                                Category__c = parentInfo.get(detail.AccountRef.name)[1],
                                 Month__c    = budgetDate,
                                 Budget__c   = detail.Amount,
                                 Actual__c   = 0,
@@ -185,8 +152,6 @@ public class QuickbooksBudgetCallout {
         HttpRequest forecastRequest   = buildCallout(forecastQuery);
         HttpResponse forecastResponse = http.send(forecastRequest);
 
-        System.debug(forecastResponse.getBody());
-
         if (forecastResponse.getStatusCode() == 200) {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(forecastResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
@@ -197,35 +162,23 @@ public class QuickbooksBudgetCallout {
 
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 
-                    if (budgetDate > closeMonth) {
-//                        String parent = (nonOpex.contains(detail.AccountRef.name)) ? 'Revenue' : '';
-                        String parent       = detail.AccountRef.name;
-                        String identifier = budgetDate.month() + detail.AccountRef.name;
-
-                        System.debug('on the forecast the parent is ' + detail);
-
-
-
-                        System.debug('for budget date ' + budgetDate.month());
+                    if (fiscalYear == 'NEXT_FISCAL_YEAR' || budgetDate > closeMonth) {
+                        String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
 
                         if (entriesMap.containsKey(identifier)) {
 
-                            System.debug('a key ' + identifier + ' was found and added value  ' + detail.Amount);
+                            entriesMap.get(identifier).Actual__c += detail.Amount;
 
-
-                            entriesMap.get(identifier).Actual__c = detail.Amount;
-                            entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                            if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name){
+                                entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                            }
                         } else {
-
-                            System.debug('a new key had to be added for value  ' + detail.Amount);
-
-
                             entriesMap.put(
                                 identifier,
                                 new QBProfitAndLoss__c(
-                                    Nominal__c  = detail.AccountRef.name,
-                                    Parent__c   = nominalParents.containsKey(detail.AccountRef.name) ?
-                                                  nominalParents.get(detail.AccountRef.name) : '',
+                                    Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
+                                    Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
+                                    Category__c = parentInfo.get(detail.AccountRef.name)[1],
                                     Month__c    = budgetDate,
                                     Budget__c   = 0,
                                     Actual__c   = detail.Amount,
@@ -252,88 +205,71 @@ public class QuickbooksBudgetCallout {
         return true;
     }
 
-//    public static Map<String,String> getNominalMap
+    public static Map<String,List<String>> getNominalMap(){
 
-    public static Map<String,String> getNominalParents(){
+        Map<String,String> parentKeyMap  = new Map<String,String>();
+        Map<String,String> parentTypeMap = new Map<String,String>();
+        Map<String,List<String>> childToParent = new Map<String,List<String>>();
+        List<Object> accounts   = new List<Object>();
 
-        return new Map<String,String>{
-                'Events Revenue'        => 'Revenue',
-                'Other Income'          => 'Revenue',
-                'Rebates'               => 'Revenue',
+        Http http               = new Http();
 
-                'Events COS'            => 'Cost of Sales',
-                'Amex Charges'          => 'Cost of Sales',
+        String activeQuery                  = 'query?query=select%20%2a%20from%20account%20maxResults%201000&minorversion=4';
+        HttpRequest activeRequest           = buildCallout(activeQuery);
+        HttpResponse activeResponse         = http.send(activeRequest);
+        Map<String, Object> activeQueryResponse   = (Map<String, Object>) JSON.deserializeUntyped(activeResponse.getBody());
+        Map<String, Object> activeResponseKeys    = (Map<String, Object>) activeQueryResponse.get('QueryResponse');
+        accounts.addAll((List<Object>) activeResponseKeys.get('Account'));
 
-                'Gross Salaries'        => 'Payroll',
-                'Employers National Insurance' => 'Payroll',
-                'Pension Costs'         => 'Payroll',
-                'Bonuses'               => 'Payroll',
-                'Death in Service Insurance' => 'Payroll',
-                'Private Health Insurance & Staff Healthcare' => 'Payroll',
-                'Freelancers'           => 'Payroll',
-                'Company Events'        => 'Payroll',
-                'Employee Gifts'        => 'Payroll',
+        String inactiveQuery                = 'query?query=select%20%2a%20from%20account%20where%20active%20%3d%20false%20maxResults%201000&minorversion=4';
+        HttpRequest inactiveRequest         = buildCallout(inactiveQuery);
+        HttpResponse inactiveResponse       = http.send(inactiveRequest);
+        Map<String, Object> inactiveQueryResponse   = (Map<String, Object>) JSON.deserializeUntyped(inactiveResponse.getBody());
+        Map<String, Object> inactiveResponseKeys    = (Map<String, Object>) inactiveQueryResponse.get('QueryResponse');
+        accounts.addAll((List<Object>) inactiveResponseKeys.get('Account'));
 
-                'Management Fee Live Group' => 'Management Fees',
+        for (Object account : accounts){
+            Map<String,Object> details = (Map<String,Object>) account;
+            if (!(Boolean)details.get('SubAccount')){
+                parentKeyMap.put((String)details.get('Id'),(String)details.get('Name'));
+                String classification = details.containsKey('Classification') ?
+                        (String)details.get('Classification') :
+                        (String)details.get('Name');
 
-                'Training'              => 'Training & Recruitment',
-                'Recruitment'           => 'Training & Recruitment',
+//                System.debug('a classif of ' + classification);
+                parentTypeMap.put((String)details.get('Id'),classification);
 
-                'Rent'                  => 'Property, Insurance and Infrastructure costs',
-                'Business Rates	'        => 'Property, Insurance and Infrastructure costs',
-                'Utility Bills - Electricity, Gas, Water' => 'Property, Insurance and Infrastructure costs',
-                'Repairs and Renewals (deleted)' => 'Property, Insurance and Infrastructure costs',
-                'Cleaning'              => 'Property, Insurance and Infrastructure costs',
-                'Premises Expenses	'    => 'Property, Insurance and Infrastructure costs',
-                'Other Property Repairs & Maintenance' => 'Property, Insurance and Infrastructure costs',
-                'Other Insurance'       => 'Property, Insurance and Infrastructure costs',
+                List<String> parentDetails = new List<String>{(String)details.get('Name'), classification};
+                childToParent.put((String)details.get('Name'),parentDetails);
+            }
+        }
 
+        for (Object account : accounts){
+            Map<String,Object> details = (Map<String,Object>) account;
+            if ((Boolean)details.get('SubAccount')){
 
-                'Client Hospitality'    => 'PR, Advertising & Marketing',
-                'Exhibitions/Fairs'     => 'PR, Advertising & Marketing',
-                'Gifts and Samples'     => 'PR, Advertising & Marketing',
-                ' Tender Costs & Lost Opportunities' => 'PR, Advertising & Marketing',
-                'Marketing services'    => 'PR, Advertising & Marketing',
+                Map<String,Object> parentObj    = (Map<String,Object>)details.get('ParentRef');
+                String parentId                 = (String)parentObj.get('value');
+                List<String> parentDetails      = new List<String>();
+                String name                     = (String)details.get('Name');
 
-                'Operational Meeting Expenses' => 'Travel and subsistence',
-                'Business Meals'        => 'Travel and subsistence',
-                'Business Development - Meetings' => 'Travel and subsistence',
-                'Business Travel (Trains, Parking, Taxis, Mileage)' => 'Travel and subsistence',
-                'Business Accommodation' => 'Travel and subsistence',
-                'Employee Meals - Office based' => 'Travel and subsistence',
+                if (name == 'Gross Salaries' ||
+                    name == 'Employers National Insurance' ||
+                    name == 'Pension Costs' ||
+                    name == 'Freelancers'){
+                    parentDetails.add(name);
+                } else {
+                    parentDetails.add(parentKeyMap.get(parentId));
+                }
 
-                'Vehicle Fuel'          => 'Motor expenses',
-                'Vehicle Repairs and Servicing' => 'Motor expenses',
-                'Vehicle Lease'         => 'Motor expenses',
-                'Vehicle Insurance'     => 'Motor expenses',
-                'Miscellaneous Motor Expenses' => 'Motor expenses',
-                'Congestion Charges'    => 'Motor expenses',
-                'Motor Fines'           => 'Motor expenses',
+                parentDetails.add(parentTypeMap.get(parentId));
+                System.debug('a parent of ' + parentTypeMap.get(parentId));
 
-                'Domain Registration and Servers Maintenance' => 'IT costs',
-                'Computer Software'     => 'IT costs',
-                'Computer Hardware'     => 'IT costs',
-                'Computer Sundries'     => 'IT costs',
-                'Internet lines'        => 'IT costs',
-                'Telephone - Mobile & Landline' => 'IT costs',
+                childToParent.put((String)details.get('Name'),parentDetails);
+            }
+        }
 
-                'Printing'              => 'Office costs',
-                'Postage and Carriage'  => 'Office costs',
-                'Office Stationery'     => 'Office costs',
-                'Badges'                => 'Office costs',
-                'Office Costs (teas coffees etc)' => 'Office costs',
+        return childToParent;
 
-                'Maintenance of IP'     => 'Maintenance and Development of IP',
-                'Research & Development of IP' => 'Maintenance and Development of IP',
-
-                'Legal Fees'            => 'Legal & Professional Fees',
-                'Accountancy Fees'      => 'Legal & Professional Fees',
-                'Companies House'       => 'Legal & Professional Fees',
-                'Administration Fees'   => 'Legal & Professional Fees',
-
-                'Donations'             => 'Other',
-                'Subscriptions'         => 'Other'
-
-        };
     }
 }

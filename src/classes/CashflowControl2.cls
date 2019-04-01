@@ -10,30 +10,51 @@ public with sharing class CashflowControl2 {
         // get the cashflow entries
         Map<Date, CashFlow__c> flowMap            = CashFlowUtils.getFlowMap();
 
+        // get the date of the end of the next financial year
+        Date cashflowEnd = Date.today().month() < 4 ?
+                           Date.newInstance(Date.today().year() + 1, 31,3) :
+                           Date.newInstance(Date.today().year() + 2, 31,3);
+
+
         Map<String,Date> adjustmentsMap           = new Map<String,Date>();
         Map<String,Decimal> amountAdjustmentsMap  = new Map<String,Decimal>();
 
-        // hold current values for each area of the budget
-        Map<String,Map<String,Decimal>> budgetOffset = new Map<String,Map<String,Decimal>>();
 
-        List<CashFlowEntry__c> newEntries         = new List<CashFlowEntry__c>();
+        Map<String,QBProfitAndLoss__c> budgetMap = new Map<String,QBProfitAndLoss__c>();
 
+        for (QBProfitAndLoss__c pnl : [SELECT Id, Month__c, Parent__c, Actual__c
+                                        FROM QBProfitAndLoss__c
+                                        WHERE Month__c >= :Date.today().toStartOfMonth()]){
+            String budgetKey = String.valueOf(pnl.Month__c.month()) + String.valueOf(pnl.Month__c.year()) + pnl.Parent__c;
+            budgetMap.put(budgetKey,pnl);
+        }
 
-        // get all old entries
-        List<CashFlowEntry__c> oldEntries = [SELECT Id, Amount__c, AmountAdjusted__c, Adjusted__c, Paid__c,
-                                                    QuickbooksId__c, OutFlow__c, InFlow__c,
-                                                    OutFlow__r.Date__c, InFlow__r.Date__c, Description__c
-                                            FROM CashFlowEntry__c
-                                            WHERE Source__c != 'Custom'];
+        Set<String> adjustedIds = new Set<String>();
+
+        List<CashFlowEntry__c> oldEntries = new List<CashFlowEntry__c>();
+        List<CashFlowEntry__c> newEntries = new List<CashFlowEntry__c>();
+
+        for (CashFlowEntry__c entry : [SELECT Id, Amount__c, AmountAdjusted__c, Adjusted__c, Paid__c,
+                                                QuickbooksId__c, OutFlow__c, InFlow__c, AdjustedDate__c,
+                                                OutFlow__r.Date__c, InFlow__r.Date__c, Description__c
+                                        FROM CashFlowEntry__c]){
+            if (entry.Adjusted__c){
+                entry.CashFlow__c = flowMap.get(entry.AdjustedDate__c).Id;
+                newEntries.add(entry);
+                adjustedIds.add(entry.QuickbooksId__c);
+            } else {
+                oldEntries.add(entry);
+            }
+        }
 
 
         // get direct debit and freelancer supplier profiles
         Map<String,QBSupplierProfile__c> directDebits   = new Map<String,QBSupplierProfile__c>();
         Set<String> freelancerIds                       = new Set<String>();
         for (QBSupplierProfile__c profile : [SELECT Id, Amount__c, EndDate__c, Day__c,
-                                                Frequency__c, SupplierId__c, Terms__c
+                                                Frequency__c, SupplierId__c, Terms__c, Type__c
                                             FROM QBSupplierProfile__c]){
-            if (profile.Terms__c == 'DD'){
+            if (profile.Type__c == 'DD'){
                 directDebits.put(profile.SupplierId__c, profile);
             } else {
                 freelancerIds.add(profile.SupplierId__c);
@@ -81,7 +102,6 @@ public with sharing class CashflowControl2 {
                             scheduleNumbers.add(customField.StringValue);
                         }
                     }
-
                 }
             }
 
@@ -127,10 +147,14 @@ public with sharing class CashflowControl2 {
                                 Adjusted__c     = adjustmentsMap.containsKey(inv.Id)));
                     }
 
-                    // calculate budget offset
-//                    if (!budgetOffset.containsKey())
+                    String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
+                    if (budgetMap.containsKey(budgetKey)){
+                        system.debug('alter the budget for qb rev');
 
-
+                        budgetMap.get(budgetKey).Actual__c -= balance;
+                    } else {
+                        system.debug('doesnt contain key ' + budgetKey);
+                    }
                 }
             }
         }
@@ -164,6 +188,13 @@ public with sharing class CashflowControl2 {
                         Stage__c        = 'Confirmed',
                         Amount__c       = (schedule.Amount__c * 1.2).setScale(2)));
             }
+
+            String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
+            if (budgetMap.containsKey(budgetKey)){
+                system.debug('alter the budget for rev');
+
+                budgetMap.get(budgetKey).Actual__c -= (schedule.Amount__c * 1.2).setScale(2);
+            }
         }
 
 
@@ -191,6 +222,8 @@ public with sharing class CashflowControl2 {
 
                         Date dueDate = adjustmentsMap.containsKey(bill.Id) ? adjustmentsMap.get(bill.Id) : Date.valueOf(bill.DueDate);
 
+
+
                         if (dueDate <= Date.today()) {
                             dueDate = Date.today().addDays(1);
                         }
@@ -213,6 +246,15 @@ public with sharing class CashflowControl2 {
                                 QuickbooksId__c = bill.Id,
                                 Adjusted__c     = (adjustmentsMap.containsKey(bill.Id)) ? true : false));
 
+                        for (JSONParserQBOBillFlow.cls_Line line : bill.Line){
+                            String account = line.AccountBasedExpenseLineDetail.AccountRef.name.split(' ',2)[1].split(':',2)[0];
+                            String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + account;
+                            if (budgetMap.containsKey(budgetKey)){
+                                system.debug('alter the budget for ' + account);
+
+                                budgetMap.get(budgetKey).Actual__c -= line.Amount;
+                            }
+                        }
                     }
                 }
             }
@@ -258,6 +300,14 @@ public with sharing class CashflowControl2 {
                                 Stage__c        = 'Confirmed',
                                 Amount__c       = amount));
                     }
+
+                    String budgetKey = String.valueOf(paymentDate.month()) + String.valueOf(paymentDate.year()) + 'Cost of Sales';
+                    if (budgetMap.containsKey(budgetKey)){
+                        system.debug('alter the budget for cos');
+
+                        budgetMap.get(budgetKey).Actual__c -= amount;
+                    }
+
                 }
             }
         }
@@ -295,6 +345,13 @@ public with sharing class CashflowControl2 {
                                           Date.valueOf(opp.LastModifiedDate).daysBetween(Date.today()) + ' days ago',
                         Stage__c        = 'Pipeline',
                         Amount__c       = inAmount));
+
+                String budgetKey = String.valueOf(inDate.month()) + String.valueOf(inDate.year()) + 'Revenue';
+                if (budgetMap.containsKey(budgetKey)){
+                    system.debug('alter the budget for prev');
+
+                    budgetMap.get(budgetKey).Actual__c -= inAmount;
+                }
             }
 
             if (flowMap.containsKey(inDate.toStartOfWeek().addDays(3)) && outAmount > 0) {
@@ -313,9 +370,15 @@ public with sharing class CashflowControl2 {
                             Category__c     = 'Payment run',
                             Description__c  = 'Pipeline COS provision',
                             Details__c      = 'System generated payment run entry using weighted cost of sales: \n' +
-                                              '£' + outAmount + ': Prob. ' + opp.Probability + '%: ' + opp.Name + '\n' ,
+                                              '£' + outAmount + ': Prob. ' + opp.Probability + '%: ' + opp.Name + '\n',
                             Stage__c        = 'Pipeline',
                             Amount__c       = outAmount));
+                }
+
+                String budgetKey = String.valueOf(ouDate.month()) + String.valueOf(ouDate.year()) + 'Cost of Sales';
+                if (budgetMap.containsKey(budgetKey)){
+                    system.debug('alter the budget for pcos');
+                    budgetMap.get(budgetKey).Actual__c -= inAmount;
                 }
             }
         }
@@ -333,6 +396,44 @@ public with sharing class CashflowControl2 {
 
 
         // VAT
+        // work out the vat date from the supplier profile
+
+//        List<CashFlowEntry__c> vatEntries =
+
+        Map<String,CashFlowEntry__c> vatEntryMap = new Map<String,CashFlowEntry__c>();
+
+
+
+
+
+        for (AggregateResult ar : [SELECT SUM(Actual__c)actual, FISCAL_QUARTER(Month__c), FISCAL_YEAR(Month__c), Category__c
+                                    FROM QBProfitAndLoss__c
+                                    WHERE (Category__c = 'Revenue' OR Category__c = 'Cost of sales' OR Category__c = 'Expense')
+                                    AND Month__c <= NEXT_FISCAL_YEAR
+                                    AND Month__c >= THIS_FISCAL_YEAR
+                                    GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]){
+            system.debug(ar);
+
+            if (!vatEntryMap.containsKey((String)ar.get('quarter') + (String)ar.get('year'))){
+
+//                Date vatDate = Date.newInstance()
+//
+//                CashFlowEntry__c vatEntry = new CashFlowEntry__c();
+//                vatEntry.
+//                vatEntryMap.put((String)ar.get('quarter') + (String)ar.get('year'), )
+            }
+
+
+        }
+
+
+
+        // work out if any vat entries have been customised
+
+
+
+
+        // plot the remaining vat amounts
 
 
 
