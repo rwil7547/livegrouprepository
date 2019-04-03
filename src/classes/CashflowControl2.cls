@@ -10,19 +10,21 @@ public with sharing class CashflowControl2 {
         // get the cashflow entries
         Map<Date, CashFlow__c> flowMap            = CashFlowUtils.getFlowMap();
 
-        // get the date of the end of the next financial year
-        Date cashflowEnd = Date.today().month() < 4 ?
-                           Date.newInstance(Date.today().year() + 1, 31,3) :
-                           Date.newInstance(Date.today().year() + 2, 31,3);
+//        // get the date of the end of the next financial year
+//        Date cashflowEnd = Date.today().month() < 4 ?
+//                           Date.newInstance(Date.today().year() + 1, 31,3) :
+//                           Date.newInstance(Date.today().year() + 2, 31,3);
 
 
         Map<String,Date> adjustmentsMap           = new Map<String,Date>();
         Map<String,Decimal> amountAdjustmentsMap  = new Map<String,Decimal>();
 
+        Decimal startingBalance = 0;
+
 
         Map<String,QBProfitAndLoss__c> budgetMap = new Map<String,QBProfitAndLoss__c>();
 
-        for (QBProfitAndLoss__c pnl : [SELECT Id, Month__c, Parent__c, Actual__c
+        for (QBProfitAndLoss__c pnl : [SELECT Id, Month__c, Parent__c, Actual__c, Category__c, Nominal__c
                                         FROM QBProfitAndLoss__c
                                         WHERE Month__c >= :Date.today().toStartOfMonth()]){
             String budgetKey = String.valueOf(pnl.Month__c.month()) + String.valueOf(pnl.Month__c.year()) + pnl.Parent__c;
@@ -73,8 +75,16 @@ public with sharing class CashflowControl2 {
 
         if (response1.getStatusCode() == 200) {
             JSONParserQBOCurrentAccount parsedResults = JSONParserQBOCurrentAccount.parse(response1.getBody());
-            Decimal balance = parsedResults.QueryResponse.Account[0].CurrentBalance;
-            flowMap.get(Date.today().addDays(-1)).Balance__c = balance;
+            startingBalance = parsedResults.QueryResponse.Account[0].CurrentBalance;
+
+
+//                newEntries.add(new CashFlowEntry__c(
+//                        CashFlow__c     = flowMap.get(Date.today()).Id,
+//                        Source__c       = 'Quickbooks',
+//                        Amount__c       = balance,
+//                        QuickbooksId__c = 'balance',
+//                        Stage__c        = 'Confirmed'));
+
         }
 
 
@@ -123,8 +133,10 @@ public with sharing class CashflowControl2 {
                     Decimal balance  = (creditMap.containsKey(inv.Id)) ? inv.Balance - creditMap.get(inv.Id) : inv.Balance;
                     Date dueDate     = adjustmentsMap.containsKey(inv.Id) ? adjustmentsMap.get(inv.Id) : Date.valueOf(inv.DueDate);
 
-                    if (dueDate <= Date.today()) {
-                        dueDate = Date.today().addDays(1);
+                    if (dueDate < Date.today()) {
+                        Integer random = Integer.valueOf(Math.random() * 100);
+
+                        dueDate = Date.today().addDays(1).addDays(random);
                     }
 
                     String scheduleNumber = '';
@@ -139,7 +151,8 @@ public with sharing class CashflowControl2 {
                         newEntries.add(new CashFlowEntry__c(
                                 CashFlow__c     = flowMap.get(dueDate).Id,
                                 Source__c       = 'Quickbooks',
-                                Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : inv.CustomerRef.name,
+//                                Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : inv.CustomerRef.name,
+                                Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : 'Other',
                                 Description__c  = inv.CustomerRef.name + ' Inv. ' + inv.DocNumber,
                                 Amount__c       = balance,
                                 QuickbooksId__c = inv.Id,
@@ -149,11 +162,7 @@ public with sharing class CashflowControl2 {
 
                     String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
                     if (budgetMap.containsKey(budgetKey)){
-                        system.debug('alter the budget for qb rev');
-
                         budgetMap.get(budgetKey).Actual__c -= balance;
-                    } else {
-                        system.debug('doesnt contain key ' + budgetKey);
                     }
                 }
             }
@@ -175,7 +184,8 @@ public with sharing class CashflowControl2 {
             Date dueDate    = adjustmentsMap.containsKey(schedule.Id) ? adjustmentsMap.get(schedule.Id) : schedule.Send_Date__c.addDays(30);
 
             if (dueDate < Date.today().addDays(35)){
-                dueDate = Date.today().addDays(35);
+                Integer random = Integer.valueOf(Math.random() * 100);
+                dueDate = Date.today().addDays(35).addDays(random);
             }
 
             if (flowMap.containsKey(dueDate)) {
@@ -187,12 +197,12 @@ public with sharing class CashflowControl2 {
                         QuickbooksId__c = schedule.Id,
                         Stage__c        = 'Confirmed',
                         Amount__c       = (schedule.Amount__c * 1.2).setScale(2)));
+
+                system.debug('adding the following confirmed value ' + (schedule.Amount__c * 1.2));
             }
 
             String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
             if (budgetMap.containsKey(budgetKey)){
-                system.debug('alter the budget for rev');
-
                 budgetMap.get(budgetKey).Actual__c -= (schedule.Amount__c * 1.2).setScale(2);
             }
         }
@@ -222,8 +232,6 @@ public with sharing class CashflowControl2 {
 
                         Date dueDate = adjustmentsMap.containsKey(bill.Id) ? adjustmentsMap.get(bill.Id) : Date.valueOf(bill.DueDate);
 
-
-
                         if (dueDate <= Date.today()) {
                             dueDate = Date.today().addDays(1);
                         }
@@ -250,8 +258,6 @@ public with sharing class CashflowControl2 {
                             String account = line.AccountBasedExpenseLineDetail.AccountRef.name.split(' ',2)[1].split(':',2)[0];
                             String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + account;
                             if (budgetMap.containsKey(budgetKey)){
-                                system.debug('alter the budget for ' + account);
-
                                 budgetMap.get(budgetKey).Actual__c -= line.Amount;
                             }
                         }
@@ -277,8 +283,9 @@ public with sharing class CashflowControl2 {
 
                 String age                  = opp.Event_end__c < Date.today() ? ' (' + opp.Event_end__c.daysBetween(Date.today()) + ' days old)' : '';
                 String status               = opp.Event_end__c < Date.today() ? ' COS accrual' : ' COS event allocation';
+                Integer random = Integer.valueOf(Math.random() * 100);
                 Date paymentDate            = (opp.Event_end__c < Date.today().addDays(35)) ?
-                                                Date.today().addDays(35).toStartOfWeek().addDays(3) :
+                                                Date.today().addDays(35).addDays(random).toStartOfWeek().addDays(3) :
                                                 opp.Event_end__c.toStartOfWeek().addDays(3);
                 Decimal amount              = (((opp.Filtered_Cost_of_Sale__c - opp.Quickbooks_COS__c) * 1.2)).setScale(2);
 
@@ -303,8 +310,6 @@ public with sharing class CashflowControl2 {
 
                     String budgetKey = String.valueOf(paymentDate.month()) + String.valueOf(paymentDate.year()) + 'Cost of Sales';
                     if (budgetMap.containsKey(budgetKey)){
-                        system.debug('alter the budget for cos');
-
                         budgetMap.get(budgetKey).Actual__c -= amount;
                     }
 
@@ -348,8 +353,6 @@ public with sharing class CashflowControl2 {
 
                 String budgetKey = String.valueOf(inDate.month()) + String.valueOf(inDate.year()) + 'Revenue';
                 if (budgetMap.containsKey(budgetKey)){
-                    system.debug('alter the budget for prev');
-
                     budgetMap.get(budgetKey).Actual__c -= inAmount;
                 }
             }
@@ -377,7 +380,6 @@ public with sharing class CashflowControl2 {
 
                 String budgetKey = String.valueOf(ouDate.month()) + String.valueOf(ouDate.year()) + 'Cost of Sales';
                 if (budgetMap.containsKey(budgetKey)){
-                    system.debug('alter the budget for pcos');
                     budgetMap.get(budgetKey).Actual__c -= inAmount;
                 }
             }
@@ -396,73 +398,113 @@ public with sharing class CashflowControl2 {
 
 
         // VAT
-        // work out the vat date from the supplier profile
-
-//        List<CashFlowEntry__c> vatEntries =
-
         Map<String,CashFlowEntry__c> vatEntryMap = new Map<String,CashFlowEntry__c>();
 
-
-
-
-
-        for (AggregateResult ar : [SELECT SUM(Actual__c)actual, FISCAL_QUARTER(Month__c), FISCAL_YEAR(Month__c), Category__c
+        for (AggregateResult ar : [SELECT SUM(Actual__c)actual, FISCAL_QUARTER(Month__c)quarter,
+                                        FISCAL_YEAR(Month__c)year, Category__c
                                     FROM QBProfitAndLoss__c
                                     WHERE (Category__c = 'Revenue' OR Category__c = 'Cost of sales' OR Category__c = 'Expense')
                                     AND Month__c <= NEXT_FISCAL_YEAR
                                     AND Month__c >= THIS_FISCAL_YEAR
-                                    GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]){
-            system.debug(ar);
+                                    GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]) {
 
-            if (!vatEntryMap.containsKey((String)ar.get('quarter') + (String)ar.get('year'))){
+            String vatKey   = String.valueOf((Integer) ar.get('quarter')) + String.valueOf((Integer) ar.get('year'));
+            Integer year    = (Integer) ar.get('year');
+            Integer quarter = (Integer) ar.get('quarter');
+            Date vatYear    = Date.newInstance(year, 01, 10);
+            Date vatDate    = vatYear.addMonths((quarter * 3) + 4);
+            Decimal sum     = ar.get('actual') != null ? (Decimal) ar.get('actual') : 0;
+            Decimal vatAmt  = (String) ar.get('Category__c') == 'Revenue' ? sum * 0.2 : (sum * -1) * 0.15;
 
-//                Date vatDate = Date.newInstance()
-//
-//                CashFlowEntry__c vatEntry = new CashFlowEntry__c();
-//                vatEntry.
-//                vatEntryMap.put((String)ar.get('quarter') + (String)ar.get('year'), )
+            if (flowMap.containsKey(vatDate)) {
+                if (!vatEntryMap.containsKey(vatKey)) {
+
+                    CashFlowEntry__c vatEntry   = new CashFlowEntry__c();
+                    vatEntry.CashFlow__c        = flowMap.get(vatDate).Id;
+                    vatEntry.Description__c     = 'VAT';
+                    vatEntry.Stage__c           = 'Pipeline';
+                    vatEntry.Category__c        = 'Payment run';
+                    vatEntry.Out__c             = true;
+                    vatEntry.Amount__c          = 0;
+                    vatEntry.QuickbooksId__c    = vatKey;
+                    vatEntryMap.put(vatKey, vatEntry);
+                }
+
+                vatEntryMap.get(vatKey).Amount__c += vatAmt;
             }
-
-
         }
 
+        System.debug('vat entries ' + vatEntryMap);
 
-
-        // work out if any vat entries have been customised
-
-
-
-
-        // plot the remaining vat amounts
-
-
-
+        newEntries.addAll(vatEntryMap.values());
 
 
 
         // STEP 6: PLOT REMAINING BUDGET ENTRIES
-        // FREELANCER
 
+        for (QBProfitAndLoss__c budgetEntry : budgetMap.values()){
 
+            Date entryDate = budgetEntry.Month__c.addMonths(1).addDays(-1);
 
+            if (flowMap.containsKey(entryDate)){
+                CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
+                flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
+                flowEntry.Description__c     = budgetEntry.Nominal__c;
+                flowEntry.Stage__c           = 'Confirmed';
+                flowEntry.Category__c        = budgetEntry.Category__c;
+                flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
+                flowEntry.Amount__c          = budgetEntry.Actual__c;
+                flowEntry.QuickbooksId__c    = budgetEntry.Parent__c;
+                newEntries.add(flowEntry);
+            }
+        }
 
-
-
-        // MANAGEMENT FEES
-
-
-
-
-
-
-        // SALARY
-
+        delete oldEntries;
+        upsert newEntries;
 
 
 
         // CREDIT CARD
 
 
+
+        ////////////// STEP 11 - RECALCULATE BALANCES AND ADD OVERHEAD AMOUNTS TO THE 1ST OF EACH MONTH
+        Decimal confirmed   = 0;
+        Decimal pipeline    = 0;
+        Decimal budget      = 0;
+
+        List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c, OutConfirmed__c,
+                                            OutPipeline__c, OutBudget__c, Number__c
+                                    FROM CashFlow__c
+                                    ORDER BY Number__c ASC];
+
+        for (CashFlow__c flow : flows) {
+
+            if (flow.Number__c == 0){
+                confirmed           += startingBalance;
+                pipeline            += startingBalance;
+                budget              += startingBalance;
+                flow.Balance__c     = startingBalance;
+                flow.BalancePlus__c = startingBalance;
+                flow.BalancePredict__c = startingBalance;
+
+            } else {
+
+                confirmed           += (flow.InConfirmed__c - flow.OutConfirmed__c);
+                pipeline            += (flow.InPipeline__c - flow.OutPipeline__c);
+                budget              += (flow.InBudget__c - flow.OutBudget__c);
+                flow.Balance__c     = confirmed;
+                flow.BalancePlus__c = confirmed + pipeline;
+                flow.BalancePredict__c = confirmed + pipeline + budget;
+
+            }
+
+            if (flow.Number__c <= 30){
+                system.debug('flow bal for ' + flow.Number__c + ' is ' + flow.Balance__c);
+            }
+        }
+
+        update flows;
 
 
 

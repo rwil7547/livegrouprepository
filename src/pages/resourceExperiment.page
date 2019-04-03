@@ -271,9 +271,8 @@
                                                          marginLeft : (opp.offset * (100/month.days.length)) + '%'}"
                                                  v-bind:class="{expanded : opp.Id === activeId}"
                                                  v-on:click="activeId = opp.Id"
-                                                 draggable="true"
                                                  v-on:drag="setDraggable()"
-                                                >
+                                                 draggable="true">
                                                 <div class="resize left"></div>
                                                 <div class="draggable">{{opp.Job_Number__c}} {{opp.Owner.Name}}</div>
                                                 <div class="resize right"></div>

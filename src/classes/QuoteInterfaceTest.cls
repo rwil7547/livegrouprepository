@@ -487,7 +487,7 @@ public class QuoteInterfaceTest {
 
         // test save document
         Boolean saveDocumentResponse = PrimaryQuoteController.saveDocumentApex(quoteId, oppId,
-                                        userId, contactId,'proposal text', 'false', 'false',
+                                        userId, contactId,'proposal text', 'false', 'false', 'false',
                                         'false', 'false', 'false','false','','','');
 
         List<SBQQ__Quote__c> listViewResponse = QuoteListViewController.getQuotes(oppId);

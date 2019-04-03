@@ -116,18 +116,19 @@
                                                    style="currency" currencyCode="GBP" />
                     </div>
                     <div class="right">
-                        <aura:if isTrue="{!and(not(v.line.SBQQ__Hidden__c),v.editmode,v.revEditable)}">
-                            <span onkeyup="{!c.save}">
-                        <lightning:input class="{!'slds-p-top_none valInput  ' + v.line.Id}"
-                                         type="decimal"
-                                         value="{!v.line.SBQQ__ListPrice__c}"
-                                         messageWhenValueMissing="Your message"
-                                         aura:id="lineform"
-                                         onchange="{!c.setChanged}"/>
-                     </span>
+                        <aura:if isTrue="{!not(v.line.SBQQ__Hidden__c) &amp;&amp; v.revEditable &amp;&amp; v.editmode}">
+                                <span onkeyup="{!c.save}">
+                                    <lightning:input class="{!'slds-p-top_none valInput  ' + v.line.Id}"
+                                                     type="decimal"
+                                                     value="{!v.line.SBQQ__ListPrice__c}"
+                                                     messageWhenValueMissing="Your message"
+                                                     aura:id="lineform"
+                                                     onchange="{!c.setChanged}"/>
+                                </span>
                             <aura:set attribute="else">
                                 <lightning:formattedNumber value="{!v.line.SBQQ__ListPrice__c}" style="currency" currencyCode="GBP" />
                             </aura:set>
+
                         </aura:if>
                     </div>
                     <div class="right" style="{!v.line.SBQQ__AdditionalDiscountAmount__c ? 'color:lightcoral' : ''}">

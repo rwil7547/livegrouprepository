@@ -65,6 +65,8 @@
 
                     if (quote.Stage__c  !== 'Estimate' && quote.SBQQ__Primary__c){
                         this.getExpenses(component, component.get('v.recordId'));
+                    } else {
+                        component.set('v.expenses',[]);
                     }
 
                     // clear the value of the quote clone opportunity data set
@@ -91,8 +93,6 @@
     },
     getGroups : function(component, Id, custom) {
 
-        console.log('getting groups');
-
         var getGroups = component.get("c.getQuoteGroups");
         getGroups.setParams({
             Id : Id,
@@ -102,12 +102,7 @@
         getGroups.setCallback(this, function(response){
             component.set('v.responsePending',false);
             if (response.getState() === "SUCCESS"){
-
-                console.log('setting value of groups');
-
                 component.set("v.groups", response.getReturnValue());
-            } else {
-                console.log('problem: ' + response.getState());
             }
         });
 

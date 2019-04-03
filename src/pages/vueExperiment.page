@@ -5,10 +5,12 @@
 <apex:page id="vueExperiment" controller="VueTestController" lightningStylesheets="true">
 
     <html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
-    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous"/>
 
     <style>
@@ -32,7 +34,7 @@
         .control {
             position: sticky;
             top: 5px;
-            z-index: 200;
+            z-index: 100;
             display: grid;
             grid-template-columns: 20% 5% 30% 35% 10%;
 
@@ -140,6 +142,112 @@
             padding-right: 6px;
             vertical-align: middle;
         }
+
+
+        .row {
+            border-bottom: 0.5px solid lightgrey;
+            min-height: 25px;
+            position: relative;
+            display: flex;
+
+        }
+
+        .rowTight {
+            width: 100%;
+        }
+
+        .rowGrow {
+            width: 3800px;
+        }
+
+        .column {
+            margin: 1px;
+            /*border: 0.5px solid green;*/
+            height: auto;
+            min-height: 23px;
+            width: 200px;
+            padding-left: 5px;
+            /*padding-top: 3px;*/
+            position: sticky;
+            left: 4px;
+            background: white ;
+            box-shadow: 0 4px 8px 0 rgba(255,255,255, 0.1), 0 6px 20px 0 rgba(255,255,255, 0.1);
+
+        }
+
+        .week {
+            margin: 1px;
+            /*border: 0.5px solid blue;*/
+            height: auto;
+            min-height: 23px;
+            text-align: right;
+            padding-right: 5px;
+        }
+
+        .weekSmall {
+            width: calc((100% - 200px) / 12);
+        }
+
+        .weekLarge {
+            width: 280px;
+        }
+
+        .scroll {
+            overflow-x: scroll;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .noSpill {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .switch {
+            font-size: 30px;
+            cursor: pointer;
+            opacity: 0.5;
+        }
+        .switch:hover {
+            opacity: 1;
+        }
+
+        .record {
+            margin-top: 2px;
+            width: 100%;
+            /*background-color: #f0f2ef;*/
+            border-radius: 3px;
+            text-align: left;
+            padding: 5px;
+            border: 0.5px solid grey;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 70% 30%;
+            position: relative;
+            overflow: hidden;
+            color: black;
+
+        }
+        .flowDate{
+            background-color: white;
+            position: sticky;
+            top: 2px;
+        }
+
+        .icon {
+            position: absolute;
+            right: -7px;
+            bottom: -6px;
+            opacity: 0.4;
+        }
+        .iconImg {
+            width: 30px;
+        }
+        .sortable {
+            height: 100%;
+        }
         #app {
             width: 100%;
             padding: 10px;
@@ -148,7 +256,7 @@
 
     <div id="app">
 
-        <div class="box control">
+        <div class="box control" style="display: none;">
             <div>
                 <select onchange="app.changeDate('preset',this.value)" id="datePicklist">
                     <option value="CURRENT FY">CURRENT FY</option>
@@ -160,22 +268,25 @@
                     <option value="CUSTOM" disabled="true" hidden="true">CUSTOM</option>
                 </select>
             </div>
-            <div style="padding-top: 8px" id="orOption">- OR -</div>
+            <!--<div style="padding-top: 8px" id="orOption">- OR -</div>-->
+            <!--<div class="switch" ><i v-bind:class="{ app.preset ? 'far fa-calendar-alt' : 'fas fa-bars'}"></i></div>-->
+            <div class="switch" ><i class="far fa-calendar-alt"></i></div>
 
-            <div class="customDates" onchange="app.checkGo()">
-                    <div style="padding-top: 8px;">FROM:</div>
-                    <div><input id="start" type="date" style="width: 160px;" min="2015-10-01" v-model="startDate"/></div>
-                    <div style="padding-top: 8px;">TO:</div>
-                    <div><input id="end" type="date" style="width: 160px;" min="2015-10-01" v-model="endDate"/></div>
-                    <span v-if="showGo">
-                        <div><input style="margin-top: 4px;" class="customButton" type="button" value="GO"/></div>
-                    </span>
-            </div>
+            <!--<div class="customDates" onchange="app.checkGo()">-->
+                    <!--<div style="padding-top: 8px;">FROM:</div>-->
+                    <!--<div><input id="start" type="date" style="width: 160px;" min="2015-10-01" v-model="startDate"/></div>-->
+                    <!--<div style="padding-top: 8px;">TO:</div>-->
+                    <!--<div><input id="end" type="date" style="width: 160px;" min="2015-10-01" v-model="endDate"/></div>-->
+                    <!--<span v-if="showGo">-->
+                        <!--<div><input style="margin-top: 4px;" class="customButton" type="button" value="GO"/></div>-->
+                    <!--</span>-->
+            <!--</div>-->
             <div></div>
             <div style="text-align: right;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
         </div>
 
-        <div class="box">
+        <!--<div class="box" style="position: sticky; top: 8px;z-index:100;">-->
+        <div class="box" style="position: sticky;">
             <div class="splitTwo">
                 <div class="title">REVENUE {{period}}</div>
                 <div class="options">
@@ -210,7 +321,7 @@
                     <div id="profitBar" class="graph"></div>
                 </div>
                 <div class="boxLite">
-                    <div id="profitBar" class="graph"></div>
+                    <div id="profitLine" class="graph"></div>
                 </div>
             </div>
         </div>
@@ -254,40 +365,57 @@
             <div class="splitFour">
                 <div class="boxLite">
                     <div class="labelBlock">Revenue</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                    <div class="valueBlock" v-bind:style="{ color : graphData.totals.revenue < 0 ? 'red' : ''}">
+                        {{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                    </div>
                 </div>
                 <div class="boxLite">
                     <div class="labelBlock">Gross profit</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                    <div class="valueBlock" >
+                        {{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                    </div>
                 </div>
                 <div class="boxLite">
                     <div class="labelBlock">Operating cost</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                    <div class="valueBlock" >
+                        {{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                    </div>
                 </div>
                 <div class="boxLite">
                     <div class="labelBlock">Net profit</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                    <div class="valueBlock" >
+                        {{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                    </div>
                 </div>
             </div>
             <span v-if="showChanges">
-            <div class="splitFour">
-                <div class="boxLite">
-                    <div class="labelBlock">Change last 7 days</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                <div class="splitFour">
+                    <div class="boxLite">
+                        <div class="labelBlock">Change last 7 days</div>
+                        <div class="valueBlock" >
+                            {{'£' + graphData.totals.revenue.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </div>
+                    <div class="boxLite">
+                        <div class="labelBlock">Change last 7 days</div>
+                        <div class="valueBlock" >
+                            {{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </div>
+                    <div class="boxLite">
+                        <div class="labelBlock">Change last 7 days</div>
+                        <div class="valueBlock" >
+                            {{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </div>
+                    <div class="boxLite">
+                        <div class="labelBlock">Change last 7 days</div>
+                        <div class="valueBlock" >
+                            {{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </div>
                 </div>
-                <div class="boxLite">
-                    <div class="labelBlock">Change last 7 days</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.profit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                </div>
-                <div class="boxLite">
-                    <div class="labelBlock">Change last 7 days</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.opex.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                </div>
-                <div class="boxLite">
-                    <div class="labelBlock">Change last 7 days</div>
-                    <div class="valueBlock">{{'£' + graphData.totals.netProfit.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                </div>
-            </div>            </span>
+            </span>
         </div>
 
         <div class="box">
@@ -295,14 +423,217 @@
                 <div class="title">
                     <span>CASH FLOW {{period}}</span>
                     <span v-if="manageAllowed">
-                        <input class="customButton" type="button" value="MANAGE"/>
+                        <input class="customButton" type="button" value="MANAGE" v-on:click="app.managing = !app.managing"/>
+                        <input class="customButton" type="button" value="MAKE SORTABLE" ONCLICK="makeDraggable()"/>
                     </span>
                 </div>
                 <div class="options">some options</div>
             </div>
-                <div class="boxLite">
-                    <div id="cashFlowLine" class="graph"></div>
+            <div class="boxLite">
+                <div id="cashFlowLine" class="graph"></div>
+            </div>
+
+            <div class="boxLite" v-bind:class="managing ? 'scroll' : ''">
+
+                <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="week">
+                    <div class="column ">WEEK COMMENCING</div>
+                    <template v-for="week in cashflowData['WEEK COMMENCING']">
+                        <div class="week flowDate" v-bind:class="managing ? 'weekLarge' : 'weekSmall'">
+                            {{ new Date(week).toDateString().substring(0,10)}}
+                        </div>
+                    </template>
                 </div>
+                <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
+                    <div class="column">OPENING BALANCE</div>
+                    <template v-for="balance in cashflowData['OPENING BALANCE']">
+                        <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                             v-bind:style=" balance < 0 ? 'color: red;' : '' ">
+                            {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </template>
+
+                </div>
+
+                <template v-for="value in Object.keys(cashflowData['IN ENTRIES'])">
+                    <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
+
+                        <div class="column noSpill">{{value}}</div>
+
+                        <template v-for="week in Object.keys(cashflowData['IN ENTRIES'][value])">
+                            <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                                 v-bind:style=" !cashflowData['IN ENTRIES'][value][week] ? 'color: white;' : '' "
+                                 v-on:dragenter="dragenter()"
+                                 v-bind:id="value + week">
+                                 <!--droppable="true" v-on="dragenter:dragenter">-->
+
+                                <template v-if="!managing">
+                                    <div>{{'£' + cashflowData['IN ENTRIES'][value][week].toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                </template>
+                                <!--<template v-if="managing">-->
+                                    <!--<template v-if="cashflowData['ENTITIES'][value + week]">-->
+                                        <!--<template v-for="record in cashflowData['ENTITIES'][value + week]">-->
+                                            <!--<div class="record" draggable="true" ondragstart="makeDraggable()">-->
+                                                <!--&lt;!&ndash;<div class="icon">&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;<template v-if="record.Source__c == 'Quickbooks'">&ndash;&gt;-->
+                                                        <!--&lt;!&ndash;<img class="iconImg" src="{!$Resource.QuickbooksLogoSmall}" />&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;</template>&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;<template v-if="record.Source__c == 'Salesforce'">&ndash;&gt;-->
+                                                        <!--&lt;!&ndash;<img  class="iconImg" src="{!$Resource.SFLogoBlue}" />&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;</template>&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;<template v-if="record.Source__c == 'SalesforceP'">&ndash;&gt;-->
+                                                        <!--&lt;!&ndash;<img class="iconImg"  src="{!$Resource.SFLogoGrey}" />&ndash;&gt;-->
+                                                    <!--&lt;!&ndash;</template>&ndash;&gt;-->
+                                                <!--&lt;!&ndash;</div>&ndash;&gt;-->
+                                                <!--<div >{{record.Description__c}}</div>-->
+                                                <!--<div style="font-weight: bold;text-align: right;">-->
+                                                    <!--{{'£' + record.Amount__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}-->
+                                                <!--</div>-->
+                                            <!--</div>-->
+                                        <!--</template>-->
+                                    <!--</template>-->
+                                <!--</template>-->
+
+
+                                <span v-if="managing">
+                                            <div class="sortable">
+
+                                                                                    <!--<template v-if="cashflowData['ENTITIES'][value + week]">-->
+
+
+                                        <template v-for="record in cashflowData['RECORDS']">
+                                            <template v-if="record.WeekId__c == value + week">
+                                                <div class="record" draggable="true" ondragstart="makeDraggable()">
+                                                <!--<div class="record" >-->
+                                                    <!--<div class="icon">-->
+                                                    <!--<template v-if="record.Source__c == 'Quickbooks'">-->
+                                                    <!--<img class="iconImg" src="{!$Resource.QuickbooksLogoSmall}" />-->
+                                                    <!--</template>-->
+                                                    <!--<template v-if="record.Source__c == 'Salesforce'">-->
+                                                    <!--<img  class="iconImg" src="{!$Resource.SFLogoBlue}" />-->
+                                                    <!--</template>-->
+                                                    <!--<template v-if="record.Source__c == 'SalesforceP'">-->
+                                                    <!--<img class="iconImg"  src="{!$Resource.SFLogoGrey}" />-->
+                                                    <!--</template>-->
+                                                    <!--</div>-->
+                                                    <div >{{record.Description__c}}</div>
+                                                    <div style="font-weight: bold;text-align: right;">
+                                                        {{'£' + record.Amount__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                                    </div>
+                                                </div>
+                                            </template>
+
+
+
+
+                                        </template>
+                                            </div>
+
+                                </span>
+
+
+                            </div>
+
+
+                        </template>
+
+
+                        <!--<template v-for="balance in cashflowData['IN ENTRIES'][value]">-->
+                            <!--<div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"-->
+                                 <!--v-bind:style=" !balance ? 'color: white;' : '' ">-->
+                                <!--{{'£' + balance.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}-->
+                            <!--</div>-->
+                        <!--</template>-->
+
+                    </div>
+                </template>
+
+
+                <!--<span v-if="managing">-->
+
+                    <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="in">-->
+                        <!--<div class="column">IN</div>-->
+                    <!--</div>-->
+
+                <!--</span>-->
+
+                <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="inflowsTotal">
+                    <div class="column">TOTAL INFLOWS</div>
+                    <template v-for="balance in cashflowData['TOTAL INFLOW']">
+                        <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                             v-bind:style=" balance < 0 ? 'color: red;' : '' ">
+                            {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </template>
+                </div>
+
+
+                <template v-for="value in Object.keys(cashflowData['OUT ENTRIES'])">
+                    <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
+
+                        <div class="column noSpill">{{value}}</div>
+                        <template v-for="balance in cashflowData['OUT ENTRIES'][value]">
+                            <!--<template v-for="balance in value">-->
+                            <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                                 v-bind:style=" !balance ? 'color: white;' : '' ">
+                                {{'£' + balance.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                        </template>
+
+                    </div>
+                </template>
+
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="paymentRun">-->
+                    <!--<div class="column">Payment run</div>-->
+                <!--</div>-->
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="directDebits">-->
+                    <!--<div class="column">Direct Debits</div>-->
+                <!--</div>-->
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="creditCard">-->
+                    <!--<div class="column">Credit card</div>-->
+                <!--</div>-->
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="payroll">-->
+                    <!--<div class="column">Payroll</div>-->
+                <!--</div>-->
+
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="freelancers">-->
+                    <!--<div class="column">Freelancers</div>-->
+                <!--</div>-->
+
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="managementFees">-->
+                    <!--<div class="column">Management fees</div>-->
+                <!--</div>-->
+
+
+                <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="vat">-->
+                    <!--<div class="column">VAT</div>-->
+                <!--</div>-->
+                <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="outflowsTotal">
+                    <div class="column">TOTAL OUTFLOWS</div>
+                    <template v-for="balance in cashflowData['TOTAL OUTFLOW']">
+                        <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                             v-bind:style=" balance < 0 ? 'color: red;' : '' ">
+                        {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </template>
+                </div>
+                <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="closing">
+                    <div class="column">CLOSING BALANCE</div>
+                    <template v-for="balance in cashflowData['CLOSING BALANCE']">
+                        <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                             v-bind:style=" balance < 0 ? 'color: red;' : '' ">
+                        {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                        </div>
+                    </template>
+                </div>
+
+
+            </div>
+
         </div>
 
         <br/>
@@ -337,12 +668,15 @@
                 // cashIterator : '',
                 graphData : '',
                 cashGraphData : '',
+                cashflowData : '',
 
                 showGo : false,
                 showReport : false,
                 showChanges : true,
                 preset : true,
                 manageAllowed : true,
+                managing : false,
+                // preset : true,
 
                 todos: [
                     { text: 'Learn JavaScript' },
@@ -434,6 +768,9 @@
                         app.showGo = false;
                     }
                 },
+                dragenter : function(){
+                    console.log('drag entered');
+                },
                 loadData : function(){
 
                     // step 1: get all performance figures
@@ -441,14 +778,17 @@
                         '{!$RemoteAction.VueTestController.getOppRevenueTotals}',
                         this.startDate,
                         this.endDate,
-                        function (result, event) {
+                        function (result) {
                             var iterator = Object.keys(result['revenue']);
                             app.graphData = result;
                             app.drawBar('revenue',app.graphData['revenue'], iterator);
                             app.drawLine('revenue', app.graphData['revenue'], iterator);
                             app.drawBar('profit', app.graphData['profit'], iterator);
+                            app.drawLine('profit', app.graphData['profit'], iterator);
                             app.drawBar('opex', app.graphData['opex'], iterator);
+                            app.drawLine('opex', app.graphData['opex'], iterator);
                             app.drawBar('netProfit', app.graphData['netProfit'], iterator);
+                            app.drawLine('netProfit', app.graphData['netProfit'], iterator);
                         }, {
                             escape : true
                         }
@@ -459,7 +799,7 @@
                         '{!$RemoteAction.VueTestController.getBalances}',
                         this.startDate,
                         this.endDate,
-                        function (result, event) {
+                        function (result) {
                             var cashIterator = Object.keys(result);
                             app.cashGraphData = result;
                             app.drawLine('cashFlow', app.cashGraphData, cashIterator);
@@ -467,6 +807,19 @@
                             escape : true
                         }
                     );
+
+
+                    // step 2: get all cashflow data
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.VueTestController.getCashflowData}',
+                        function (result) {
+                            app.cashflowData = result;
+                            console.log(result);
+                        }, {
+                            escape : true
+                        }
+                    );
+
                 },
 
                 add : function(){
@@ -599,20 +952,23 @@
 
                             if (type === 'cashFlow'){
                                 chartData.addColumn('string', 'Date');
+                                chartData.addColumn('number', 'Budget');
                                 chartData.addColumn('number', 'Pipeline');
-                                chartData.addColumn('number', 'Weighted');
                                 chartData.addColumn('number', 'Confirmed');
 
                                 iterator.forEach(function (element) {
                                     var elOne = graphData[element][3];
                                     var elTwo = graphData[element][2];
                                     var elThree = graphData[element][1];
+
+                                    // console.log(Object.values(graphData[element]));
+
                                     //
                                     // if (!revWeighted && revPipeline) {
                                     //     elThree = source[element][1] + source[element][2];
                                     // }
 
-                                    chartData.addRow([element, elOne, elTwo, elThree]);
+                                    chartData.addRow([graphData[element][0], elOne, elTwo, elThree]);
                                 });
                             } else {
                                 chartData.addColumn('string', 'Date');
@@ -737,6 +1093,56 @@
                 this.loadData();
             }
         })
+
+        // $( init );
+        //
+        // function init() {
+        //     $('.record').draggable();
+        // }
+
+
+
+        function makeDraggable() {
+                // $('.record').draggable();
+                // $('.sortable').sortable();
+                // $('.sortable').disableSelection();
+
+
+            // $('.sortable').sortable({start : function(){console.log('starting')}});
+
+            var oldList, newList, item;
+            $('.sortable').sortable({
+                start: function(event, ui) {
+                    item = ui.item;
+                    newList = oldList = ui.item.parent().parent();
+                },
+                stop: function(event, ui) {
+                    // alert("Moved " + item.text() + " from " + oldList.attr('id') + " to " + newList.attr('id'));
+                },
+                change: function(event, ui) {
+                    if(ui.sender) newList = ui.placeholder.parent().parent();
+                },
+                connectWith: ".sortable"
+            }).disableSelection();
+        }
+
+
+        $(function() {
+            var oldList, newList, item;
+            $('.sortable').sortable({
+                start: function(event, ui) {
+                    item = ui.item;
+                    newList = oldList = ui.item.parent().parent();
+                },
+                stop: function(event, ui) {
+                    // alert("Moved " + item.text() + " from " + oldList.attr('id') + " to " + newList.attr('id'));
+                },
+                change: function(event, ui) {
+                    if(ui.sender) newList = ui.placeholder.parent().parent();
+                },
+                connectWith: ".sortable"
+            }).disableSelection();
+        });
 
     </script>
     </html>

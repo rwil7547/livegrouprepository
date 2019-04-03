@@ -605,47 +605,51 @@
         component.set('v.activeExpenseId', event.getParam('expenseId'));
     },
     updateLineId : function(component, event, helper) {
-
         var expenses    = component.get('v.expenses');
 
-        for (var x = 0; x < expenses.length; x++){
-            if (expenses[x].Id === component.get('v.activeExpenseId')){
+        if (component.get('v.expenses').length > 0){
 
-                var expense = Object.assign({},expenses[x]);
-                expense.QuoteLine__c = event.getParam('lineId');
-                expense.Assigned__c = (event.getParam('lineId') !== null);
-                expenses.splice(x,1);
-                expenses.push(expense);
-                component.set('v.expenses',expenses);
-                break;
+            for (var x = 0; x < expenses.length; x++){
+                if (expenses[x].Id === component.get('v.activeExpenseId')){
+
+                    var expense = Object.assign({},expenses[x]);
+                    expense.QuoteLine__c = event.getParam('lineId');
+                    expense.Assigned__c = (event.getParam('lineId') !== null);
+                    expenses.splice(x,1);
+                    expenses.push(expense);
+                    component.set('v.expenses',expenses);
+                    break;
+                }
             }
-        }
 
-        var quote = component.get('v.quote');
+            var quote = component.get('v.quote');
 
-        if (expense.Assigned__c){
-            quote.SBQQ__Opportunity2__r.UnassignedExpenses__c -= 1;
-        } else {
-            quote.SBQQ__Opportunity2__r.UnassignedExpenses__c += 1;
-        }
-
-        component.set('v.quote',quote);
-
-
-        var updateExpense = component.get('c.assignExpenseApex');
-        updateExpense.setParams({
-            lineId : event.getParam('lineId'),
-            expenseId : component.get('v.activeExpenseId')
-        });
-        updateExpense.setCallback(this, function(response){
-            if (response.getState() === "SUCCESS" && response.getReturnValue()){
-                helper.showToast('Success!', 'Expense updated','success');
+            if (expense.Assigned__c){
+                quote.SBQQ__Opportunity2__r.UnassignedExpenses__c -= 1;
             } else {
-                helper.showToast('Error', 'There was an error updating the expense', 'error');
-
+                quote.SBQQ__Opportunity2__r.UnassignedExpenses__c += 1;
             }
-        });
-        $A.enqueueAction(updateExpense);
+
+            component.set('v.quote',quote);
+
+
+            var updateExpense = component.get('c.assignExpenseApex');
+            updateExpense.setParams({
+                lineId : event.getParam('lineId'),
+                expenseId : component.get('v.activeExpenseId')
+            });
+            updateExpense.setCallback(this, function(response){
+                if (response.getState() === "SUCCESS" && response.getReturnValue()){
+                    helper.showToast('Success!', 'Expense updated','success');
+                } else {
+                    helper.showToast('Error', 'There was an error updating the expense', 'error');
+
+                }
+            });
+            $A.enqueueAction(updateExpense);
+        }
+
+
     },
     togglePrimary : function(component, event, helper){
         var isPrimary = (component.get('v.quote.SBQQ__Primary__c')) ? false : true;

@@ -78,31 +78,31 @@ public class VueTestController {
         Date iterator = startDate;
 
         while (iterator <= endDate){
-            balanceMap.put(iterator, new List<Object>{'',null,null,null,null});
+            balanceMap.put(iterator, new List<Object>{'',null,null,null});
             iterator = iterator.addDays(1);
         }
 
         for (QBBalance__c b : [SELECT Date__c, DayMonthYear__c, Confirmed__c, Weighted__c,
-                Predictive__c
-        FROM QBBalance__c
-        WHERE Date__c >= :startDate
-        AND Date__c <= :endDate
-        ORDER BY Date__c ASC]){
+                                        Predictive__c
+                                FROM QBBalance__c
+                                WHERE Date__c >= :startDate
+                                AND Date__c <= :endDate
+                                ORDER BY Date__c ASC]){
             balanceMap.get(b.Date__c)[0] = b.DayMonthYear__c;
             balanceMap.get(b.Date__c)[1] = b.Confirmed__c;
         }
 
 
         for (CashFlow__c c : [SELECT Date__c, DayMonthYear__c, Balance__c, BalancePlus__c,
-                BalancePredict__c
-        FROM CashFlow__c
-        WHERE Date__c >= :startDate
-        AND Date__c <= :endDate]){
+                                        BalancePredict__c
+                                FROM CashFlow__c
+                                WHERE Date__c >= :startDate
+                                AND Date__c <= :endDate]){
             balanceMap.get(c.Date__c)[0] = c.DayMonthYear__c;
+//            balanceMap.get(c.Date__c)[1] = c.Balance__c;
             balanceMap.get(c.Date__c)[1] = c.Balance__c;
-            balanceMap.get(c.Date__c)[2] = c.Balance__c;
-            balanceMap.get(c.Date__c)[3] = c.BalancePlus__c;
-            balanceMap.get(c.Date__c)[4] = c.BalancePredict__c;
+            balanceMap.get(c.Date__c)[2] = c.BalancePlus__c;
+            balanceMap.get(c.Date__c)[3] = c.BalancePredict__c;
         }
 
         return balanceMap;
@@ -283,5 +283,146 @@ public class VueTestController {
         return [SELECT Id, Name FROM Opportunity LIMIT 20];
 
     }
+
+    @RemoteAction
+    public static Map<String,Object> getCashflowData(){
+
+        Map<String,Object> cashflowDataMap = new  Map<String,Object>();
+
+        /// first - work out dates
+        List<Date> dates                = new List<Date>();
+        List<Decimal> figures           = new List<Decimal>();
+        List<CashFlowEntry__c> records  = new List<CashFlowEntry__c>();
+        List<Decimal> openingBalances   = new List<Decimal>();
+        List<Decimal> closingBalances   = new List<Decimal>();
+        List<Decimal> totalInflows      = new List<Decimal>();
+        List<Decimal> totalOutflows     = new List<Decimal>();
+
+//        Map<String,List<Decimal>> inEntries  = new Map<String,List<Decimal>>();
+//        Map<String,List<Decimal>> outEntries = new Map<String,List<Decimal>>();
+
+//        Map<String,Map<String>> inEntries  = new Map<String,Object>();
+//        Map<String,Map<String>> outEntries = new Map<String,Object>();
+
+
+
+        Map<String,List<Decimal>> inEntries     = new Map<String,List<Decimal>>();
+        Map<String,List<Decimal>> outEntries    = new Map<String,List<Decimal>>();
+//        Map<String,List<List<Object>>> entities = new Map<String,List<List<Object>>>();
+        Map<String,List<Object>> entities       = new Map<String,List<Object>>();
+
+
+
+        // begin payment runs on thursday
+        Date entryDate = (Date.today() > Date.today().toStartOfWeek().addDays(3)) ?
+                Date.today().toStartOfWeek().addDays(10) : Date.today().toStartOfWeek().addDays(3);
+
+        for (Integer x = 0; x < 12; x++){
+            if (x == 0){
+                dates.add(Date.today());
+            } else if (x == 1 && entryDate == Date.today()) {
+                entryDate = entryDate.addDays(7);
+                dates.add(entryDate);
+                entryDate = entryDate.addDays(7);
+            } else {
+                dates.add(entryDate);
+                entryDate = entryDate.addDays(7);
+            }
+            figures.add(0);
+//            records.add(new List<Object>());
+
+        }
+
+        List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c
+                                    FROM CashFlow__c
+                                    WHERE Date__c <= :dates[11].addDays(6)
+                                    ORDER BY Date__c ASC];
+
+        Map<Date,CashFlow__c> flowMap = new Map<Date,CashFlow__c>();
+
+        for (CashFlow__c flow : flows){
+            flowMap.put(flow.Date__c, flow);
+        }
+
+        Date endDate;
+
+        for (Integer x = 0; x < 12; x++){
+
+            Date startDate  = Date.valueOf(dates[x]);
+
+            if (startDate.toStartOfWeek().addDays(3) < startDate){
+                endDate = startDate.toStartOfWeek().addDays(9);
+            } else if (startDate.toStartOfWeek().addDays(3) > startDate) {
+                endDate = startDate.toStartOfWeek().addDays(2);
+            } else {
+                endDate = startDate.addDays(6);
+            }
+
+            openingBalances.add(flowMap.get(startDate.addDays(-1)).BalancePlus__c);
+            closingBalances.add(flowMap.get(endDate).BalancePlus__c);
+
+            Decimal totalInflow     = 0;
+            Decimal totalOutflow    = 0;
+
+            for (CashFlow__c flow : [SELECT Date__c, InConfirmed__c, InPipeline__c, InBudget__c,
+                                            OutConfirmed__c, OutPipeline__c, OutBudget__c,
+                                            (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c
+                                            FROM CashFlowEntries__r ORDER BY Source__c )
+                                    FROM CashFlow__c
+                                    WHERE Date__c >= : startDate
+                                    AND Date__c <= : endDate]){
+
+                totalInflow += flow.InConfirmed__c;
+                totalOutflow += flow.OutConfirmed__c;
+
+                for (CashFlowEntry__c entry : flow.CashFlowEntries__r){
+
+                    entry.WeekId__c = entry.Category__c + String.valueOf(x);
+                    records.add(entry);
+
+                    if (entry.Out__c){
+                        if (!outEntries.containsKey(entry.Category__c)){
+                            outEntries.put(entry.Category__c, figures.clone());
+                        }
+                        outEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
+                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
+                        }
+                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+                    } else {
+                        if (!inEntries.containsKey(entry.Category__c)){
+                            inEntries.put(entry.Category__c, figures.clone());
+                        }
+                        inEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
+                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
+                        }
+                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+
+                    }
+                }
+            }
+
+            totalInflows.add(totalInflow);
+            totalOutflows.add(totalOutflow);
+        }
+
+        /// load data map with opening balances
+        cashflowDataMap.put('WEEK COMMENCING', dates);
+        cashflowDataMap.put('OPENING BALANCE', openingBalances);
+        cashflowDataMap.put('IN ENTRIES', inEntries);
+        cashflowDataMap.put('TOTAL INFLOW', totalInflows);
+        cashflowDataMap.put('OUT ENTRIES', outEntries);
+        cashflowDataMap.put('TOTAL OUTFLOW', totalOutflows);
+        cashflowDataMap.put('CLOSING BALANCE', closingBalances);
+        cashflowDataMap.put('ENTITIES', entities);
+        cashflowDataMap.put('RECORDS', records);
+
+        return cashflowDataMap;
+
+    }
+
+
+
 
 }
