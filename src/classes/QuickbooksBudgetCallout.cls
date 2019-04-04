@@ -86,7 +86,9 @@ public class QuickbooksBudgetCallout {
                                     QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
                                     qbp.Nominal__c          = parent;
                                     qbp.Parent__c           = parent;
-                                    qbp.Category__c         = parentInfo.get(parent)[1];
+//                                    qbp.Category__c         = parentInfo.get(parent)[1];
+                                    qbp.Category__c         = getCategory(parent);
+                                    qbp.IsOpex__c           = parentInfo.get(parent)[1] == 'Expense';
                                     qbp.Actual__c           = Decimal.valueOf(row2.Summary.ColData[1].value);
                                     qbp.Budget__c           = 0;
                                     qbp.Month__c            = calloutDate;
@@ -133,7 +135,9 @@ public class QuickbooksBudgetCallout {
                             new  QBProfitAndLoss__c(
                                 Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
                                 Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
-                                Category__c = parentInfo.get(detail.AccountRef.name)[1],
+//                                Category__c = parentInfo.get(detail.AccountRef.name)[1],
+                                Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
+                                IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
                                 Month__c    = budgetDate,
                                 Budget__c   = detail.Amount,
                                 Actual__c   = 0,
@@ -178,7 +182,9 @@ public class QuickbooksBudgetCallout {
                                 new QBProfitAndLoss__c(
                                     Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
                                     Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
-                                    Category__c = parentInfo.get(detail.AccountRef.name)[1],
+//                                    Category__c = parentInfo.get(detail.AccountRef.name)[1],
+                                    Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
+                                    IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
                                     Month__c    = budgetDate,
                                     Budget__c   = 0,
                                     Actual__c   = detail.Amount,
@@ -270,6 +276,23 @@ public class QuickbooksBudgetCallout {
         }
 
         return childToParent;
+
+    }
+
+    private static String getCategory(String name){
+
+        if (name == 'Gross Salaries' ||
+                name == 'Employers National Insurance' ||
+                name == 'Pension Costs'  ){
+            return 'Payroll';
+        } else if (name == 'Freelancers'||
+                name == 'Management Fees'){
+            return name;
+        } else if (name == 'Revenue'){
+            return name;
+        } else {
+            return 'Payment run';
+        }
 
     }
 }

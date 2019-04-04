@@ -242,12 +242,15 @@ public with sharing class CashflowControl2 {
                                         'Officially due today' :
                                         'Officially due in ' + Date.today().daysBetween(Date.valueOf(bill.DueDate)) + ' days';
 
+                        String category = freelancerIds.contains(bill.VendorRef.value) ?
+                                        'Freelancer' : bill.VendorRef.name == 'Barclaycard' ?
+                                        'Credit Card' : 'Payment run';
+
                         newEntries.add(new CashFlowEntry__c(
                                 CashFlow__c     = flowMap.get(dueDate).Id,
                                 Out__c          = true,
                                 Source__c       = 'Quickbooks',
-                                Category__c     = (freelancerIds.contains(bill.VendorRef.value)) ?
-                                                    bill.VendorRef.value : 'Payment run',
+                                Category__c     = category,
                                 Description__c  = bill.VendorRef.name,
                                 Details__c      = details,
                                 Amount__c       = bill.Balance,
@@ -405,7 +408,7 @@ public with sharing class CashflowControl2 {
                                     FROM QBProfitAndLoss__c
                                     WHERE (Category__c = 'Revenue' OR Category__c = 'Cost of sales' OR Category__c = 'Expense')
                                     AND Month__c <= NEXT_FISCAL_YEAR
-                                    AND Month__c >= THIS_FISCAL_YEAR
+                                    AND Month__c >= LAST_N_MONTHS:3
                                     GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]) {
 
             String vatKey   = String.valueOf((Integer) ar.get('quarter')) + String.valueOf((Integer) ar.get('year'));
@@ -419,11 +422,13 @@ public with sharing class CashflowControl2 {
             if (flowMap.containsKey(vatDate)) {
                 if (!vatEntryMap.containsKey(vatKey)) {
 
+                    system.debug('plotting vat entry with vat date of ' + vatDate);
+
                     CashFlowEntry__c vatEntry   = new CashFlowEntry__c();
                     vatEntry.CashFlow__c        = flowMap.get(vatDate).Id;
                     vatEntry.Description__c     = 'VAT';
                     vatEntry.Stage__c           = 'Pipeline';
-                    vatEntry.Category__c        = 'Payment run';
+                    vatEntry.Category__c        = 'VAT';
                     vatEntry.Out__c             = true;
                     vatEntry.Amount__c          = 0;
                     vatEntry.QuickbooksId__c    = vatKey;
@@ -444,19 +449,24 @@ public with sharing class CashflowControl2 {
 
         for (QBProfitAndLoss__c budgetEntry : budgetMap.values()){
 
-            Date entryDate = budgetEntry.Month__c.addMonths(1).addDays(-1);
+            if (budgetEntry.Actual__c > 0){
+                Date entryDate = budgetEntry.Month__c.addMonths(1).addDays(-1);
 
-            if (flowMap.containsKey(entryDate)){
-                CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
-                flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
-                flowEntry.Description__c     = budgetEntry.Nominal__c;
-                flowEntry.Stage__c           = 'Confirmed';
+                if (flowMap.containsKey(entryDate)){
+                    CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
+                    flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
+                    flowEntry.Description__c     = 'Budgeted ' + budgetEntry.Nominal__c;
+                    flowEntry.Stage__c           = 'Confirmed';
                 flowEntry.Category__c        = budgetEntry.Category__c;
-                flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
-                flowEntry.Amount__c          = budgetEntry.Actual__c;
-                flowEntry.QuickbooksId__c    = budgetEntry.Parent__c;
-                newEntries.add(flowEntry);
+//                    flowEntry.Category__c        = budgetEntry.Parent__c;
+                    flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
+                    flowEntry.Amount__c          = budgetEntry.Actual__c;
+                    flowEntry.QuickbooksId__c    = budgetEntry.Parent__c;
+                    newEntries.add(flowEntry);
+                }
             }
+
+
         }
 
         delete oldEntries;

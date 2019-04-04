@@ -121,11 +121,12 @@ public class VueTestController {
         Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
         Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
         Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
+
+
         Map<String,Decimal> totals                      = new Map<String,Decimal>();
-        totals.put('revenue', 0);
-        totals.put('profit', 0);
-        totals.put('opex', 0);
-        totals.put('netProfit', 0);
+        Decimal totalRevenue    = 0;
+        Decimal totalProfit     = 0;
+        Decimal totalOpex       = 0;
 
 
         // work out if start date and end date are not clean start and end dates
@@ -152,13 +153,13 @@ public class VueTestController {
                                 AND Event_end__c <= :endDate]){
 
             if (opp.Committed__c){
-                totals.put('revenue',totals.get('revenue') + opp.CommittedRevenue__c);
-                totals.put('profit',totals.get('profit') + opp.CommittedProfit__c);
+                totalRevenue += opp.CommittedRevenue__c;
+                totalProfit += opp.CommittedProfit__c;
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
                 profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
             } else if (opp.StageName == 'Closed Won') {
-                totals.put('revenue',totals.get('revenue') + opp.Amount_Calder__c);
-                totals.put('profit',totals.get('profit') + opp.Gross_profit_2__c);
+                totalRevenue += opp.Amount_Calder__c;
+                totalProfit += opp.Gross_profit_2__c;
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
                 profitAggregates.get(opp.EventMonthYear__c)[0] += opp.Gross_profit_2__c;
             } else {
@@ -166,7 +167,6 @@ public class VueTestController {
                 profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
                 revenueAggregates.get(opp.EventMonthYear__c)[2] += opp.Amount_Calder__c - (opp.Amount_Calder__c * opp.Probability) / 100;
                 profitAggregates.get(opp.EventMonthYear__c)[2] += opp.Gross_profit_2__c - (opp.Gross_profit_2__c * opp.Probability) / 100;
-
             }
         }
 
@@ -174,38 +174,18 @@ public class VueTestController {
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate]) {
+            totalRevenue += adj.Revenue__c;
+            totalProfit += adj.Profit__c;
             revenueAggregates.get(adj.EventMonthYear__c)[0] += adj.Revenue__c;
             profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
         }
 
-        List<SalesTarget__c> targets = [SELECT Revenue__c, EventMonthYear__c
-                                        FROM SalesTarget__c
-                                        WHERE Month__c >= :startDate
-                                        AND Month__c <= :endDate];
-
-        for (SalesTarget__c target : targets) {
-            revenueAggregates.get(target.EventMonthYear__c)[3] = target.Revenue__c;
-        }
-
-        for (Integer x = 0; x < months.size(); x++){
-
-            revenueAggregates.get(months[x])[4] += revenueAggregates.get(months[x])[0];
-            revenueAggregates.get(months[x])[5] += revenueAggregates.get(months[x])[0];
-            revenueAggregates.get(months[x])[6] += revenueAggregates.get(months[x])[0];
-            revenueAggregates.get(months[x])[5] += revenueAggregates.get(months[x])[1];
-            revenueAggregates.get(months[x])[6] += revenueAggregates.get(months[x])[2] + revenueAggregates.get(months[x])[1];
-
-            Integer y = months.size() -1;
-
-            while (y > x){
-                revenueAggregates.get(months[y])[3] += (targets.size() > x) ? targets[x].Revenue__c : revenueAggregates.get(months[x])[3];
-                revenueAggregates.get(months[y])[4] += revenueAggregates.get(months[x])[0];
-                revenueAggregates.get(months[y])[5] += revenueAggregates.get(months[x])[0];
-                revenueAggregates.get(months[y])[6] += revenueAggregates.get(months[x])[0];
-                revenueAggregates.get(months[y])[5] += revenueAggregates.get(months[x])[1];
-                revenueAggregates.get(months[y])[6] += revenueAggregates.get(months[x])[2] + revenueAggregates.get(months[x])[1];
-                y--;
-            }
+        for (QBProfitAndLoss__c target : [SELECT Budget__c, EventMonthYear__c
+                                            FROM QBProfitAndLoss__c
+                                            WHERE Parent__c = 'Revenue'
+                                            AND Month__c >= :startDate
+                                            AND Month__c <= :endDate]) {
+            revenueAggregates.get(target.EventMonthYear__c)[3] = target.Budget__c;
         }
 
         List<QBProfitAndLoss__c> results = [SELECT Actual__c, Budget__c, Grouping__c,
@@ -227,12 +207,15 @@ public class VueTestController {
             }
 
             if (qpl.QBUpdated__c) {
+                totalOpex += (qpl.Actual__c * multiplier);
                 opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
             } else {
+                totalOpex += (qpl.Actual__c * multiplier);
                 opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
             }
             opexAggregates.get(qpl.EventMonthYear__c)[2] += ((qpl.Budget__c - qpl.Actual__c) * multiplier);
             opexAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Budget__c * multiplier);
+
 
             if (qpl.Grouping__c == 'Payroll'){
                 opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
@@ -240,33 +223,27 @@ public class VueTestController {
                 opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
             } else if (qpl.Grouping__c == 'Bus Dev'){
                 opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
-            } else if (qpl.Grouping__c == 'Office'){
+            } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
                 opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
-            } else if (qpl.Grouping__c == 'Other'){
-                opexAggregates.get(qpl.EventMonthYear__c)[10] += (qpl.Actual__c * multiplier);
             }
+
+
         }
 
-        for (Integer x = 0; x < months.size(); x++){
 
-            opexAggregates.get(months[x])[4] += opexAggregates.get(months[x])[0] + opexAggregates.get(months[x])[1];
-            opexAggregates.get(months[x])[5] += opexAggregates.get(months[x])[3];
 
-            Integer y = months.size() - 1;
-
-            while (y > x){
-                opexAggregates.get(months[y])[4] += opexAggregates.get(months[x])[0] + opexAggregates.get(months[x])[1];
-                opexAggregates.get(months[y])[5] += opexAggregates.get(months[x])[3];
-                y--;
-            }
-        }
 
         for (Integer x = 0; x < months.size(); x++){
             netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[0]);
             netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[0]);
             netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[0]);
-
         }
+
+
+        totals.put('revenue', totalRevenue);
+        totals.put('profit', totalProfit);
+        totals.put('opex', totalOpex);
+        totals.put('netProfit', totalProfit - totalOpex);
 
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
@@ -333,6 +310,8 @@ public class VueTestController {
 
         }
 
+
+
         List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c
                                     FROM CashFlow__c
                                     WHERE Date__c <= :dates[11].addDays(6)
@@ -370,35 +349,43 @@ public class VueTestController {
                                             FROM CashFlowEntries__r ORDER BY Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
-                                    AND Date__c <= : endDate]){
+                                    AND Date__c <= : endDate
+            ]){
 
                 totalInflow += flow.InConfirmed__c;
                 totalOutflow += flow.OutConfirmed__c;
 
                 for (CashFlowEntry__c entry : flow.CashFlowEntries__r){
 
-                    entry.WeekId__c = entry.Category__c + String.valueOf(x);
-                    records.add(entry);
+                    system.debug('category of entry is ' + entry.Category__c);
+
 
                     if (entry.Out__c){
                         if (!outEntries.containsKey(entry.Category__c)){
                             outEntries.put(entry.Category__c, figures.clone());
                         }
                         outEntries.get(entry.Category__c)[x] += entry.Amount__c;
-                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
-                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
-                        }
-                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+//                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
+//                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
+//                        }
+//                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+
+                        entry.WeekId__c = entry.Category__c + String.valueOf(x);
+
+                        records.add(entry);
+
                     } else {
                         if (!inEntries.containsKey(entry.Category__c)){
                             inEntries.put(entry.Category__c, figures.clone());
                         }
                         inEntries.get(entry.Category__c)[x] += entry.Amount__c;
-                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
-                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
-                        }
-                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+//                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
+//                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
+//                        }
+//                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
+                        entry.WeekId__c = 'IN' + String.valueOf(x);
 
+                        records.add(entry);
                     }
                 }
             }
@@ -415,8 +402,11 @@ public class VueTestController {
         cashflowDataMap.put('OUT ENTRIES', outEntries);
         cashflowDataMap.put('TOTAL OUTFLOW', totalOutflows);
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
-        cashflowDataMap.put('ENTITIES', entities);
+//        cashflowDataMap.put('ENTITIES', entities);
+        cashflowDataMap.put('IN', figures.clone());
+
         cashflowDataMap.put('RECORDS', records);
+        cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today()),String.valueOf(entryDate)));
 
         return cashflowDataMap;
 
