@@ -385,6 +385,8 @@
                                     <span onclick="{!c.selectOption}" id="optional"> &nbsp;Optional line items</span><br/>
                                     <input type="checkbox" aura:id="optionalSummary" id="optionalSummaryCheckbox" onchange="{!c.setPreviewChanged}" />
                                     <span onclick="{!c.selectOption}" id="optionalSummary"> &nbsp;Optionals summary</span><br/>
+                                    <input type="checkbox" aura:id="breakPage" id="breakPageCheckbox" onchange="{!c.setPreviewChanged}" />
+                                    <span onclick="{!c.selectOption}" id="breakPage"> &nbsp;Split summary page</span><br/>
                                     <input type="checkbox" aura:id="vat" id="vatCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>
                                     <span onclick="{!c.selectOption}" id="vat"> &nbsp;VAT total</span><br/>
                                     <input type="checkbox" aura:id="invoices" id="invoicesCheckbox" checked="{!v.quote.Stage__c != 'Estimate'}" onchange="{!c.setPreviewChanged}"/>

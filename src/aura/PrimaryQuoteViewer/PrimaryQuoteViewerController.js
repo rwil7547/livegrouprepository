@@ -326,6 +326,8 @@
         var text        = encodeURIComponent(component.find('documentText').get("v.value"));
 
         var optionals   = document.getElementById('optionalCheckbox').checked;
+        var optSummary  = document.getElementById('optionalSummaryCheckbox').checked;
+        var breakPage   = document.getElementById('breakPageCheckbox').checked;
         var invoices    = document.getElementById('invoicesCheckbox').checked;
         var vat         = document.getElementById('vatCheckbox').checked;
         var tnc         = document.getElementById('termsAndConditionsCheckbox').checked;
@@ -347,6 +349,8 @@
             contactId : contactId,
             text : text,
             optionals : optionals,
+            optSummary : optSummary,
+            breakPage : breakPage,
             invoices : invoices,
             vat : vat,
             sla : 'false',

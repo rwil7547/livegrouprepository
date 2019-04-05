@@ -35,6 +35,8 @@ public class QuotePreviewController {
     public String theme3 {get; set;}
 
     public Boolean showOptionals {get; set;}
+    public Boolean showOptionalsSummary {get; set;}
+    public Boolean breakPage {get; set;}
     public Boolean showVAT {get; set;}
     public Boolean showSLA {get; set;}
     public Boolean showTnCs {get; set;}
@@ -47,13 +49,15 @@ public class QuotePreviewController {
 
         System.debug(ApexPages.currentPage().getParameters());
 
-        showOptionals   = (ApexPages.currentPage().getParameters().get('optionals') == 'true') ? true : false;
-        showVAT         = (ApexPages.currentPage().getParameters().get('vat') == 'true') ? true : false;
-        showSLA         = (ApexPages.currentPage().getParameters().get('sla') == 'true') ? true : false;
-        showTnCs        = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
-        draft           = (ApexPages.currentPage().getParameters().get('draft') == 'true') ? true : false;
-        isSOW           = (ApexPages.currentPage().getParameters().get('isSOW') == 'true') ? true : false;
-        contactSign     = (ApexPages.currentPage().getParameters().get('signed') == 'true') ? true : false;
+        showOptionals           = (ApexPages.currentPage().getParameters().get('optionals') == 'true') ? true : false;
+        showOptionalsSummary    = (ApexPages.currentPage().getParameters().get('optSummary') == 'true') ? true : false;
+        breakPage               = (ApexPages.currentPage().getParameters().get('breakPage') == 'true') ? true : false;
+        showVAT                 = (ApexPages.currentPage().getParameters().get('vat') == 'true') ? true : false;
+        showSLA                 = (ApexPages.currentPage().getParameters().get('sla') == 'true') ? true : false;
+        showTnCs                = (ApexPages.currentPage().getParameters().get('tnc') == 'true') ? true : false;
+        draft                   = (ApexPages.currentPage().getParameters().get('draft') == 'true') ? true : false;
+        isSOW                   = (ApexPages.currentPage().getParameters().get('isSOW') == 'true') ? true : false;
+        contactSign             = (ApexPages.currentPage().getParameters().get('signed') == 'true') ? true : false;
 
         user = [SELECT Id, Name, Title, FirstName, LastName, Phone, MobilePhone, Email
                 FROM User
@@ -108,7 +112,7 @@ public class QuotePreviewController {
         groupSummary    = new Map<String,Decimal>();
         groupLineCount  = new Map<String,Integer>();
 
-        if (showOptionals){
+        if (showOptionals || showOptionalsSummary){
             optionalGroups        = new List<String>();
             optionalGroupMap      = new Map<String,Map<String,List<SBQQ__QuoteLine__c>>>();
             optionalGroupSummary  = new Map<String,Decimal>();
@@ -177,7 +181,7 @@ public class QuotePreviewController {
                     groupAncestorMap.put(lineGroup.AncestorName__c, lineGroup.Name);
                 }
 
-                if (showOptionals){
+                if (showOptionals || showOptionalsSummary){
                     optionalGroups.add(lineGroup.Name);
                     Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     optionalChangeMap.put('Removed', new List<SBQQ__QuoteLine__c>());
@@ -200,7 +204,7 @@ public class QuotePreviewController {
                 groupMap.put(entry.getLabel(), changeMap);
                 groupSummary.put(entry.getLabel(), 0);
                 groupLineCount.put(entry.getLabel(), 0);
-                if (showOptionals){
+                if (showOptionals || showOptionalsSummary){
                     optionalGroups.add(entry.getLabel());
                     Map<String, List<SBQQ__QuoteLine__c>> optionalChangeMap = new Map<String, List<SBQQ__QuoteLine__c>>();
                     optionalChangeMap.put('Default', new List<SBQQ__QuoteLine__c>());
@@ -275,7 +279,7 @@ public class QuotePreviewController {
                         groupSummary.put(line.SBQQ__Group__r.Name, groupSummary.get(line.SBQQ__Group__r.Name) + line.SBQQ__NetTotal__c);
                         groupLineCount.put(line.SBQQ__Group__r.Name, groupLineCount.get(line.SBQQ__Group__r.Name) + 1);
                     }
-                } else if (showOptionals){
+                } else if (showOptionals || showOptionalsSummary){
                     if (line.SBQQ__Group__c == null || line.SBQQ__Group__r.Name == null){
                         optionalGroupMap.get('Ungrouped').get('Default').add(line);
                         optionalGroupSummary.put('Ungrouped', optionalGroupSummary.get('Ungrouped') + line.SBQQ__NetTotal__c);
@@ -320,7 +324,7 @@ public class QuotePreviewController {
                     }
                     groupSummary.put(line.SBQQ__ProductFamily__c, groupSummary.get(line.SBQQ__ProductFamily__c) + line.SBQQ__NetTotal__c);
                     groupLineCount.put(line.SBQQ__ProductFamily__c, groupLineCount.get(line.SBQQ__ProductFamily__c) + 1);
-                } else if (showOptionals) {
+                } else if (showOptionals || showOptionalsSummary) {
                     optionalGroupMap.get(line.SBQQ__ProductFamily__c).get('Default').add(line);
                     optionalGroupSummary.put(line.SBQQ__ProductFamily__c, optionalGroupSummary.get(line.SBQQ__ProductFamily__c) + line.SBQQ__NetTotal__c);
                     optionalLineCount.put(line.SBQQ__ProductFamily__c, optionalLineCount.get(line.SBQQ__ProductFamily__c) + 1);
@@ -386,7 +390,7 @@ public class QuotePreviewController {
             }
         }
 
-        if (showOptionals){
+        if (showOptionals || showOptionalsSummary){
             for (String optionalKey : optionalGroupMap.keySet()){
                 if (optionalGroupMap.get(optionalKey).get('Default').isEmpty()){
                     optionalGroupMap.remove(optionalKey);
