@@ -109,19 +109,17 @@ public class VueTestController {
     }
 
     @RemoteAction
-//    public static Map<String,Map<String,List<Decimal>>> getOppRevenueTotals(String start, String endD){
     public static Map<String,Object> getOppRevenueTotals(String start, String endD){
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
 
-//        Map<String,Map<String,List<Decimal>>> figuresMap = new Map<String,Map<String,List<Decimal>>>();
         Map<String,Object> figuresMap                   = new Map<String,Object>();
         Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
         Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
         Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
         Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
-
+        Map<String,Map<String,List<Object>>> reportData = new Map<String,Map<String,List<Object>>>();
 
         Map<String,Decimal> totals                      = new Map<String,Decimal>();
         Decimal totalRevenue    = 0;
@@ -141,6 +139,17 @@ public class VueTestController {
         List<String> months = new List<String>();
         months.addAll(revenueAggregates.keySet());
 
+        for (String month : months){
+
+            Map<String,List<Object>> stageMap = new Map<String,List<Object>>{
+                    'Closed Won'        => new List<Object>(),
+                    'Costed prospect'   => new List<Object>(),
+                    'Pipeline prospect' => new List<Object>(),
+                    'Repeat Prospect'   => new List<Object>()
+            };
+
+            reportData.put(month, stageMap);
+        }
 
         // get all committed opp data
         for (Opportunity opp : [SELECT Amount_Calder__c, Probability, StageName,
@@ -151,6 +160,8 @@ public class VueTestController {
                                 WHERE StageName != 'Closed Lost'
                                 AND Event_end__c >= :startDate
                                 AND Event_end__c <= :endDate]){
+
+            reportData.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);
 
             if (opp.Committed__c){
                 totalRevenue += opp.CommittedRevenue__c;
@@ -174,6 +185,9 @@ public class VueTestController {
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate]) {
+
+            reportData.get(adj.EventMonthYear__c).get('Closed Won').add(adj);
+
             totalRevenue += adj.Revenue__c;
             totalProfit += adj.Profit__c;
             revenueAggregates.get(adj.EventMonthYear__c)[0] += adj.Revenue__c;
@@ -230,15 +244,11 @@ public class VueTestController {
 
         }
 
-
-
-
         for (Integer x = 0; x < months.size(); x++){
             netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[0]);
             netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[0]);
             netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[0]);
         }
-
 
         totals.put('revenue', totalRevenue);
         totals.put('profit', totalProfit);
@@ -250,6 +260,7 @@ public class VueTestController {
         figuresMap.put('opex',opexAggregates);
         figuresMap.put('netProfit',netProfitAggregates);
         figuresMap.put('totals',totals);
+        figuresMap.put('REPORTDATA',reportData);
 
         return figuresMap;
     }
@@ -275,20 +286,9 @@ public class VueTestController {
         List<Decimal> totalInflows      = new List<Decimal>();
         List<Decimal> totalOutflows     = new List<Decimal>();
 
-//        Map<String,List<Decimal>> inEntries  = new Map<String,List<Decimal>>();
-//        Map<String,List<Decimal>> outEntries = new Map<String,List<Decimal>>();
-
-//        Map<String,Map<String>> inEntries  = new Map<String,Object>();
-//        Map<String,Map<String>> outEntries = new Map<String,Object>();
-
-
-
         Map<String,List<Decimal>> inEntries     = new Map<String,List<Decimal>>();
         Map<String,List<Decimal>> outEntries    = new Map<String,List<Decimal>>();
-//        Map<String,List<List<Object>>> entities = new Map<String,List<List<Object>>>();
         Map<String,List<Object>> entities       = new Map<String,List<Object>>();
-
-
 
         // begin payment runs on thursday
         Date entryDate = (Date.today() > Date.today().toStartOfWeek().addDays(3)) ?
@@ -306,11 +306,7 @@ public class VueTestController {
                 entryDate = entryDate.addDays(7);
             }
             figures.add(0);
-//            records.add(new List<Object>());
-
         }
-
-
 
         List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c
                                     FROM CashFlow__c
@@ -357,34 +353,19 @@ public class VueTestController {
 
                 for (CashFlowEntry__c entry : flow.CashFlowEntries__r){
 
-                    system.debug('category of entry is ' + entry.Category__c);
-
-
                     if (entry.Out__c){
                         if (!outEntries.containsKey(entry.Category__c)){
                             outEntries.put(entry.Category__c, figures.clone());
                         }
                         outEntries.get(entry.Category__c)[x] += entry.Amount__c;
-//                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
-//                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
-//                        }
-//                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
-
                         entry.WeekId__c = entry.Category__c + String.valueOf(x);
-
                         records.add(entry);
-
                     } else {
                         if (!inEntries.containsKey(entry.Category__c)){
                             inEntries.put(entry.Category__c, figures.clone());
                         }
                         inEntries.get(entry.Category__c)[x] += entry.Amount__c;
-//                        if (!entities.containsKey(entry.Category__c + String.valueOf(x))){
-//                            entities.put(entry.Category__c + String.valueOf(x), new List<Object>());
-//                        }
-//                        entities.get(entry.Category__c + String.valueOf(x)).add(entry);
                         entry.WeekId__c = 'IN' + String.valueOf(x);
-
                         records.add(entry);
                     }
                 }
@@ -402,9 +383,7 @@ public class VueTestController {
         cashflowDataMap.put('OUT ENTRIES', outEntries);
         cashflowDataMap.put('TOTAL OUTFLOW', totalOutflows);
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
-//        cashflowDataMap.put('ENTITIES', entities);
         cashflowDataMap.put('IN', figures.clone());
-
         cashflowDataMap.put('RECORDS', records);
         cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today()),String.valueOf(entryDate)));
 

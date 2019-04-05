@@ -31,13 +31,48 @@
             border: 0.5px solid grey;
             margin-bottom: 10px;
         }
-        .control {
+        .controlHolder {
             position: sticky;
             top: 5px;
             z-index: 100;
-            display: grid;
-            grid-template-columns: 20% 5% 30% 35% 10%;
-
+        }
+        .control {
+            display: flex;
+            /*grid-template-columns: 30% 70%;*/
+        }
+        .dateHolder {
+            display: flex;
+            width: 284px;
+            /* border: 1px solid lightgray; */
+            /* border-radius: 12px; */
+            /* padding: 4px; */
+            overflow: hidden;
+            /* justify-content: center; */
+            font-size: 11px;
+            padding-left: 10px;
+            padding-right: 10px;
+            font-weight: lighter;
+        }
+        .viewOptionHolder {
+            display: flex;
+            font-size: 18px;
+            margin-left: 30px;
+            /*border: 0.5px solid grey;*/
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .viewOption {
+            /*margin: 5px;*/
+            padding: 3px;
+            padding-left: 15px;
+            padding-right: 15px;
+            background-color: #d7d7d7;
+            font-weight: lighter;
+            cursor: pointer;
+            opacity: 0.5;
+        }
+        .viewOption:hover {
+            opacity: 1;
         }
         .dimmer {
             position: fixed;
@@ -63,7 +98,6 @@
             width: 100%;
             text-align: center;
             font-size: 16px;
-            /*font-weight: bolder;*/
         }
         .valueBlock {
             position: relative;
@@ -72,7 +106,6 @@
             align-items: center;
             font-size: 28px;
             margin-bottom: 6px;
-            /*font-weight: bold;*/
         }
         .splitTwo {
             display: grid;
@@ -105,6 +138,7 @@
             color: white;
             text-align: center;
             cursor: pointer;
+            font-weight: lighter;
         }
         .optionLong {
             padding-top: 4px;
@@ -123,24 +157,12 @@
         .miniOption {
             width: 50px;
         }
-
-
-        /*.optionMini*/
-
         .inactive {
             opacity : 0.5;
         }
-
-
-        /*.option:hover {*/
-            /*font-size:15px;*/
-        /*}*/
         .report {
-            position: fixed;
             width: 90%;
             height: 90%;
-            top: 5%;
-            left:5%;
             background-color: white;
         }
         .graph {
@@ -160,7 +182,6 @@
             background-color: #575858;
         }
         .opex{
-            /*background-color: #d43b8f;*/
             background-color: #b86267;
         }
         .budget {
@@ -183,59 +204,45 @@
             padding-right: 6px;
             vertical-align: middle;
         }
-
-
         .row {
             border-bottom: 0.5px solid lightgrey;
             min-height: 25px;
             position: relative;
             display: flex;
-
         }
-
         .rowTight {
             width: 100%;
         }
-
         .rowGrow {
             width: 3800px;
         }
-
         .column {
             margin: 1px;
             margin-right: 5px;
-            /*border: 0.5px solid green;*/
             height: auto;
             min-height: 23px;
             width: 200px;
             padding-left: 5px;
-            /*padding-top: 3px;*/
             position: sticky;
             left: 4px;
             background: white ;
-            z-index: 10;
+            z-index: 501;
             box-shadow: 0 4px 8px 0 rgba(255,255,255, 0.1), 0 6px 20px 0 rgba(255,255,255, 0.1);
-
         }
-
         .week {
             margin: 1px;
-            /*border: 0.5px solid blue;*/
             height: auto;
             min-height: 23px;
             text-align: right;
             padding-right: 5px;
             position: relative;
         }
-
         .weekSmall {
             width: calc((100% - 200px) / 12);
         }
-
         .weekLarge {
             width: 280px;
         }
-
         .scroll {
             overflow-x: scroll;
         }
@@ -247,7 +254,6 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
         .switch {
             font-size: 30px;
             cursor: pointer;
@@ -260,7 +266,6 @@
         .record {
             margin-top: 2px;
             width: 100%;
-            /*background-color: #f0f2ef;*/
             border-radius: 3px;
             text-align: left;
             padding: 5px;
@@ -273,14 +278,12 @@
             overflow: hidden;
             color: black;
             font-size:10px;
-
         }
         .flowDate{
             background-color: white;
             position: sticky;
             top: 2px;
         }
-
         .icon {
             position: absolute;
             right: -7px;
@@ -297,13 +300,17 @@
         }
         .largeCol {
             font-weight: bolder;
-            color: grey;
+            color: #b1b1b1;
+            font-size: 70px;
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
         .manageFlowIcon {
             opacity: 0.3;
             cursor: pointer;
             font-size: 24px;
-            /*margin-top: -3px;*/
             margin-left: 5px;
         }
         .manageFlowIcon:hover {
@@ -314,8 +321,15 @@
             height: 100%;
             width: 100%;
             top:0;
-            border: 0.5px solid red;
+            border: 0.5px solid #bcbcbc;
             z-index: 500;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1))
+        }
+        .selectOpt {
+            height: 2px;
         }
         #app {
             width: 100%;
@@ -325,36 +339,95 @@
 
     <div id="app">
 
-        <div class="box control" style="display: none;">
-            <div>
-                <select onchange="app.changeDate('preset',this.value)" id="datePicklist">
-                    <option value="CURRENT FY">CURRENT FY</option>
-                    <option value="PREVIOUS FY">PREVIOUS FY</option>
-                    <option value="NEXT FY">NEXT FY</option>
-                    <option value="PAST AND NEXT 6 MONTHS">PAST AND NEXT 6 MONTHS</option>
-                    <option value="LAST 12 MONTHS">LAST 12 MONTHS</option>
-                    <option value="NEXT 12 MONTHS">NEXT 12 MONTHS</option>
-                    <option value="CUSTOM" disabled="true" hidden="true">CUSTOM</option>
-                </select>
-            </div>
-            <!--<div style="padding-top: 8px" id="orOption">- OR -</div>-->
-            <!--<div class="switch" ><i v-bind:class="{ app.preset ? 'far fa-calendar-alt' : 'fas fa-bars'}"></i></div>-->
-            <div class="switch" ><i class="far fa-calendar-alt"></i></div>
+        <div class="box controlHolder" >
+            <div class="control">
+                <!-- DATE SELECTOR -->
+                <div class="dateHolder">
 
-            <!--<div class="customDates" onchange="app.checkGo()">-->
-                    <!--<div style="padding-top: 8px;">FROM:</div>-->
-                    <!--<div><input id="start" type="date" style="width: 160px;" min="2015-10-01" v-model="startDate"/></div>-->
-                    <!--<div style="padding-top: 8px;">TO:</div>-->
-                    <!--<div><input id="end" type="date" style="width: 160px;" min="2015-10-01" v-model="endDate"/></div>-->
-                    <!--<span v-if="showGo">-->
-                        <!--<div><input style="margin-top: 4px;" class="customButton" type="button" value="GO"/></div>-->
-                    <!--</span>-->
-            <!--</div>-->
-            <div></div>
-            <div style="text-align: right;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
+                    <div class="switch" ><i class="fas fa-bars"></i></div>
+                    <!--<div class="switch" ><i class="far fa-calendar-alt"></i></div>-->
+                    <!--<div style="margin-left: 8px;">-->
+                        <!--<select onchange="app.changeDate('preset',this.value)" id="datePicklist">-->
+                            <!--<option value="CURRENT FY">CURRENT FY</option>-->
+                            <!--<option value="PREVIOUS FY">PREVIOUS FY</option>-->
+                            <!--<option value="NEXT FY">NEXT FY</option>-->
+                            <!--<option value="PAST AND NEXT 6 MONTHS">PAST AND NEXT 6 MONTHS</option>-->
+                            <!--<option value="LAST 12 MONTHS">LAST 12 MONTHS</option>-->
+                            <!--<option value="NEXT 12 MONTHS">NEXT 12 MONTHS</option>-->
+                            <!--<option value="CUSTOM" disabled="true" hidden="true">CUSTOM</option>-->
+                        <!--</select>-->
+                    <!--</div>-->
+
+
+
+                    <div style="margin-left: 8px;">
+                        <select id="datePicklist" size="2">
+                            <option class="selectOpt" value="CURRENT FY">October 2015</option>
+                            <option class="selectOpt"  value="PREVIOUS FY">November 2015</option>
+                            <option  class="selectOpt" value="NEXT FY">December 2015</option>
+                            <option  class="selectOpt" value="PAST AND NEXT 6 MONTHS">January 2016</option>
+                            <option  class="selectOpt" value="LAST 12 MONTHS">February 2016</option>
+                            <option class="selectOpt" value="NEXT 12 MONTHS">March 2016</option>
+                            <option class="selectOpt" value="CURRENT FY">October 2015</option>
+                            <option class="selectOpt" value="PREVIOUS FY">November 2015</option>
+
+
+                            <!--<option value="CUSTOM" disabled="true" hidden="true">CUSTOM</option>-->
+                        </select>
+                    </div>
+
+
+
+                    <div style="margin-left: 8px;">
+                        <select onchange="app.changeDate('preset',this.value)" id="datePicklist">
+                            <option value="CURRENT FY">October 2015</option>
+                            <option value="PREVIOUS FY">November 2015</option>
+                            <option value="NEXT FY">December 2015</option>
+                            <option value="PAST AND NEXT 6 MONTHS">January 2016</option>
+                            <option value="LAST 12 MONTHS">February 2016</option>
+                            <option value="NEXT 12 MONTHS">March 2016</option>
+                        </select>
+                    </div>
+
+
+
+
+                    <!--<div style="padding-top: 8px" id="orOption">- OR -</div>-->
+                    <!--<div class="switch" ><i v-bind:class="{ app.preset ? 'far fa-calendar-alt' : 'fas fa-bars'}"></i></div>-->
+
+
+                    <!--<div class="customDates" onchange="app.checkGo()">-->
+                            <!--<div style="padding-top: 8px;">FROM:</div>-->
+                            <!--<div><input id="start" type="date" style="width: 160px;" min="2015-10-01" v-model="startDate"/></div>-->
+                            <!--<div style="padding-top: 8px;">TO:</div>-->
+                            <!--<div><input id="end" type="date" style="width: 160px;" min="2015-10-01" v-model="endDate"/></div>-->
+                            <!--<span v-if="showGo">-->
+                                <!--<div><input style="margin-top: 4px;" class="customButton" type="button" value="GO"/></div>-->
+                            <!--</span>-->
+                    <!--</div>-->
+                </div>
+
+                <!-- VIEWING OPTIONS -->
+                <div>
+                    <div  class="viewOptionHolder">
+                        <div class="viewOption"><i class="fas fa-chart-bar"></i> GRAPHS </div>
+                        <div class="viewOption"><i class="fas fa-list"></i> REPORT </div>
+                        <div class="viewOption"><i class="fas fa-arrows-alt-v"></i> WHAT'S CHANGED </div>
+                        <div class="viewOption"><i class="fas fa-history"></i> HISTORY </div>
+
+                        <!--<div>-->
+                            <!--<button v-on:click="app.showReport = !app.showReport;">{{ !showReport ? 'SHOW' : 'HIDE'}}</button>-->
+
+                        <!--</div>-->
+                    </div>
+                </div>
+
+                <!-- LOGO -->
+                <div style="position:absolute;right:5px;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
+            </div>
         </div>
 
-        <!--<div class="box" style="position: sticky; top: 8px;z-index:100;">-->
+
         <div class="box" style="position: sticky;">
             <div class="splitTwo">
                 <div class="title">REVENUE {{period}}</div>
@@ -428,7 +501,6 @@
             </div>
         </div>
 
-
         <div class="box">
             <div class="splitTwo">
                 <div class="title">NET PROFIT {{period}}</div>
@@ -453,14 +525,7 @@
         <div class="box">
             <div class="splitTwo">
                 <div class="title">TOTAL CONFIRMED FIGURES {{period}}</div>
-                <div class="optionsHolder">
-                    <!--<div class="options">-->
-                        <!--<div class="option confirmed">Confirmed</div>-->
-                        <!--<div class="option weighted">Weighted</div>-->
-                        <!--<div class="option pipeline">Pipeline</div>-->
-                        <!--<div class="option target">Target</div>-->
-                    <!--</div>-->
-                </div>
+                <div class="optionsHolder"></div>
             </div>
             <div class="splitFour">
                 <div class="boxLite">
@@ -524,8 +589,6 @@
                     <span>{{ showManager ? 'CASH FLOW NEXT 3 MONTHS' : 'CASH FLOW ' + period}}</span>
                     <span v-if="manageAllowed">
                         <i class="fas manageFlowIcon" v-bind:class=" showManager ? 'fa-window-close' : 'fa-edit'" v-on:click="showManagerSection()"></i>
-                        <!--<input class="customButton" type="button" value="MANAGE" v-on:click="showManagerSection()"/>-->
-                        <!--<input class="customButton" type="button" value="MAKE SORTABLE" ONCLICK="makeDraggable()"/>-->
                         <span v-on:click="toggleManaging()"> --- MANAGE  --- </span>
                     </span>
                 </div>
@@ -544,7 +607,6 @@
             </div>
 
             <template v-if="showManager">
-
                 <div class="boxLite" v-bind:class="managing ? 'scroll' : ''">
 
                     <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="week">
@@ -563,45 +625,41 @@
                                 {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                             </div>
                         </template>
-
                     </div>
 
                     <template v-if="!managing">
 
-                    <template v-for="value in Object.keys(cashflowData['IN ENTRIES'])">
-                        <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
+                        <template v-for="value in Object.keys(cashflowData['IN ENTRIES'])">
+                            <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
 
-                            <div class="column noSpill">{{value}}</div>
-
-                            <template v-for="week in Object.keys(cashflowData['IN ENTRIES'][value])">
-                                <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
-                                     v-bind:style=" !cashflowData['IN ENTRIES'][value][week] ? 'color: white;' : '' ">
-
-                                        <div>{{'£' + cashflowData['IN ENTRIES'][value][week].toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
+                                <div class="column noSpill">{{value}}</div>
+                                <template v-for="week in Object.keys(cashflowData['IN ENTRIES'][value])">
+                                    <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
+                                         v-bind:style=" !cashflowData['IN ENTRIES'][value][week] ? 'color: white;' : '' ">
+                                            <div>{{'£' + cashflowData['IN ENTRIES'][value][week].toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
                     </template>
 
 
                     <template v-if="managing">
-
                             <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">
-
-                                <div class="column noSpill largeCol" style="font-size: 70px;position:sticky;top:4px;">IN </div>
-
+                                <div class="column noSpill largeCol" >IN </div>
                                 <template v-for="week in Object.keys(cashflowData['WEEK COMMENCING'])">
                                     <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
                                          v-on:dragover="dragenter()"
                                          v-bind:id="'IN' + week">
-                                        <div class="sortable" >
+                                        <div class="sortable" v-bind:data-week="week" v-bind:data-type="'IN'">
                                             <template v-for="record in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'IN' + week">
-                                                    <div class="record" draggable="true"
+                                                    <div class="record" draggable="true" ondragstart="setDragData()"
                                                          v-bind:data-id="record.Id"
+                                                         v-bind:data-week="week"
                                                          v-bind:data-amount="record.Amount__c"
-                                                         v-bind:data-type="'IN'">
+                                                         v-bind:data-type="'IN'"
+                                                         v-bind:data-description="record.Description__c">
 
                                                         <div >{{record.Description__c}}</div>
                                                         <div style="font-weight: bold;text-align: right;">
@@ -611,17 +669,24 @@
                                                 </template>
                                             </template>
                                         </div>
-                                        <div style="width:100%;font-weight:bolder;position: absolute;bottom: 20px;font-size: 40px;opacity: 0.3;z-index:1;">
-                                            {{ new Date(week).toDateString().substring(0,10)}}
-                                        </div>
-                                        <div v-bind:class="dragging ? 'dropZone' : ''" v-bind:id="'IN' + week"
-                                             v-bind:data-type="'IN'" v-bind:data-week="week"></div>
+
+                                        <template v-if="dragging">
+                                            <div class="dropZone" v-bind:id="'IN' + week"
+                                                 v-bind:data-type="'IN'" v-bind:data-week="week">
+
+
+                                                <div style="width:100%;font-weight:bolder;font-size: 15px;opacity: 0.3;z-index:1;padding-right: 10px; ">
+                                                    WEEK COMMENCING
+                                                </div>
+                                                <div style="width:100%;font-weight:bolder;font-size: 35px;opacity: 0.3;z-index:1;padding-right: 10px;margin-bottom: 10px; ">
+                                                    {{ new Date(week).toDateString().substring(0,10)}}
+                                                </div>
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                             </div>
                     </template>
-
-
 
                     <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="inflowsTotal">
                         <div class="column">TOTAL INFLOWS <i class="fas fa-random"></i></div>
@@ -751,41 +816,6 @@
                             </div>
                         </template>
                     </div>
-
-                    <!--<template v-for="value in Object.keys(cashflowData['OUT ENTRIES'])">-->
-                        <!--<div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="opening">-->
-
-                            <!--<div class="column noSpill">{{value}}</div>-->
-                            <!--<template v-for="(balance, index) in cashflowData['OUT ENTRIES'][value]">-->
-
-                                    <!--<div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"-->
-                                         <!--v-bind:style=" !balance ? 'color: white;' : '' ">-->
-                                        <!--<template v-if="!managing">-->
-
-                                        <!--{{'£' + balance.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}-->
-                                        <!--</template>-->
-                                        <!--<template v-if="managing">-->
-
-                                            <!--<div class="sortable">-->
-                                                <!--<template v-for="record in cashflowData['RECORDS']">-->
-                                                    <!--<template v-if="record.WeekId__c == value + index">-->
-                                                        <!--<div class="record" draggable="true" ondragstart="makeDraggable()">-->
-
-                                                            <!--<div >{{record.Description__c}}</div>-->
-                                                            <!--<div style="font-weight: bold;text-align: right;">-->
-                                                                <!--{{'£' + record.Amount__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}-->
-                                                            <!--</div>-->
-                                                        <!--</div>-->
-                                                    <!--</template>-->
-                                                <!--</template>-->
-                                            <!--</div>-->
-                                        <!--</template>-->
-                                    <!--</div>-->
-                            <!--</template>-->
-
-                        <!--</div>-->
-                    <!--</template>-->
-
                     <div class="row bold" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="outflowsTotal">
                         <div class="column">TOTAL OUTFLOWS</div>
                         <template v-for="balance in cashflowData['TOTAL OUTFLOW']">
@@ -812,18 +842,8 @@
         </div>
 
         <br/>
+        <!--<div class="dimmer" onclick="app.showReport = false;"></div>-->
 
-        <button onclick="app.showReport = !app.showReport;">{{ !showReport ? 'SHOW' : 'HIDE'}}</button>
-
-        <span v-if="showReport">
-            <div class="dimmer" onclick="app.showReport = false;"></div>
-            <div class="report box">
-                <div class="title">REVENUE REPORT {{period}}</div>
-                <div v-for="todo in todos">
-                    <apex:pageBlock>{{ todo.text }}</apex:pageBlock>
-                </div>
-            </div>
-        </span>
 
         <br/>
 
@@ -839,8 +859,7 @@
                 yearText : '',
                 startDate : '',
                 endDate : '',
-                // iterator : '',
-                // cashIterator : '',
+                reportData : '',
                 graphData : '',
                 cashGraphData : '',
                 cashflowData : '',
@@ -856,13 +875,6 @@
                 manageOut : false,
                 sortable : false,
                 dragging : false,
-                cashflowSort : {
-                    revenue : false,
-                    paymentRun : false,
-                    freelancers : false,
-                    directDebits : false,
-                    costOfSale : false
-                },
 
                 brand : {
                     main : '#262d3f',
@@ -978,16 +990,16 @@
                         this.startDate,
                         this.endDate,
                         function (result) {
-                            var iterator = Object.keys(result['revenue']);
                             app.graphData = result;
-                            app.drawBar('revenue',app.graphData['revenue'], iterator);
-                            app.drawLine('revenue', app.graphData['revenue'], iterator);
-                            app.drawBar('profit', app.graphData['profit'], iterator);
-                            app.drawLine('profit', app.graphData['profit'], iterator);
-                            app.drawBar('opex', app.graphData['opex'], iterator);
-                            app.drawLine('opex', app.graphData['opex'], iterator);
-                            app.drawBar('netProfit', app.graphData['netProfit'], iterator);
-                            app.drawLine('netProfit', app.graphData['netProfit'], iterator);
+                            console.log(result);
+                            app.drawBar('revenue',app.graphData['revenue']);
+                            app.drawLine('revenue', app.graphData['revenue']);
+                            app.drawBar('profit', app.graphData['profit']);
+                            app.drawLine('profit', app.graphData['profit']);
+                            app.drawBar('opex', app.graphData['opex']);
+                            app.drawLine('opex', app.graphData['opex']);
+                            app.drawBar('netProfit', app.graphData['netProfit']);
+                            app.drawLine('netProfit', app.graphData['netProfit']);
                         }, {
                             escape : true
                         }
@@ -1035,7 +1047,7 @@
                     );
                 },
 
-                drawBar : function(type, graphData, iterator) {
+                drawBar : function(type, graphData) {
 
                     google.charts.load('current', {
                         'packages': ['corechart', 'bar'], 'callback': function () {
@@ -1048,7 +1060,8 @@
 
                             // var source = (isRevSnapshot) ? revenueTotalsSnapshot : revenueTotals;
 
-                            iterator.forEach(function (element) {
+                            // iterator.forEach(function (element) {
+                            Object.keys(graphData).forEach(function (element) {
                                 // var elOne = graphData[type][element][0];
                                 // var elTwo = graphData[type][element][1];
                                 // var elThree = graphData[type][element][2];
@@ -1142,7 +1155,7 @@
                         }
                     });
                 },
-                drawLine : function(type, graphData, iterator){
+                drawLine : function(type, graphData){
                     google.charts.load('current', {
                         packages: ['corechart', 'line'],'callback': function () {
 
@@ -1186,7 +1199,7 @@
                                 //     chartData.addRow([element, graphData[element][3], elOne, elTwo, elThree]);
                                 // });
 
-                                iterator.forEach(function (element) {
+                                Object.keys(graphData).forEach(function (element) {
 
                                     confirmed   += graphData[element][0];
                                     pipeline    += graphData[element][1];
@@ -1285,10 +1298,9 @@
                     var oldList, newList, item;
                     $('.sortable').sortable({
                         start: function(event, ui) {
-                            item = ui.item;
-                            newList = oldList = ui.item.parent().parent();
-                            console.log('drag started');
-                            app.dragging = true;
+                            item            = ui.item;
+                            newList         = oldList = ui.item.parent().parent();
+                            app.dragging    = true;
                         },
                         stop: function(event, ui) {
                             app.dragging = false;
@@ -1304,34 +1316,42 @@
                     $( '.sortable' ).droppable({
                         drop: function( event, ui ) {
 
-                            // console.log(event);
-                            console.log(event.target.firstElementChild.dataset.id);
-                            console.log(event.target.firstElementChild.dataset.amount);
-                            console.log(event.target.firstElementChild.dataset.type);
+                            var sourceRecord    = ui.helper.context.dataset;
 
-                            console.log(event.toElement.id);
-                            console.log(event.toElement.dataset.type);
-                            console.log(event.toElement.dataset.week);
+                            var targetWeek      = event.target.firstElementChild.dataset;
+                            var targetWeek2     = event.target.dataset;
 
-                            var type = event.target.firstElementChild.dataset.type;
+                            // start by reducing whatever was ahead
 
-                            if (type == 'IN'){
+                            // then increase everything from that point forward
 
-                                for (var x = parseInt(event.toElement.dataset.week); x < 12; x++){
-                                    app.cashflowData['TOTAL INFLOW'][x] -= event.target.firstElementChild.dataset.amount;
+                            // console.log(ui.helper.context.dataset);
 
-                                    console.log('updating amount');
+                            // var type = event.target.firstElementChild.dataset.type;
 
-                                }
+                            // if (type == 'IN'){
 
-                            }
+                            console.log('source is ');
+                            console.log(sourceRecord);
+                            console.log('target is ')
+                            console.log(targetWeek);
+                            console.log('target 2 is ')
+                            console.log(event);
+
+                            app.cashflowData['TOTAL INFLOW'][parseInt(sourceRecord.week)] -= sourceRecord.amount;
+                            app.cashflowData['TOTAL INFLOW'][parseInt(targetWeek.week)] += sourceRecord.amount;
 
 
+                            // for (var x = parseInt(sourceRecord.week); x < 12; x++) {
+                            //         app.cashflowData['TOTAL INFLOW'][parseInt(sourceRecord.week)] -= sourceRecord.amount;
+                            //
+                            //         console.log('updating amount');
+                            //     // }
+                            //     // }
+                            // }
                         }
                     });
-
                 }
-
             },
             beforeMount() {
 
@@ -1341,25 +1361,8 @@
                 this.startDate   = new Date(this.yearText, 3, 1);
                 this.endDate     = new Date(this.yearText + 1, 2, 31);
 
-                <!--Visualforce.remoting.Manager.invokeAction(-->
-                    <!--'{!$RemoteAction.VueTestController.getOppsApex}',-->
-                    <!--function (result, event) {-->
-                        <!--if (event.status) {-->
-                            <!--for (var x = 0; x < result.length; x++){-->
-                                <!--app.todos.push({text: result[x].Name});-->
-                            <!--}-->
-                        <!--}-->
-                    <!--}, {-->
-                        <!--escape : true-->
-                    <!--}-->
-                <!--);-->
-
                 this.loadData();
             }
-        });
-
-        Vue.nextTick(function(){
-            console.log('something has happened');
         });
 
     </script>
