@@ -116,7 +116,8 @@ public class QuickbooksChangeDataCapture {
 				// query for all invoice schedules with id in set of deleted records
 	            List<Invoice_Schedule__c> deleteRecords = [SELECT Id, Amount__c, QBOInvoiceId__c, Credit_Note__c
 								            			FROM Invoice_Schedule__c 
-								            			WHERE QBOInvoiceId__c IN:deleteIds];							            			
+								            			WHERE QBOInvoiceId__c IN:deleteIds
+														AND Invoice_Id__c NOT IN:updateIds];
 
 				// add salesforce invoice schedules to maps 
 				for (Invoice_Schedule__c inv : deleteRecords) {
@@ -254,7 +255,8 @@ public class QuickbooksChangeDataCapture {
 				// query for all invoice schedules with id in set of deleted records
 	            List<Invoice_Schedule__c> deleteRecords = [SELECT Id, QBOCreditNoteId__c, Invoice_Amount__c
 								            			FROM Invoice_Schedule__c 
-								            			WHERE QBOCreditNoteId__c IN:deleteIds];							            			
+								            			WHERE QBOCreditNoteId__c IN:deleteIds
+														AND Invoice_Id__c NOT IN:updateIds];
 
 				// add salesforce invoice schedules to maps 
 				for (Invoice_Schedule__c inv : deleteRecords) {

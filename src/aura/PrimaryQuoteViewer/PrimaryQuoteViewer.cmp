@@ -100,6 +100,9 @@
 
                                         <lightning:button variant="neutral" label="PREVIEW DOCUMENT" onclick="{!c.previewQuote}" class="slds-truncate"/>
                                     </aura:if>
+                                    <aura:if isTrue="{!and(!v.editable,!v.quote.HasDocument__c)}">
+                                        <lightning:button variant="neutral" label="PREVIEW DOCUMENT" onclick="{!c.previewQuote}" class="slds-truncate"/>
+                                    </aura:if>
                                     <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Invoice_Status__c == 'Fully invoiced',v.quote.SBQQ__Opportunity2__r.Legacy__c)}">
                                         <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed'}">
                                             <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>

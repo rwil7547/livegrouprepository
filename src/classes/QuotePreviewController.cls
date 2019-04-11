@@ -147,7 +147,8 @@ public class QuotePreviewController {
                                                     SBQQ__SubscriptionTerm__c, Ancestor__c, SBQQ__Optional__c
                                             FROM SBQQ__QuoteLine__c
                                             WHERE SBQQ__Quote__c = :quote.Ancestor__c
-                                            AND SBQQ__Optional__c = FALSE]){
+                                            AND SBQQ__Optional__c = FALSE
+                                            AND SBQQ__Hidden__c = FALSE]){
                 changeMap.put(line.Id, line);
             }
 

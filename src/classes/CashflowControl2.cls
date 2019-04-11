@@ -250,6 +250,7 @@ public with sharing class CashflowControl2 {
                                 CashFlow__c     = flowMap.get(dueDate).Id,
                                 Out__c          = true,
                                 Source__c       = 'Quickbooks',
+                                Stage__c        = 'Confirmed',
                                 Category__c     = category,
                                 Description__c  = bill.VendorRef.name,
                                 Details__c      = details,
@@ -427,7 +428,7 @@ public with sharing class CashflowControl2 {
                     CashFlowEntry__c vatEntry   = new CashFlowEntry__c();
                     vatEntry.CashFlow__c        = flowMap.get(vatDate).Id;
                     vatEntry.Description__c     = 'VAT';
-                    vatEntry.Stage__c           = 'Pipeline';
+                    vatEntry.Stage__c           = 'Confirmed';
                     vatEntry.Category__c        = 'VAT';
                     vatEntry.Out__c             = true;
                     vatEntry.Amount__c          = 0;
@@ -456,9 +457,8 @@ public with sharing class CashflowControl2 {
                     CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
                     flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
                     flowEntry.Description__c     = 'Budgeted ' + budgetEntry.Nominal__c;
-                    flowEntry.Stage__c           = 'Confirmed';
-                flowEntry.Category__c        = budgetEntry.Category__c;
-//                    flowEntry.Category__c        = budgetEntry.Parent__c;
+                    flowEntry.Stage__c           = 'Budget';
+                    flowEntry.Category__c        = budgetEntry.Category__c;
                     flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
                     flowEntry.Amount__c          = budgetEntry.Actual__c;
                     flowEntry.QuickbooksId__c    = budgetEntry.Parent__c;
@@ -483,41 +483,35 @@ public with sharing class CashflowControl2 {
         Decimal pipeline    = 0;
         Decimal budget      = 0;
 
-        List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c, OutConfirmed__c,
-                                            OutPipeline__c, OutBudget__c, Number__c
+        List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c,
+                                            OutConfirmed__c, OutPipeline__c, OutBudget__c,
+                                            Balance__c, BalancePlus__c, BalancePredict__c,
+                                            Number__c
                                     FROM CashFlow__c
                                     ORDER BY Number__c ASC];
 
         for (CashFlow__c flow : flows) {
 
             if (flow.Number__c == 0){
+
+                system.debug('setting initial balance value of ' + startingBalance);
+
                 confirmed           += startingBalance;
-                pipeline            += startingBalance;
-                budget              += startingBalance;
+
                 flow.Balance__c     = startingBalance;
                 flow.BalancePlus__c = startingBalance;
                 flow.BalancePredict__c = startingBalance;
-
             } else {
-
                 confirmed           += (flow.InConfirmed__c - flow.OutConfirmed__c);
                 pipeline            += (flow.InPipeline__c - flow.OutPipeline__c);
                 budget              += (flow.InBudget__c - flow.OutBudget__c);
                 flow.Balance__c     = confirmed;
                 flow.BalancePlus__c = confirmed + pipeline;
                 flow.BalancePredict__c = confirmed + pipeline + budget;
-
-            }
-
-            if (flow.Number__c <= 30){
-                system.debug('flow bal for ' + flow.Number__c + ' is ' + flow.Balance__c);
             }
         }
 
         update flows;
-
-
-
     }
 
 }

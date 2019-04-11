@@ -44,34 +44,15 @@ public class VueTestController {
 
     }
 
-    private static void calculateBalances(){
 
-        Decimal balance         = 0;
-        Decimal balancePlus     = 0;
-        Decimal balancePredict  = 0;
-
-        List<CashFlow__c> cashFlows = [SELECT Date__c, In__c, InPlus__c, InPredict__c, Out__c, OutPlus__c,OutPredict__c
-        FROM CashFlow__c ORDER BY Date__c ASC];
-
-        for (CashFlow__c flow : cashFlows){
-
-            balance += (flow.In__c - flow.Out__c);
-            balancePlus += (flow.In__c + flow.InPlus__c - flow.Out__c - flow.OutPlus__c);
-            balancePredict += (flow.In__c + flow.InPlus__c + flow.InPredict__c - flow.Out__c - flow.OutPlus__c - flow.OutPredict__c);
-            flow.Balance__c = balance;
-            flow.BalancePlus__c = balancePlus;
-            flow.BalancePredict__c = balancePredict;
-        }
-
-        update cashFlows;
-
-    }
 
     @RemoteAction
     public static Map<Date, List<Object>> getBalances(String start, String endD){
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
+
+        system.debug('start date is ' + startDate);
 
         Map<Date, List<Object>> balanceMap = new Map<Date, List<Object>>();
 
@@ -125,6 +106,8 @@ public class VueTestController {
         Decimal totalRevenue    = 0;
         Decimal totalProfit     = 0;
         Decimal totalOpex       = 0;
+
+
 
 
         // work out if start date and end date are not clean start and end dates
@@ -202,45 +185,65 @@ public class VueTestController {
             revenueAggregates.get(target.EventMonthYear__c)[3] = target.Budget__c;
         }
 
-        List<QBProfitAndLoss__c> results = [SELECT Actual__c, Budget__c, Grouping__c,
-                                                    Month__c, EventMonthYear__c, QBUpdated__c
+        List<QBProfitAndLoss__c> results = [SELECT Actual__c, Parent__c, Budget__c, Grouping__c,
+                                                    Month__c, EventMonthYear__c, QBUpdated__c, Opex__c
                                             FROM QBProfitAndLoss__c
                                             WHERE Month__c >= :startDate.toStartOfMonth()
                                             AND Month__c <= :endDate
-                                            AND Opex__c = TRUE
+//                                            AND Opex__c = TRUE
                                             ORDER BY Month__c DESC];
 
         for (QBProfitAndLoss__c qpl : results) {
 
-            Decimal multiplier = 1;
+            if (qpl.Opex__c){
+                Decimal multiplier = 1;
 
-            if (qpl.Month__c.month() == startDate.month()) {
-                multiplier = startPortion;
-            } else if (qpl.Month__c.month() == endDate.month()) {
-                multiplier = endPortion;
+                if (qpl.Month__c.month() == startDate.month()) {
+                    multiplier = startPortion;
+                } else if (qpl.Month__c.month() == endDate.month()) {
+                    multiplier = endPortion;
+                }
+
+                if (qpl.QBUpdated__c) {
+                    totalOpex += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
+                } else {
+                    totalOpex += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
+                }
+//                opexAggregates.get(qpl.EventMonthYear__c)[2] += ((qpl.Budget__c - qpl.Actual__c) * multiplier);
+                opexAggregates.get(qpl.EventMonthYear__c)[2] += (qpl.Budget__c * multiplier);
+
+                profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
+
+                system.debug('grouping is: ' + qpl.Parent__c);
+
+
+                if (qpl.Grouping__c == 'Payroll'){
+
+//                    system.debug('payroll: ' + qpl);
+
+                    opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
+                } else if (qpl.Grouping__c == 'IT'){
+
+//                    system.debug('IT: ' + qpl);
+
+                    opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
+                } else if (qpl.Grouping__c == 'Bus Dev'){
+//                    system.debug('bus dev: ' + qpl);
+
+                    opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
+                } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
+
+//                    system.debug('other: ' + qpl);
+
+
+                    opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
+                }
             }
-
-            if (qpl.QBUpdated__c) {
-                totalOpex += (qpl.Actual__c * multiplier);
-                opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
-            } else {
-                totalOpex += (qpl.Actual__c * multiplier);
-                opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
-            }
-            opexAggregates.get(qpl.EventMonthYear__c)[2] += ((qpl.Budget__c - qpl.Actual__c) * multiplier);
-            opexAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Budget__c * multiplier);
-
-
-            if (qpl.Grouping__c == 'Payroll'){
-                opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
-            } else if (qpl.Grouping__c == 'IT'){
-                opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
-            } else if (qpl.Grouping__c == 'Bus Dev'){
-                opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
-            } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
-                opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
-            }
-
+//            else if (qpl.Parent__c == 'Revenue'){
+//                revenueAggregates.get(qpl.EventMonthYear__c)[2] += qpl.Actual__c;
+//            }
 
         }
 
@@ -255,25 +258,104 @@ public class VueTestController {
         totals.put('opex', totalOpex);
         totals.put('netProfit', totalProfit - totalOpex);
 
+
+
+
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
         figuresMap.put('opex',opexAggregates);
         figuresMap.put('netProfit',netProfitAggregates);
         figuresMap.put('totals',totals);
         figuresMap.put('REPORTDATA',reportData);
+        figuresMap.put('months',months);
+
+        List<SalesDashboardSnapshot__c> priorSnaps =
+                            [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
+                                    TotalNetProfit__c
+                            FROM SalesDashboardSnapshot__c
+                            WHERE PeriodEnd__c = :Date.valueOf(endDate)
+                            AND TotalRevenue__c != NULL
+                            ORDER BY CreatedDate DESC LIMIT 6];
+
+        if (priorSnaps.isEmpty()){
+            figuresMap.put('priorTotals',JSON.deserializeUntyped(
+                    '{"TotalRevenue__c" : 0, ' +
+                    '"TotalGrossProfit__c" : 0, ' +
+                    '"TotalOpex__c" : 0, ' +
+                    '"TotalNetProfit__c" : 0}'));
+        } else {
+            figuresMap.put('priorTotals',JSON.deserializeUntyped(
+                    '{"TotalRevenue__c" : ' + (totalRevenue - priorSnaps[priorSnaps.size()-1].TotalRevenue__c) + ', ' +
+                    '"TotalGrossProfit__c" : ' + (totalProfit - priorSnaps[priorSnaps.size()-1].TotalGrossProfit__c) + ', ' +
+                    '"TotalOpex__c" : ' + (totalOpex - priorSnaps[priorSnaps.size()-1].TotalOpex__c) + ', ' +
+                    '"TotalNetProfit__c" :' + ((totalProfit - totalOpex) - priorSnaps[priorSnaps.size()-1].TotalNetProfit__c) +
+                    '}'));
+        }
 
         return figuresMap;
     }
 
     @RemoteAction
-    public static List<Opportunity> getOppsApex(){
+    public static Map<String,Object> getUpdateFlowEntry(String entryId, String dateString){
 
-        return [SELECT Id, Name FROM Opportunity LIMIT 20];
+        Date flowDate = Date.valueOf(dateString);
+        CashFlow__c flow = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
+        CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c WHERE Id = :entryId];
+
+        System.debug('the to date is ' + flowDate + ' and id is ' + flow.Id);
+
+        entry.CashFlow__c = flow.Id;
+
+        update entry;
+
+        calculateBalances();
+
+
+        return getCashflowData(true);
 
     }
 
+    private static void calculateBalances(){
+
+        ////////////// STEP 11 - RECALCULATE BALANCES AND ADD OVERHEAD AMOUNTS TO THE 1ST OF EACH MONTH
+        Decimal confirmed   = 0;
+        Decimal pipeline    = 0;
+        Decimal budget      = 0;
+
+        List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c,
+                                            OutConfirmed__c, OutPipeline__c, OutBudget__c,
+                                            Balance__c, BalancePlus__c, BalancePredict__c, Number__c
+                                FROM CashFlow__c
+                                ORDER BY Number__c ASC];
+
+        for (CashFlow__c flow : flows) {
+//            if (flow.Number__c > 0) {
+
+                confirmed += (flow.InConfirmed__c - flow.OutConfirmed__c);
+                pipeline += (flow.InPipeline__c - flow.OutPipeline__c);
+                budget += (flow.InBudget__c - flow.OutBudget__c);
+
+            system.debug('flow before is ' + flow);
+
+//                system.debug('conf ' + confirmed);
+
+                flow.Balance__c = confirmed;
+                flow.BalancePlus__c = confirmed + pipeline;
+                flow.BalancePredict__c = confirmed + pipeline + budget;
+
+                system.debug('flow after is ' + flow);
+
+//            }
+        }
+
+        update flows;
+
+
+    }
+
+
     @RemoteAction
-    public static Map<String,Object> getCashflowData(){
+    public static Map<String,Object> getCashflowData(Boolean includeRecords){
 
         Map<String,Object> cashflowDataMap = new  Map<String,Object>();
 
@@ -288,7 +370,6 @@ public class VueTestController {
 
         Map<String,List<Decimal>> inEntries     = new Map<String,List<Decimal>>();
         Map<String,List<Decimal>> outEntries    = new Map<String,List<Decimal>>();
-        Map<String,List<Object>> entities       = new Map<String,List<Object>>();
 
         // begin payment runs on thursday
         Date entryDate = (Date.today() > Date.today().toStartOfWeek().addDays(3)) ?
@@ -308,7 +389,7 @@ public class VueTestController {
             figures.add(0);
         }
 
-        List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c
+        List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c, Number__c
                                     FROM CashFlow__c
                                     WHERE Date__c <= :dates[11].addDays(6)
                                     ORDER BY Date__c ASC];
@@ -316,6 +397,9 @@ public class VueTestController {
         Map<Date,CashFlow__c> flowMap = new Map<Date,CashFlow__c>();
 
         for (CashFlow__c flow : flows){
+
+            system.debug(flow);
+
             flowMap.put(flow.Date__c, flow);
         }
 
@@ -333,7 +417,9 @@ public class VueTestController {
                 endDate = startDate.addDays(6);
             }
 
-            openingBalances.add(flowMap.get(startDate.addDays(-1)).BalancePlus__c);
+            Integer days = (x == 0) ? 0 : -1;
+
+            openingBalances.add(flowMap.get(startDate.addDays(-days)).BalancePlus__c);
             closingBalances.add(flowMap.get(endDate).BalancePlus__c);
 
             Decimal totalInflow     = 0;
@@ -345,8 +431,7 @@ public class VueTestController {
                                             FROM CashFlowEntries__r ORDER BY Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
-                                    AND Date__c <= : endDate
-            ]){
+                                    AND Date__c <= : endDate]){
 
                 totalInflow += flow.InConfirmed__c;
                 totalOutflow += flow.OutConfirmed__c;
@@ -358,15 +443,19 @@ public class VueTestController {
                             outEntries.put(entry.Category__c, figures.clone());
                         }
                         outEntries.get(entry.Category__c)[x] += entry.Amount__c;
-                        entry.WeekId__c = entry.Category__c + String.valueOf(x);
-                        records.add(entry);
+                        if (includeRecords){
+                            entry.WeekId__c = entry.Category__c + String.valueOf(x);
+                            records.add(entry);
+                        }
                     } else {
                         if (!inEntries.containsKey(entry.Category__c)){
                             inEntries.put(entry.Category__c, figures.clone());
                         }
                         inEntries.get(entry.Category__c)[x] += entry.Amount__c;
-                        entry.WeekId__c = 'IN' + String.valueOf(x);
-                        records.add(entry);
+                        if (includeRecords){
+                            entry.WeekId__c = 'IN' + String.valueOf(x);
+                            records.add(entry);
+                        }
                     }
                 }
             }
@@ -390,8 +479,5 @@ public class VueTestController {
         return cashflowDataMap;
 
     }
-
-
-
 
 }
