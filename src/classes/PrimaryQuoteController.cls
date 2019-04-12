@@ -221,7 +221,7 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static String changeLineApex(SBQQ__QuoteLine__c line, String operation, Decimal days){
 
-        system.debug('trying to save a line with day value of ' + line);
+        System.debug('trying to save a line with description value of ' + line.SBQQ__Description__c);
 
 
         String result = 'error';

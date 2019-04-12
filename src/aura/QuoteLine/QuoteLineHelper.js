@@ -38,14 +38,22 @@
         component.set('v.expensesTotal',total);
     },
     formatDescription : function(description){
-        if (description.substring(0, 3) === '<p>'){
-            description = description.substring(3);
-        }
-        if (description.substring(description.length - 11, description.length) === '<p><br></p>'){
-            description = description.substring(0, description.length - 11);            
-        } else if (description.substring(description.length - 4, description.length) === '</p>'){
-            description = description.substring(0, description.length - 4);
-        }
+        console.log('before');
+        console.log(description);
+
+        description.replace('<p><p>','<p>');
+        description.replace('</p></p>','</p>');
+
+        // if (description.substring(0, 3) === '<p>'){
+        //     description = description.substring(3);
+        // }
+        // if (description.substring(description.length - 11, description.length) === '<p><br></p>'){
+        //     description = description.substring(0, description.length - 11);
+        // } else if (description.substring(description.length - 4, description.length) === '</p>'){
+        //     description = description.substring(0, description.length - 4);
+        // }
+        console.log('after');
+        console.log(description);
        
         return description;
     },
@@ -53,23 +61,13 @@
         var valid = (!isNaN(component.get('v.line.SBQQ__Quantity__c')) &&
                      component.get('v.line.SBQQ__Quantity__c') >  0 &&
                      !isNaN(component.get('v.line.SBQQ__UnitCost__c')) &&
-                     // component.get('v.line.SBQQ__UnitCost__c') >= 0 &&
                      !isNaN(component.get('v.line.SBQQ__ListPrice__c'))
-            // &&
-                     // component.get('v.line.SBQQ__ListPrice__c') >= 0
         );
 
-        console.log('initial valid claim is ' + valid);
-
         if (component.get('v.original.SBQQ__SubscriptionTerm__c')){
-
-            console.log('finding term of ' + component.get('v.line.SBQQ__Product__r.SBQQ__SubscriptionTerm__c'));
-
             valid = !isNaN(component.get('v.line.SBQQ__SubscriptionTerm__c')) &&
                 component.get('v.line.SBQQ__SubscriptionTerm__c') >  0;
         }
-
-        console.log('later valid claim is ' + valid);
 
         return valid;
     }

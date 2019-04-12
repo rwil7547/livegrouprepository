@@ -29,7 +29,20 @@
         // if (!component.get('v.changed')  && event.which !== 37 && event.which !== 38
         if (event.which !== 37 && event.which !== 38 && event.which !== 39 && event.which !== 40) {
             component.set('v.changed', true);
-            helper.fireLineChange(component, component.get('v.line'), 'uncommitted');
+
+            var line = component.get('v.line');
+
+            console.log('before');
+            console.log(line.SBQQ__Description__c);
+
+            line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p><br><\/p><p>/g,'\n<br><br>');
+            line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p>/g,'\n<br>');
+            line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<p>/g,'');
+            line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p>/g,'');
+            console.log('after');
+            console.log(line.SBQQ__Description__c);
+
+            helper.fireLineChange(component, line, 'uncommitted');
         }
     },
     formatPaste: function (component, e, helper) {
@@ -58,7 +71,17 @@
                 component.set('v.changed', false);
                 helper.closeEdit(component);
                 var line = component.get('v.line');
-                line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
+
+                console.log('before');
+                console.log(line.SBQQ__Description__c);
+
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p><br><\/p><p>/g,'\n<br><br>');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p>/g,'\n<br>');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<p>/g,'');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p>/g,'');
+                console.log('after');
+                console.log(line.SBQQ__Description__c);
+
                 helper.fireLineChange(component, line,'save');
             }
         }
@@ -70,7 +93,17 @@
                 component.set('v.changed', false);
                 helper.closeEdit(component);
                 var line = component.get('v.line');
-                line.SBQQ__Description__c = helper.formatDescription(line.SBQQ__Description__c);
+
+                console.log('before');
+                console.log(line.SBQQ__Description__c);
+
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p><br><\/p><p>/g,'\n<br><br>');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p><p>/g,'\n<br>');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<p>/g,'');
+                line.SBQQ__Description__c = line.SBQQ__Description__c.replace(/<\/p>/g,'');
+                console.log('after');
+                console.log(line.SBQQ__Description__c);
+
                 helper.fireLineChange(component, line,'save');
             }
         }

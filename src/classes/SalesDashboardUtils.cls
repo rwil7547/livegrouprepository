@@ -152,13 +152,15 @@ public class SalesDashboardUtils {
 
     }
 
-    public static void commitOpportunites(){
+    public static void commitOpportunites(Date commitMonth){
+
+        commitMonth = commitMonth.addMonths(1).toStartOfMonth().addDays(-1);
 
         List<Opportunity> priorOpportunities = [SELECT Id, Event_end__c, Amount_Calder__c, Gross_profit_2__c,
                                                         Filtered_Cost_of_Sale__c
                                                 FROM Opportunity
                                                 WHERE StageName = 'Closed Won'
-                                                AND Event_end__c < :Date.today().toStartOfMonth()
+                                                AND Event_end__c <= :commitMonth
                                                 AND Committed__c = FALSE
                                                 ORDER BY Event_end__c DESC];
 
@@ -180,7 +182,7 @@ public class SalesDashboardUtils {
         update priorOpportunities;
 
         List<Adjustment__c> priorAdjustments = [SELECT Id FROM Adjustment__c
-                                                WHERE Month__c < :Date.today().toStartOfMonth()
+                                                WHERE Month__c <= :commitMonth
                                                 AND Committed__c = FALSE];
 
         for (Adjustment__c adj : priorAdjustments){
@@ -188,6 +190,11 @@ public class SalesDashboardUtils {
         }
 
         update priorAdjustments;
+
+        QBClosedMonth__c month = QBClosedMonth__c.getInstance('SFCommitMonth');
+        month.Month__c = commitMonth;
+        update month;
+
 
     }
 

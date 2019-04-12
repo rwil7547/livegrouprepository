@@ -1004,70 +1004,28 @@
                             <div>PROFIT</div>
                             <div>COST OF SALE</div>
                         </div>
-
                         <template v-for="month,index in graphData['months']">
                             <div class="monthTile">
-                                <div style="font-weight: bold;">{{month}}</div>
+                                <div style="font-weight: bold;">{{new Date(month)}}</div>
                                 <div>{{'£' + Math.abs(graphData['revenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                 <div>{{'£' + Math.abs(graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                 <div>{{'£' + Math.abs(graphData['revenue'][month][0] - graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                             </div>
-
                         </template>
-
                         <div class="monthTile">
                             <div style="font-weight: bold;">TOTAL</div>
                             <div>{{'£' + Math.abs(graphData.totals.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                             <div>{{'£' + Math.abs(graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                             <div>{{'£' + Math.abs(graphData.totals.revenue - graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                         </div>
-
                     </div>
-
-
-
-
-
-                    <div style="margin-top: 40px;">
-
-                        <div class="yearGrid">
-                            <div ></div>
-                            <template v-for="month in graphData['months']">
-                                <div class="yearEntry header">{{month}}</div>
-                            </template>
-                            <div  class="yearEntry" > TOTAL</div>
-                        </div>
-                        <div class="yearGrid">
-                            <div >REVENUE</div>
-                            <template v-for="value in graphData['revenue']">
-                                <div class="yearEntry"></div>
-                            </template>
-                            <div  class="yearEntry" >{{'£' + Math.abs(graphData.totals.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                        </div>
-                        <div class="yearGrid">
-                            <div >GROSS PROFIT</div>
-                            <template v-for="value in graphData['profit']">
-                                <div class="yearEntry">{{'£' + Math.abs(value[0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            </template>
-                            <div  class="yearEntry" >{{'£' + Math.abs(graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                        </div>
-                        <div class="yearGrid">
-                            <div >COST OF SALE</div>
-                            <template v-for="value in graphData['profit']">
-                                <div class="yearEntry">{{'£' + Math.abs(value[0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            </template>
-                            <div  class="yearEntry" >{{'£' + Math.abs(graphData.totals.revenue - graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                        </div>
-                    </div>
-
                 </div>
                 <div class="boxLite">
-                    <img src="{!$Resource.QuickbooksLogo}" height="60px" />
+                    <img src="{!$Resource.QuickbooksCF}" height="40px" />
                     QUICKBOOKS
                 </div>
                 <div class="boxLite">
-                                    <img src="{!$Resource.BudgetCF}" height="60px"/>
-
+                    <img src="{!$Resource.BudgetCF}" height="30px"/>
                     BUDGET
                 </div>
 

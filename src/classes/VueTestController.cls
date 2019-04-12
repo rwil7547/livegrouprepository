@@ -268,6 +268,8 @@ public class VueTestController {
         figuresMap.put('totals',totals);
         figuresMap.put('REPORTDATA',reportData);
         figuresMap.put('months',months);
+        figuresMap.put('qbClose',QBClosedMonth__c.getInstance('QBClosedMonth'));
+        figuresMap.put('sfCommit',QBClosedMonth__c.getInstance('SFCommitMonth'));
 
         List<SalesDashboardSnapshot__c> priorSnaps =
                             [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
