@@ -326,28 +326,26 @@ public class VueTestController {
 
         List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c,
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
-                                            Balance__c, BalancePlus__c, BalancePredict__c, Number__c
+                                            Balance__c, BalancePlus__c, BalancePredict__c, Number__c, InDescription__c
                                 FROM CashFlow__c
                                 ORDER BY Number__c ASC];
 
         for (CashFlow__c flow : flows) {
-//            if (flow.Number__c > 0) {
-
-                confirmed += (flow.InConfirmed__c - flow.OutConfirmed__c);
-                pipeline += (flow.InPipeline__c - flow.OutPipeline__c);
-                budget += (flow.InBudget__c - flow.OutBudget__c);
-
-            system.debug('flow before is ' + flow);
-
-//                system.debug('conf ' + confirmed);
-
-                flow.Balance__c = confirmed;
-                flow.BalancePlus__c = confirmed + pipeline;
-                flow.BalancePredict__c = confirmed + pipeline + budget;
-
-                system.debug('flow after is ' + flow);
-
-//            }
+            if (flow.Number__c == 0){
+                confirmed   += (flow.InConfirmed__c - flow.OutConfirmed__c) + Decimal.valueOf(flow.InDescription__c);
+                pipeline    += (flow.InPipeline__c - flow.OutPipeline__c);
+                budget      += (flow.InBudget__c - flow.OutBudget__c);
+                flow.Balance__c         = confirmed;
+                flow.BalancePlus__c     = confirmed + pipeline;
+                flow.BalancePredict__c  = confirmed + pipeline + budget;
+            } else {
+                confirmed   += (flow.InConfirmed__c - flow.OutConfirmed__c);
+                pipeline    += (flow.InPipeline__c - flow.OutPipeline__c);
+                budget      += (flow.InBudget__c - flow.OutBudget__c);
+                flow.Balance__c         = confirmed;
+                flow.BalancePlus__c     = confirmed + pipeline;
+                flow.BalancePredict__c  = confirmed + pipeline + budget;
+            }
         }
 
         update flows;
@@ -407,6 +405,7 @@ public class VueTestController {
 
         Date endDate;
 
+        //
         for (Integer x = 0; x < 12; x++){
 
             Date startDate  = Date.valueOf(dates[x]);
@@ -429,8 +428,10 @@ public class VueTestController {
 
             for (CashFlow__c flow : [SELECT Date__c, InConfirmed__c, InPipeline__c, InBudget__c,
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
-                                            (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c
-                                            FROM CashFlowEntries__r ORDER BY Source__c )
+                                            (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+                                                    CashFlow__r.DayMonthYear__c
+                                            FROM CashFlowEntries__r
+                                            ORDER BY LastModifiedDate ASC, Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
                                     AND Date__c <= : endDate]){

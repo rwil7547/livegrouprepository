@@ -167,10 +167,21 @@ public class QuickbooksChangeDataCapture {
 	            }
 
 	            if (updateSchedules.size() > 0) {
+
+					for (Invoice_Schedule__c is : updateSchedules.values()){
+						system.debug('update list: ' + is);
+					}
+
 	            	update updateSchedules.values();
 	            } 
 	            if (deleteSchedules.size() > 0) {
-	            	update deleteSchedules.values();        
+					for (Invoice_Schedule__c is : deleteSchedules.values()){
+						system.debug('delete list: ' + is);
+					}
+
+
+
+					update deleteSchedules.values();
 	        	}
 	        }
     	}

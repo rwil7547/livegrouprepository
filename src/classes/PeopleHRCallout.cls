@@ -10,7 +10,10 @@ public class PeopleHRCallout {
         Http http = new Http();
 
         HttpRequest request = new HttpRequest();
-        request.setBody('{"APIKey": "d5a8306e-9c56-4404-bc4d-91cb4c869e34","Action": "GetAllEmployeeDetail","IncludeLeavers":"true"}');
+        request.setBody('{' +
+                '"APIKey": "d5a8306e-9c56-4404-bc4d-91cb4c869e34",' +
+                '"Action": "GetAllEmployeeDetail",' +
+                '"IncludeLeavers":"true"}');
         request.setEndpoint('https://api.peoplehr.net/Employee');
         request.setMethod('POST');
 
@@ -69,12 +72,18 @@ public class PeopleHRCallout {
             Http http = new Http();
 
             HttpRequest request = new HttpRequest();
-            request.setBody('{ "APIKey" : "d5a8306e-9c56-4404-bc4d-91cb4c869e34", "Action" : "GetHolidayDetail",' +
-                    '"EmployeeId" : "' + emp.PeopleHRId__c + '", "StartDate": "' + fallBack + '", "' + futureLimit + '": "2020-04-01" }');
+            request.setBody('{ ' +
+                    '"APIKey" : "d5a8306e-9c56-4404-bc4d-91cb4c869e34", ' +
+                    '"Action" : "GetHolidayDetail",' +
+                    '"EmployeeId" : "' + emp.PeopleHRId__c + '", ' +
+                    '"StartDate": "' + fallBack + '", ' +
+                    '"' + futureLimit + '": "2020-04-01" }');
             request.setEndpoint('https://api.peoplehr.net/Holiday');
             request.setMethod('POST');
 
             HttpResponse response = http.send(request);
+
+            system.debug(response.getBody());
 
             if (response.getStatusCode() == 200) {
 
@@ -98,7 +107,8 @@ public class PeopleHRCallout {
         Schema.SObjectField key = Holiday__c.Fields.PeopleHRId__c;
 
         if (!existingHolidayIds.isEmpty()){
-            delete [SELECT Id FROM Holiday__c WHERE Id IN :existingHolidayIds];
+            system.debug('deleting the following ' + existingHolidayIds);
+            delete [SELECT Id FROM Holiday__c WHERE PeopleHRId__c IN :existingHolidayIds];
         }
 
         if (!holidays.isEmpty()) {
@@ -110,8 +120,9 @@ public class PeopleHRCallout {
 
         Set<String> holidayIds = new Set<String>();
 
-        for (Holiday__c holiday : [SELECT Id, PeopleHRId__c FROM Holiday__c
+        for (Holiday__c holiday : [SELECT Id, PeopleHRId__c, Employee__r.FirstName__c, Start__c FROM Holiday__c
                                     WHERE End__c >=: fallback]){
+            system.debug('existing holiday id of ' + holiday.Id + ' for ' +  holiday.Employee__r.FirstName__c + ' on ' + holiday.Start__c);
             holidayIds.add(holiday.PeopleHRId__c);
         }
 

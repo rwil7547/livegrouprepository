@@ -31,7 +31,7 @@ Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before upd
 						|| (is.Invoice_Sent__c && is.Invoice_Sent__c == Trigger.oldMap.get(is.Id).Invoice_Sent__c))) {
 	            		isIds.add(is.Id);
 	            		oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c - Trigger.oldMap.get(is.Id).Amount__c);
-	            		System.debug('prior amount preserved');
+	            		System.debug('prior amount preserved for ' + is);
 	            	}
 
 	            	// the amount on the schedule has been updated, and the prior value on the 
@@ -43,7 +43,7 @@ Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before upd
 						|| (!is.Invoice_Sent__c && is.Invoice_Sent__c == Trigger.oldMap.get(is.Id).Invoice_Sent__c))) {
 	            		isIds.add(is.Id);
 	            		oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c);
-	            		System.debug('prior amount disgarded');            		
+	            		System.debug('prior amount disgarded for ' + is);
 	            	}
 
 		           	// the send date on the schedule has been changed, but not by 

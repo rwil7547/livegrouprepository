@@ -70,6 +70,9 @@ public class InvoiceScheduleTriggerHandler {
 			}
 		}
 
+		system.debug('to delete' + toDelete);
+		system.debug('to upsert' + toUpsert);
+
 		if (toDelete.size() > 0 ) 			delete toDelete;
 		if (toUpsert.size() > 0) 			upsert toUpsert;
 

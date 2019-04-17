@@ -3853,6 +3853,7 @@ buil
                     iterator.forEach(function (element) {
 
                         var monthData   = oppReportData[element];
+                        console.log(monthData);
                         var length      = monthData['Closed Won'].length +
                             monthData['Costed prospect'].length + monthData['Pipeline prospect'].length +
                             monthData['Repeat Prospect'].length;

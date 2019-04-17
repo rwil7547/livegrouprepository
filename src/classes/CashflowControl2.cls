@@ -450,14 +450,14 @@ public with sharing class CashflowControl2 {
 
         for (QBProfitAndLoss__c budgetEntry : budgetMap.values()){
 
-            if (budgetEntry.Actual__c > 0){
+            if (budgetEntry.Actual__c > 0 && budgetEntry.Category__c != 'Revenue'){
                 Date entryDate = budgetEntry.Month__c.addMonths(1).addDays(-1);
 
                 if (flowMap.containsKey(entryDate)){
                     CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
                     flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
                     flowEntry.Description__c     = 'Budgeted ' + budgetEntry.Nominal__c;
-                    flowEntry.Stage__c           = 'Budget';
+                    flowEntry.Stage__c           = budgetEntry.Category__c == 'Revenue' ? 'Confirmed' : 'Budget';
                     flowEntry.Category__c        = budgetEntry.Category__c;
                     flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
                     flowEntry.Amount__c          = budgetEntry.Actual__c;
@@ -497,6 +497,8 @@ public with sharing class CashflowControl2 {
                 system.debug('setting initial balance value of ' + startingBalance);
 
                 confirmed           += startingBalance;
+
+                flow.InDescription__c = String.valueOf(startingBalance);
 
                 flow.Balance__c     = startingBalance;
                 flow.BalancePlus__c = startingBalance;
