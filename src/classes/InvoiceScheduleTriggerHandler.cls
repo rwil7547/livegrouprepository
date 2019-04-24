@@ -3,9 +3,11 @@ public class InvoiceScheduleTriggerHandler {
 	public static Boolean noConflict = true;
 
 	// METHOD PURPOSE: update invoice schedule amounts when one schedule changed  
-	public static void updateAmounts(Set<String> schedules, Map<Id,Decimal> oppIds){
+	public static void updateAmounts(Map<Id,Decimal> oppIds, Set<Id> triggerIds){
 
 		noConflict = false;
+
+        system.debug('oppIds ' + oppIds + ' triggerIds ' + triggerIds);
 
 		List<Invoice_Schedule__c> toUpsert = new List<Invoice_Schedule__c>();
 		List<Invoice_Schedule__c> toDelete = new List<Invoice_Schedule__c>();
@@ -16,9 +18,9 @@ public class InvoiceScheduleTriggerHandler {
 												ProcessedInvoices__c, Custom_Invoices__c, RequiredSchedules__c,
 												(SELECT Id, Amount__c, Invoice_Sent__c, Opportunity__c
 												FROM Invoice_Schedules__r
-												WHERE Id NOT IN: schedules
-												AND Invoice_Sent__c = False 
-												AND Custom_Value__c = False
+                                               WHERE Id NOT IN: triggerIds
+												AND Invoice_Sent__c = FALSE
+												AND Custom_Value__c = FALSE
 												ORDER BY Name DESC)
 											FROM Opportunity 
 											WHERE Id IN: oppIds.keySet()];
@@ -27,9 +29,12 @@ public class InvoiceScheduleTriggerHandler {
 		// create a new schedule
 		for (Opportunity opp : oppSchedules) {
 
-			List<Invoice_Schedule__c> isList = opp.Invoice_Schedules__r;
-			Decimal reservedAmount = opp.Amount_Invoiced2__c + opp.Custom_Values__c + oppIds.get(opp.Id);
-			Decimal amountRemaining = opp.Amount_Calder__c - reservedAmount;
+			List<Invoice_Schedule__c> isList    = opp.Invoice_Schedules__r;
+			Decimal reservedAmount              = opp.Amount_Invoiced2__c + opp.Custom_Values__c + oppIds.get(opp.Id);
+			Decimal amountRemaining             = opp.Amount_Calder__c - reservedAmount;
+
+            System.debug('three amts are opp.Amount_Invoiced2__c ' + opp.Amount_Invoiced2__c + ' opp.Custom_Values__c ' +
+                    opp.Custom_Values__c + ' oppIds.get(opp.Id) ' + oppIds.get(opp.Id));
 
 			if (isList.size() == 0 && (amountRemaining <= -0.01 || amountRemaining >= 0.01)) { // if amountRemaining < -0.01 || amountRemaining > 0.01
 				Invoice_Schedule__c is = new Invoice_Schedule__c();
@@ -50,10 +55,10 @@ public class InvoiceScheduleTriggerHandler {
 				// work out if there are more open schedules than needed
 
 				// Integer reservedInvoices = Integer.valueOf(opp.ProcessedInvoices__c + opp.Custom_Invoices__c) + something;
-				Integer reservedInvoices = Integer.valueOf(opp.ScheduleCount__c) - isList.size();
-				Integer mimimumInvoices = (reservedInvoices >= opp.RequiredSchedules__c) 
-										  ? reservedInvoices + 1 : Integer.valueOf(opp.RequiredSchedules__c);
-				Integer excessInvoices = Integer.valueOf(opp.ScheduleCount__c) - mimimumInvoices;
+				Integer reservedInvoices    = Integer.valueOf(opp.ScheduleCount__c) - isList.size();
+				Integer mimimumInvoices     = (reservedInvoices >= opp.RequiredSchedules__c)
+										        ? reservedInvoices + 1 : Integer.valueOf(opp.RequiredSchedules__c);
+				Integer excessInvoices      = Integer.valueOf(opp.ScheduleCount__c) - mimimumInvoices;
 				// if there are more than needed, delete the excess ones
 				if (excessInvoices > 0) {
 					for (Integer x = 0; x < excessInvoices; x++) {

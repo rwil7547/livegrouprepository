@@ -17,22 +17,6 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 		// 2. trigger filter to assign records to shipment lists 
 	    for (Opportunity opp : Trigger.new) {
 
-//		    if (Trigger.isBefore) {
-//
-//	            if (Trigger.isInsert) {
-//
-//	           }
-//
-//	            if (Trigger.isUpdate) {
-//
-//	            }
-//
-//	            if (Trigger.isDelete) {
-//
-//	            }
-//		    }
-
-		    
 		    if (Trigger.isAfter) {
 
 		    	if (Trigger.isInsert) {
@@ -92,7 +76,6 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 	            	if (opp.StageName == 'Closed Won' && opp.StageName == Trigger.oldMap.get(opp.Id).StageName &&
 	            		opp.Invoice_Schedule__c != Trigger.oldMap.get(opp.Id).Invoice_Schedule__c &&
 	            		opp.Invoice_Schedule__c != null) {
-						System.debug('in ' + 2);
 	            		deleteInvoiceSchedules.put(opp.Id,opp);
 	            		createInvoiceSchedules.add(opp);            	            	
 	                }
@@ -119,15 +102,10 @@ trigger OpportunityTrigger on Opportunity (after insert, after update) {
 					// Opportunity is closed won and the project dates are changed
 					if (opp.StageName == 'Closed Won' && (opp.Project_Start__c != Trigger.oldMap.get(opp.Id).Project_Start__c ||
 							opp.Project_End__c != Trigger.oldMap.get(opp.Id).Project_End__c)){
-						System.debug('filter entered');
 						reservationStartChange.put(opp.Id,opp.Project_Start__c.daysBetween(Trigger.oldMap.get(opp.Id).Project_Start__c));
 						reservationEndChange.put(opp.Id,opp.Project_End__c.daysBetween(Trigger.oldMap.get(opp.Id).Project_End__c));
 					}
 		    	}
-//
-//		    	if (Trigger.isDelete) {
-//
-//		    	}
 		    }
 		}
 

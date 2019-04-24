@@ -107,9 +107,6 @@ public class VueTestController {
         Decimal totalProfit     = 0;
         Decimal totalOpex       = 0;
 
-
-
-
         // work out if start date and end date are not clean start and end dates
         Decimal numberOfDaysStart   = Date.daysInMonth(startDate.year(), startDate.month());
         Decimal daysMissing         = startDate.day() - 1;
@@ -135,10 +132,14 @@ public class VueTestController {
         }
 
         // get all committed opp data
-        for (Opportunity opp : [SELECT Amount_Calder__c, Probability, StageName,
-                                        EventMonthYear__c, Committed__c, CommittedRevenue__c, CommittedProfit__c,
+        for (Opportunity opp : [SELECT Amount_Calder__c, Probability, StageName, Name, Account.Name,
+                                        Event_start__c, Event_end__c, Filtered_Cost_of_Sale__c,
+                                        Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
+                                        EventMonthYear__c, Committed__c, CommittedRevenue__c,
+                                        CommittedProfit__c, CommittedCOS__c, IsClosed,
                                         Gross_profit_2__c, Event_End_Grouping__c,
-                                        EventMonthString__c
+                                        EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
+                                        Project_Manager__r.FirstName, Project_Manager__r.LastName
                                 FROM Opportunity
                                 WHERE StageName != 'Closed Lost'
                                 AND Event_end__c >= :startDate
@@ -190,7 +191,6 @@ public class VueTestController {
                                             FROM QBProfitAndLoss__c
                                             WHERE Month__c >= :startDate.toStartOfMonth()
                                             AND Month__c <= :endDate
-//                                            AND Opex__c = TRUE
                                             ORDER BY Month__c DESC];
 
         for (QBProfitAndLoss__c qpl : results) {
@@ -211,40 +211,20 @@ public class VueTestController {
                     totalOpex += (qpl.Actual__c * multiplier);
                     opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
                 }
-//                opexAggregates.get(qpl.EventMonthYear__c)[2] += ((qpl.Budget__c - qpl.Actual__c) * multiplier);
-                opexAggregates.get(qpl.EventMonthYear__c)[2] += (qpl.Budget__c * multiplier);
 
+                opexAggregates.get(qpl.EventMonthYear__c)[2] += (qpl.Budget__c * multiplier);
                 profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
 
-                system.debug('grouping is: ' + qpl.Parent__c);
-
-
                 if (qpl.Grouping__c == 'Payroll'){
-
-//                    system.debug('payroll: ' + qpl);
-
                     opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'IT'){
-
-//                    system.debug('IT: ' + qpl);
-
                     opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'Bus Dev'){
-//                    system.debug('bus dev: ' + qpl);
-
                     opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
-
-//                    system.debug('other: ' + qpl);
-
-
                     opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
                 }
             }
-//            else if (qpl.Parent__c == 'Revenue'){
-//                revenueAggregates.get(qpl.EventMonthYear__c)[2] += qpl.Actual__c;
-//            }
-
         }
 
         for (Integer x = 0; x < months.size(); x++){
@@ -258,12 +238,11 @@ public class VueTestController {
         totals.put('opex', totalOpex);
         totals.put('netProfit', totalProfit - totalOpex);
 
-
-
-
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
         figuresMap.put('opex',opexAggregates);
+        figuresMap.put('qbRevenue',revenueAggregates);
+        figuresMap.put('qbProfit',profitAggregates);
         figuresMap.put('netProfit',netProfitAggregates);
         figuresMap.put('totals',totals);
         figuresMap.put('REPORTDATA',reportData);

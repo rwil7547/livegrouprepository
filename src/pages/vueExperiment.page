@@ -342,7 +342,15 @@
         }
         .colDivider {
             display: grid;
-            grid-template-columns: 6% 4% 12% 10% 7% 7% 7% 9% 9% 6% 9% 9% 5%;
+            grid-template-columns: 8% 6% 14% 14% 9% 9% 8% 8% 8% 6% 9%;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+        .headerDivider {
+            display: grid;
+            grid-template-columns: 60% 8% 8% 8% 6% 9%;
+            padding-left: 4px;
+            padding-right: 4px;
         }
         .Quickbooks {
             /*color: white;*/
@@ -365,6 +373,7 @@
             display: grid;
             grid-template-columns: 13% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 8%;
             justify-content: space-evenly;
+            font-weight: lighter;
         }
         .yearEntry {
             /*border-left: 0.5px solid lightgrey;*/
@@ -386,7 +395,45 @@
         }
         .monthTile:hover {
             background-color: #f2f2f2;
-            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            padding: 5px;
+            width: 100px;
+            z-index:100;
+        }
+        .reportCols {
+            position: sticky;
+            top: 60px;
+            background-color: #555555;
+            color: white;
+            padding: 4px;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+        .reportHeader {
+            font-size: 16px;
+        }
+        .reportMonth {
+            font-weight: bold;
+            /*background-color: #2d7175;*/
+            /*color: white;*/
+        }
+        .stage {
+            /*background-color: #60c5c1;*/
+        }
+        .reportRecord {
+            font-weight: lighter;
+            cursor: pointer;
+            border-bottom: 0.5px solid #e4e4e4;
+            padding: 3px;
+            min-height: 31px;
+        }
+        .reportRecord:hover {
+            background-color: #f4f4f4;
+        }
+        .open {
+            font-style: italic;
+            font-weight: lighter;
+            color: grey;
         }
 
         #app {
@@ -502,7 +549,6 @@
                 <!--</div>-->
             <!--</div>-->
         </div>
-
 
         <span v-bind:style="{ display : setting !== 'graph' ? 'none' : ''}">
 
@@ -968,61 +1014,77 @@
         </span>
 
         <span v-bind:style="{ display : setting !== 'report' ? 'none' : ''}">
-            <div class="box">
-
-
-               <div class="colDivider">
-                    <div>AMP/PM</div>
-                    <div>Job No.</div>
-                    <div>Account</div>
-                    <div>Start</div>
-                    <div>End</div>
-                    <div>Revenue</div>
-                    <div>Profit</div>
+            <div class="box" style="padding: 0;">
+                <div class="colDivider reportCols">
+                    <div>AM/PM</div>
+                    <div>JOB</div>
+                    <div>NAME</div>
+                    <div>ACCOUNT</div>
+                    <div>START</div>
+                    <div>END</div>
+                    <div>REVENUE</div>
+                    <div>PROFIT</div>
                     <div>COS</div>
-               </div>
+                    <div>MARGIN</div>
+                    <div>STATUS</div>
+                </div>
 
-                    <div class="boxLite">
-
-                    <template v-for="month,index in graphData['REPORTDATA']">
-
-
-                            <div>CLOSED WON</div>
-                            <template v-for="record in month['Closed Won']">
-                                <div class="colDivider">
-                                    {{ record.Amount_Calder__c }}
+                <template v-for="month,monthIndex in graphData['REPORTDATA']">
+                    <div>
+                        <div class="headerDivider reportHeader reportMonth">
+                            <div>{{ monthIndex.toUpperCase() }}</div>
+                            <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0] - graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{ (Math.abs(graphData.profit[monthIndex][0] / (graphData.revenue[monthIndex][0] > 0 ?
+                                    graphData.revenue[monthIndex][0] : 1) * 100).toFixed(0)) + '%'}}</div>
+                            <div></div>
+                        </div>
+                        <template v-for="stage,stageIndex in graphData['REPORTDATA'][monthIndex]">
+                            <template v-if="stage.length > 0">
+                                <div class="headerDivider stage">
+                                    <div> {{ stageIndex.toUpperCase() }}</div>
+                                    <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0] - graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    <div>{{ (Math.abs(graphData.profit[monthIndex][0] / graphData.revenue[monthIndex][0] * 100).toFixed(0)) + '%'}}</div>
+                                    <div></div>
                                 </div>
+                                <template v-for="record in stage">
+                                    <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'">
+                                        <div>{{ record.Owner.FirstName.substring(0,1) + record.Owner.LastName.substring(0,1) +
+                                                (record.Project_Manager__c ? '/' + record.Project_Manager__r.FirstName.substring(0,1)
+                                                + record.Project_Manager__r.LastName.substring(0,1) : '') }}</div>
+                                        <div>{{ record.Filtered_Job_Number__c }}</div>
+                                        <div>{{ record.Name }}</div>
+                                        <div>{{ record.Account.Name }}</div>
+                                        <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
+                                        <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
+                                        <div>{{ '£' + Math.abs(record.Amount_Calder__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                        <div>{{ '£' + Math.abs(record.Gross_profit_2__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                        <div>{{ '£' + Math.abs(record.Filtered_Cost_of_Sale__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                        <div>{{ record.Gross_Margin__c }}%</div>
+                                        <div>{{ record.IsClosed ? record.Quote_Status__c : 'Prob: ' + record.Probability + '%'}}</div>
+                                    </div>
+                                </template>
                             </template>
+                        </template>
+                    <br/>
+                    </div>
+                </template>
 
-                            <div>COSTED PROSPECT</div>
-                            <template v-for="record in month['Closed Won']">
-                                <div class="colDivider">
-                                    {{ record.Amount_Calder__c }}
-                                </div>
-                            </template>
-
-                            <div>PIPELINE PROSPECT</div>
-                            <template v-for="record in month['Closed Won']">
-                                <div class="colDivider">
-                                    {{ record.Amount_Calder__c }}
-                                </div>
-                            </template>
-
-                            <div>REPEAT PROSPECT</div>
-                            <template v-for="record in month['Closed Won']">
-                                <div class="colDivider">
-                                    {{ record.Amount_Calder__c }}
-                                </div>
-                            </template>
-
-
-
-
-                    </template>
-
+                <div class="headerDivider reportHeader reportMonth">
+                    <div>PERIOD TOTAL</div>
+                    <div></div><div></div><div></div><div></div><div></div>
+                    <div>{{ }}</div>
+                    <div>{{ }}</div>
+                    <div>{{ }}</div>
+                    <div>{{ }}</div>
+                    <div></div>
                 </div>
 
             </div>
+
 
         </span>
 
@@ -1034,7 +1096,7 @@
 
                     <div class="yearGrid">
                         <div>
-                            <div>&nbsp;</div>
+                            <div style="padding: 2px;">&nbsp;</div>
                             <div>REVENUE</div>
                             <div>PROFIT</div>
                             <div>COST OF SALE</div>
@@ -1057,11 +1119,36 @@
                 </div>
                 <div class="boxLite">
                     <img src="{!$Resource.QuickbooksCF}" height="40px" />
-                    QUICKBOOKS
+
+                    <div class="yearGrid">
+                        <div>
+                            <div style="padding: 2px;">&nbsp;</div>
+                            <div>REVENUE</div>
+                            <div>PROFIT</div>
+                            <div>COST OF SALE</div>
+                            <div>OPERATING COSTS</div>
+                        </div>
+                        <template v-for="month,index in graphData['months']">
+                            <div class="monthTile">
+                                <div style="font-weight: bold;">{{month}}</div>
+                                <div>{{'£' + Math.abs(graphData['qbRevenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                <div>{{'£' + Math.abs(graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                <div>{{'£' + Math.abs(graphData['qbRevenue'][month][0] - graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                <div>{{'£' + Math.abs(graphData['opex'][month][1]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            </div>
+                        </template>
+                        <div class="monthTile">
+                            <div style="font-weight: bold;">TOTAL</div>
+                            <div>{{'£' + Math.abs(graphData.totals.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{'£' + Math.abs(graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{'£' + Math.abs(graphData.totals.revenue - graphData.totals.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{'£' + Math.abs(graphData.totals.opex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="boxLite">
                     <img src="{!$Resource.BudgetCF}" height="30px"/>
-                    BUDGET
+                    <span style="font-size: 20px;margin-left: 10px;">Active budget: </span>
                 </div>
 
             </div>
@@ -1474,6 +1561,9 @@
 
                             var options = {
                                 lineWidth: 1,
+                                // isStacked : true,
+                                areaOpacity : 0.5,
+                                // areaOpacity : 1,
                                 series: {
                                     0: {
                                         color: 'red',//#556B2F',
