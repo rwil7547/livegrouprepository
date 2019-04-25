@@ -29,54 +29,55 @@ public class InvoiceScheduleTriggerHandler {
 		// create a new schedule
 		for (Opportunity opp : oppSchedules) {
 
-			List<Invoice_Schedule__c> isList    = opp.Invoice_Schedules__r;
-			Decimal reservedAmount              = opp.Amount_Invoiced2__c + opp.Custom_Values__c + oppIds.get(opp.Id);
-			Decimal amountRemaining             = opp.Amount_Calder__c - reservedAmount;
+            if (oppIds.get(opp.Id) != 0){
+                List<Invoice_Schedule__c> isList    = opp.Invoice_Schedules__r;
+                Decimal reservedAmount              = opp.Amount_Invoiced2__c + opp.Custom_Values__c + oppIds.get(opp.Id);
+                Decimal amountRemaining             = opp.Amount_Calder__c - reservedAmount;
 
-            System.debug('three amts are opp.Amount_Invoiced2__c ' + opp.Amount_Invoiced2__c + ' opp.Custom_Values__c ' +
-                    opp.Custom_Values__c + ' oppIds.get(opp.Id) ' + oppIds.get(opp.Id));
+                System.debug('three amts are opp.Amount_Invoiced2__c ' + opp.Amount_Invoiced2__c + ' opp.Custom_Values__c ' +
+                        opp.Custom_Values__c + ' oppIds.get(opp.Id) ' + oppIds.get(opp.Id));
 
-			if (isList.size() == 0 && (amountRemaining <= -0.01 || amountRemaining >= 0.01)) { // if amountRemaining < -0.01 || amountRemaining > 0.01
-				Invoice_Schedule__c is = new Invoice_Schedule__c();
-				is.Name				= 'Invoice ' + (opp.ScheduleCount__c + 1);
-				is.Opportunity__c 	= opp.Id;
-				is.Send_Date__c		= (opp.Event_end__c < Date.today()) ? Date.today() + 3 : opp.Event_end__c + 3;
-				is.Payment_Date__c 	= is.Send_Date__c + 30;
-				is.Amount__c 		= opp.Amount_Calder__c - reservedAmount;
-				toUpsert.add(is);				
-			} else if (isList.size() == 1) {
-				if (amountRemaining > -0.01 && amountRemaining < 0.01) { // if amountRemaining > 0.01 && amountRemaining < 0.01
-					toDelete.add(isList[0]);
-				} else {
-					isList[0].Amount__c = amountRemaining;
-					toUpsert.add(isList[0]);
-				}
-			} else {
-				// work out if there are more open schedules than needed
+                if (isList.size() == 0 && (amountRemaining <= -0.01 || amountRemaining >= 0.01)) { // if amountRemaining < -0.01 || amountRemaining > 0.01
+                    Invoice_Schedule__c is = new Invoice_Schedule__c();
+                    is.Name				= 'Invoice ' + (opp.ScheduleCount__c + 1);
+                    is.Opportunity__c 	= opp.Id;
+                    is.Send_Date__c		= (opp.Event_end__c < Date.today()) ? Date.today() + 3 : opp.Event_end__c + 3;
+                    is.Payment_Date__c 	= is.Send_Date__c + 30;
+                    is.Amount__c 		= opp.Amount_Calder__c - reservedAmount;
+                    toUpsert.add(is);
+                } else if (isList.size() == 1) {
+                    if (amountRemaining > -0.01 && amountRemaining < 0.01) { // if amountRemaining > 0.01 && amountRemaining < 0.01
+                        toDelete.add(isList[0]);
+                    } else {
+                        isList[0].Amount__c = amountRemaining;
+                        toUpsert.add(isList[0]);
+                    }
+                } else {
+                    // work out if there are more open schedules than needed
 
-				// Integer reservedInvoices = Integer.valueOf(opp.ProcessedInvoices__c + opp.Custom_Invoices__c) + something;
-				Integer reservedInvoices    = Integer.valueOf(opp.ScheduleCount__c) - isList.size();
-				Integer mimimumInvoices     = (reservedInvoices >= opp.RequiredSchedules__c)
-										        ? reservedInvoices + 1 : Integer.valueOf(opp.RequiredSchedules__c);
-				Integer excessInvoices      = Integer.valueOf(opp.ScheduleCount__c) - mimimumInvoices;
-				// if there are more than needed, delete the excess ones
-				if (excessInvoices > 0) {
-					for (Integer x = 0; x < excessInvoices; x++) {
-						toDelete.add(isList[x]);
-						isList.remove(x);
-					}
-				}
-				// for the remaning schedules, update their amounts
-				for (Invoice_Schedule__c is : isList) {
-					is.Amount__c = amountRemaining / isList.size();
-					toUpsert.add(is);
-				}				
-
+                    // Integer reservedInvoices = Integer.valueOf(opp.ProcessedInvoices__c + opp.Custom_Invoices__c) + something;
+                    Integer reservedInvoices    = Integer.valueOf(opp.ScheduleCount__c) - isList.size();
+                    Integer mimimumInvoices     = (reservedInvoices >= opp.RequiredSchedules__c)
+                            ? reservedInvoices + 1 : Integer.valueOf(opp.RequiredSchedules__c);
+                    Integer excessInvoices      = Integer.valueOf(opp.ScheduleCount__c) - mimimumInvoices;
+                    // if there are more than needed, delete the excess ones
+                    if (excessInvoices > 0) {
+                        for (Integer x = 0; x < excessInvoices; x++) {
+                            toDelete.add(isList[x]);
+                            isList.remove(x);
+                        }
+                    }
+                    // for the remaning schedules, update their amounts
+                    for (Invoice_Schedule__c is : isList) {
+                        is.Amount__c = amountRemaining / isList.size();
+                        toUpsert.add(is);
+                    }
+                }
 			}
 		}
 
-		system.debug('to delete' + toDelete);
-		system.debug('to upsert' + toUpsert);
+		System.debug('to delete' + toDelete);
+		System.debug('to upsert' + toUpsert);
 
 		if (toDelete.size() > 0 ) 			delete toDelete;
 		if (toUpsert.size() > 0) 			upsert toUpsert;

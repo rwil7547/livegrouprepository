@@ -221,9 +221,6 @@ public with sharing class PrimaryQuoteController {
     @AuraEnabled
     public static String changeLineApex(SBQQ__QuoteLine__c line, String operation, Decimal days){
 
-        System.debug('trying to save a line with description value of ' + line.SBQQ__Description__c);
-
-
         String result = 'error';
 
         SBQQ__QuoteLine__c lineLock = [SELECT Id, SBQQ__ProductFamily__c, SBQQ__Product__r.Name, SBQQ__Number__c,
@@ -272,7 +269,6 @@ public with sharing class PrimaryQuoteController {
                                                     AND SBQQ__Quote__c = :lineLock.SBQQ__Quote__c];
 
                 for (SBQQ__QuoteLine__c li : lines){
-                    system.debug('processing line ' + li + ' cos num is ' + line.SBQQ__Number__c);
                     if (li.SBQQ__Number__c != null){
                         li.SBQQ__Number__c = li.SBQQ__Number__c - 1;
                     }
@@ -599,7 +595,6 @@ public with sharing class PrimaryQuoteController {
                             SBQQ__Product__c        = product.Id,
                             SBQQ__Description__c    = product.Description.replace('\n','<br/>'),
                             SBQQ__SubscriptionTerm__c = product.SBQQ__SubscriptionTerm__c,
-//                            SBQQ__SubscriptionPricing__c = product.SBQQ__SubscriptionPricing__c,
                             SBQQ__SubscriptionPricing__c = 'Fixed Price',
                             SBQQ__DefaultSubscriptionTerm__c = 1,
                             SBQQ__Quantity__c       = 1,
@@ -767,6 +762,7 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.SBQQ__Primary__c         = true;
             cloneQuote.Stage__c                 = 'Contract';
             cloneQuote.Version__c               = 'Contract';
+            cloneQuote.SBQQ__Status__c          = null;
             cloneQuote.Proposal_Introduction__c =
                             'You\'re ready. We\'re ready. Let\'s get this show on the road! ' +
                             'Here\'s the legal stuff for ' + quote.SBQQ__Opportunity2__r.Name + ', get it signed-off, ' +
@@ -859,10 +855,11 @@ public with sharing class PrimaryQuoteController {
         String result   = 'error';
         Savepoint sp    = Database.setSavepoint();
 
-        Opportunity parentOpp = [SELECT Id, Event_end__c, Contracted__c, Reconciling__c, Name, Legacy__c, Pricebook2Id,
-                                    (SELECT Version__c FROM SBQQ__Quotes2__r
-                                    WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
-                                FROM Opportunity WHERE Id = :oppId];
+        Opportunity parentOpp = [SELECT Id, Event_end__c, Contracted__c, Reconciling__c, Name,
+                                        Legacy__c, Pricebook2Id,
+                                        (SELECT Version__c FROM SBQQ__Quotes2__r
+                                        WHERE CreatedDate < :quote.CreatedDate LIMIT 1)
+                                 FROM Opportunity WHERE Id = :oppId];
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c
                                         WHERE SBQQ__Opportunity2__c = :oppId
                                         AND Stage__c = :type];
@@ -1036,6 +1033,7 @@ public with sharing class PrimaryQuoteController {
                                             'complete picture of the costs above. Excited? Great! ' +
                                             'We are too. Let\'s get to work.';
         newQuote.SBQQ__PriceBook__c       = [SELECT Id FROM Pricebook2 WHERE Name = 'Default'].Id;
+        newQuote.SBQQ__Status__c          = null;
 
         Database.SaveResult quoteInsert   = Database.insert(newQuote);
 

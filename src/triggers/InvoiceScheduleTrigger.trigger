@@ -1,4 +1,4 @@
-Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before update) {
+trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before update) {
 
 	if ((Test.isRunningTest() || TriggerSwitch__c.getInstance('InvoiceSchedule').Active__c)
 		&& OpportunityTriggerHandler.noConflict && InvoiceScheduleTriggerHandler.noConflict) {
@@ -20,12 +20,12 @@ Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before upd
 
             if (Trigger.isBefore) {
 
-                system.debug('is before and insert: ' + Trigger.isInsert + ' Trigger.isUpdate: ' + Trigger.isUpdate);
+                System.debug('is before and insert: ' + Trigger.isInsert + ' Trigger.isUpdate: ' + Trigger.isUpdate);
 
 
                 if (Trigger.isUpdate) {
 
-                    system.debug('is update');
+                    System.debug('is update');
 
 
                     // the amount on the schedule has been updated, and the prior value on the
@@ -38,7 +38,7 @@ Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before upd
                         oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c - Trigger.oldMap.get(is.Id).Amount__c);
                         isIds.add(is.Id);
 
-                        system.debug('addding entry');
+                        System.debug('addding entry');
                     }
 
                     // the amount on the schedule has been updated, and the prior value on the
@@ -50,13 +50,14 @@ Trigger InvoiceScheduleTrigger on Invoice_Schedule__c (before insert, before upd
                             || (!is.Invoice_Sent__c && is.Invoice_Sent__c == Trigger.oldMap.get(is.Id).Invoice_Sent__c))) {
                         isIds.add(is.Id);
                         oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c);
-                        system.debug('addding entry');
-
-                    } else {
-                        oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c);
-                        system.debug('not addding entry');
+                        System.debug('addding entry');
 
                     }
+//                    else {
+////                        oppIds.put(is.Opportunity__c, oppIds.get(is.Opportunity__c) + is.Amount__c);
+//                        System.debug('not adding entry');
+//
+//                    }
 
                     // the send date on the schedule has been changed, but not by
                     // the results returned through the Quickbooks data capture

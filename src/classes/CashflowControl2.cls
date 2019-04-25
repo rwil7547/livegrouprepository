@@ -5,7 +5,7 @@
 public with sharing class CashflowControl2 {
 
 
-    public static void buildFlow(){
+    public static void buildFlow(Boolean resetValues){
 
         // get the cashflow entries
         Map<Date, CashFlow__c> flowMap            = CashFlowUtils.getFlowMap();
@@ -40,7 +40,7 @@ public with sharing class CashflowControl2 {
                                                 QuickbooksId__c, OutFlow__c, InFlow__c, AdjustedDate__c,
                                                 OutFlow__r.Date__c, InFlow__r.Date__c, Description__c
                                         FROM CashFlowEntry__c]){
-            if (entry.Adjusted__c){
+            if (resetValues && entry.Adjusted__c){
                 entry.CashFlow__c = flowMap.get(entry.AdjustedDate__c).Id;
                 newEntries.add(entry);
                 adjustedIds.add(entry.QuickbooksId__c);
@@ -48,7 +48,6 @@ public with sharing class CashflowControl2 {
                 oldEntries.add(entry);
             }
         }
-
 
         // get direct debit and freelancer supplier profiles
         Map<String,QBSupplierProfile__c> directDebits   = new Map<String,QBSupplierProfile__c>();
@@ -62,7 +61,6 @@ public with sharing class CashflowControl2 {
                 freelancerIds.add(profile.SupplierId__c);
             }
         }
-
 
         // INIT: GET CURRENT BALANCE
         String query1 = 'query?query=select%20%2a%20from%20account%20where%20name%20' +
@@ -133,31 +131,31 @@ public with sharing class CashflowControl2 {
                     Decimal balance  = (creditMap.containsKey(inv.Id)) ? inv.Balance - creditMap.get(inv.Id) : inv.Balance;
                     Date dueDate     = adjustmentsMap.containsKey(inv.Id) ? adjustmentsMap.get(inv.Id) : Date.valueOf(inv.DueDate);
 
-                    if (dueDate < Date.today()) {
-                        Integer random = Integer.valueOf(Math.random() * 100);
-
-                        dueDate = Date.today().addDays(1).addDays(random);
-                    }
-
-                    String scheduleNumber = '';
-
-                    for (JSONParserQBOInvoiceFlow.cls_CustomField customField : inv.CustomField) {
-                        if (customField.Name == 'Schedule') {
-                            scheduleNumber = customField.StringValue;
+                    if (!adjustedIds.contains(inv.Id)){
+                        if (dueDate < Date.today()) {
+                            Integer random = Integer.valueOf(Math.random() * 100);
+                            dueDate = Date.today().addDays(1).addDays(random);
                         }
-                    }
 
-                    if (flowMap.containsKey(dueDate)) {
-                        newEntries.add(new CashFlowEntry__c(
-                                CashFlow__c     = flowMap.get(dueDate).Id,
-                                Source__c       = 'Quickbooks',
-//                                Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : inv.CustomerRef.name,
-                                Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : 'Other',
-                                Description__c  = inv.CustomerRef.name + ' Inv. ' + inv.DocNumber,
-                                Amount__c       = balance,
-                                QuickbooksId__c = inv.Id,
-                                Stage__c        = 'Confirmed',
-                                Adjusted__c     = adjustmentsMap.containsKey(inv.Id)));
+                        String scheduleNumber = '';
+
+                        for (JSONParserQBOInvoiceFlow.cls_CustomField customField : inv.CustomField) {
+                            if (customField.Name == 'Schedule') {
+                                scheduleNumber = customField.StringValue;
+                            }
+                        }
+
+                        if (flowMap.containsKey(dueDate)) {
+                            newEntries.add(new CashFlowEntry__c(
+                                    CashFlow__c     = flowMap.get(dueDate).Id,
+                                    Source__c       = 'Quickbooks',
+                                    Category__c     = (customerMap.containsKey(scheduleNumber)) ? customerMap.get(scheduleNumber) : 'Other',
+                                    Description__c  = inv.CustomerRef.name + ' Inv. ' + inv.DocNumber,
+                                    Amount__c       = balance,
+                                    QuickbooksId__c = inv.Id,
+                                    Stage__c        = 'Confirmed',
+                                    Adjusted__c     = adjustmentsMap.containsKey(inv.Id)));
+                        }
                     }
 
                     String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
@@ -188,17 +186,17 @@ public with sharing class CashflowControl2 {
                 dueDate = Date.today().addDays(35).addDays(random);
             }
 
-            if (flowMap.containsKey(dueDate)) {
-                newEntries.add(new CashFlowEntry__c(
-                        CashFlow__c     = flowMap.get(dueDate).Id,
-                        Source__c       = 'Salesforce',
-                        Category__c     = schedule.Opportunity__r.Account.Name,
-                        Description__c  = schedule.Opportunity__r.Name + ' ' + schedule.Name,
-                        QuickbooksId__c = schedule.Id,
-                        Stage__c        = 'Confirmed',
-                        Amount__c       = (schedule.Amount__c * 1.2).setScale(2)));
-
-                system.debug('adding the following confirmed value ' + (schedule.Amount__c * 1.2));
+            if (!adjustedIds.contains(schedule.Id)){
+                if (flowMap.containsKey(dueDate)) {
+                    newEntries.add(new CashFlowEntry__c(
+                            CashFlow__c     = flowMap.get(dueDate).Id,
+                            Source__c       = 'Salesforce',
+                            Category__c     = schedule.Opportunity__r.Account.Name,
+                            Description__c  = schedule.Opportunity__r.Name + ' ' + schedule.Name,
+                            QuickbooksId__c = schedule.Id,
+                            Stage__c        = 'Confirmed',
+                            Amount__c       = (schedule.Amount__c * 1.2).setScale(2)));
+                }
             }
 
             String budgetKey = String.valueOf(dueDate.month()) + String.valueOf(dueDate.year()) + 'Revenue';
@@ -287,7 +285,7 @@ public with sharing class CashflowControl2 {
 
                 String age                  = opp.Event_end__c < Date.today() ? ' (' + opp.Event_end__c.daysBetween(Date.today()) + ' days old)' : '';
                 String status               = opp.Event_end__c < Date.today() ? ' COS accrual' : ' COS event allocation';
-                Integer random = Integer.valueOf(Math.random() * 100);
+                Integer random              = Integer.valueOf(Math.random() * 100);
                 Date paymentDate            = (opp.Event_end__c < Date.today().addDays(35)) ?
                                                 Date.today().addDays(35).addDays(random).toStartOfWeek().addDays(3) :
                                                 opp.Event_end__c.toStartOfWeek().addDays(3);
@@ -344,16 +342,19 @@ public with sharing class CashflowControl2 {
                                     Date.today().addDays(45) : opp.Event_end__c;
 
             if (flowMap.containsKey(inDate)) {
-                newEntries.add(new CashFlowEntry__c(
-                        CashFlow__c     = flowMap.get(inDate).Id,
-                        Source__c       = 'SalesforceP',
-                        Category__c     = opp.Account.Name,
-                        Description__c  = 'Prob. ' + opp.Probability + '% : ' + opp.Name,
-                        Details__c      = 'System generated payment date using weighted amount \n' +
-                                          'Last activity by ' + opp.LastModifiedBy.Name + ' ' +
-                                          Date.valueOf(opp.LastModifiedDate).daysBetween(Date.today()) + ' days ago',
-                        Stage__c        = 'Pipeline',
-                        Amount__c       = inAmount));
+                if (!adjustedIds.contains(opp.Id + 'Invoice')){
+                    newEntries.add(new CashFlowEntry__c(
+                            CashFlow__c     = flowMap.get(inDate).Id,
+                            Source__c       = 'SalesforceP',
+                            Category__c     = opp.Account.Name,
+                            Description__c  = 'Prob. ' + opp.Probability + '% : ' + opp.Name,
+                            Details__c      = 'System generated payment date using weighted amount \n' +
+                                    'Last activity by ' + opp.LastModifiedBy.Name + ' ' +
+                                    Date.valueOf(opp.LastModifiedDate).daysBetween(Date.today()) + ' days ago',
+                            Stage__c        = 'Pipeline',
+                            QuickbooksId__c = opp.Id + 'Invoice',
+                            Amount__c       = inAmount));
+                }
 
                 String budgetKey = String.valueOf(inDate.month()) + String.valueOf(inDate.year()) + 'Revenue';
                 if (budgetMap.containsKey(budgetKey)){

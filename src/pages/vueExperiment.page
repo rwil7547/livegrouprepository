@@ -342,26 +342,47 @@
         }
         .colDivider {
             display: grid;
-            grid-template-columns: 8% 6% 14% 14% 9% 9% 8% 8% 8% 6% 9%;
+            grid-template-columns: 5% 6% 15% 13% 8% 8% 10% 10% 10% 6% 9%;
             padding-left: 4px;
             padding-right: 4px;
         }
         .headerDivider {
             display: grid;
-            grid-template-columns: 60% 8% 8% 8% 6% 9%;
+            grid-template-columns: 55% 10% 10% 10% 6% 9%;
             padding-left: 4px;
             padding-right: 4px;
         }
+        .sourceIndicator {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            font-weight: bold;
+            text-align: right;
+            opacity: 1;
+            font-size: 10px;
+            width: 100%;
+            padding: 3px;
+            color: white;
+            border-top-left-radius: 3px;
+        }
         .Quickbooks {
-            /*color: white;*/
+            /*border: 0.5px solid green;*/
+        }
+        .QuickbooksIndicator {
+            color: white;
             /*background-color: green;*/
+            /*border: 0.5px solid green;*/
+            background-image: linear-gradient(to right, #fefdfd 60%, green);
         }
-        .Salesforce {
-            /*border: 2px solid blue;*/
-
+        .SalesforceIndicator {
+            /*background-color: blue;*/
+            /*border-bottom: 0.5px solid blue;*/
+            background-image: linear-gradient(to right, #fefdfd 60% , blue);
         }
-        .SalesforceP {
-
+        .SalesforcePIndicator {
+            /*background-color: grey;*/
+            /*border-bottom: 0.5px solid grey;*/
+            background-image: linear-gradient(to right, #fefdfd 60% , grey);
         }
         .up {
             color: green;
@@ -376,16 +397,12 @@
             font-weight: lighter;
         }
         .yearEntry {
-            /*border-left: 0.5px solid lightgrey;*/
             width:100%;
             padding-right: 4px;
             text-align: right;
-            /*font-weight: bold;*/
-
         }
         .header {
             font-weight: bold;
-
         }
         .monthTile {
             border-left: 0.5px solid lightgrey;
@@ -406,22 +423,20 @@
             background-color: #555555;
             color: white;
             padding: 4px;
-            border-top-left-radius: 3px;
-            border-top-right-radius: 3px;
         }
         .reportHeader {
             font-size: 16px;
         }
         .reportMonth {
             font-weight: bold;
-            /*background-color: #2d7175;*/
-            /*color: white;*/
+            background-color: #80bbbf;
+            color: white;
         }
         .stage {
-            /*background-color: #60c5c1;*/
+            background-color: #c2e9eb;
+            padding: 3px;
         }
         .reportRecord {
-            font-weight: lighter;
             cursor: pointer;
             border-bottom: 0.5px solid #e4e4e4;
             padding: 3px;
@@ -429,6 +444,9 @@
         }
         .reportRecord:hover {
             background-color: #f4f4f4;
+        }
+        .reportTotals {
+            font-size: 18px;
         }
         .open {
             font-style: italic;
@@ -809,32 +827,19 @@
                                     <div class="column noSpill largeCol" >IN </div>
                                     <template v-for="week in Object.keys(cashflowData['WEEK COMMENCING'])">
                                         <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
-                                             v-on:dragover="dragenter()"
                                              v-bind:id="'IN' + week">
                                             <div class="sortable in" v-bind:data-week="week" v-bind:data-type="'IN'">
-                                                <template v-for="record in cashflowData['RECORDS']">
+                                                <template v-for="record,recordIndex in cashflowData['RECORDS']">
                                                     <template v-if="record.WeekId__c == 'IN' + week">
-                                                        <div class="record" draggable="true" ondragstart="setDragData()"
-                                                             v-bind:data-id="record.Id"
-                                                             v-bind:data-week="week"
-                                                             v-bind:data-amount="record.Amount__c"
-                                                             v-bind:data-type="'IN'"
-                                                             v-bind:data-description="record.Description__c"
+                                                        <!--<div class="record" draggable="true" ondragstart="setDragData()"-->
+                                                        <div class="record"
+                                                             v-bind:data-id="record.Id" v-bind:data-week="week" v-bind:data-amount="record.Amount__c"
+                                                             v-bind:data-type="'IN'" v-bind:data-description="record.Description__c" v-bind:data-index="recordIndex"
                                                              v-bind:class="record.Source__c">
-
-                                                            <div>
-                                                            <div style="padding-left: 3px;">{{record.Description__c}}</div>
-
-                                                            </div>
-                                                            <div style="font-weight: bold;text-align: right;">
-                                                                {{'£' + record.Amount__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                                            </div>
-                                                            <div style="padding-left: 3px;">{{record.CashFlow__r.DayMonthYear__c}}</div>
-
-                                                            <div style="position: absolute;right:2px;bottom:2px;opacity:0.3;">
-                                                                <img src="{!$Resource['QuickbooksCF']}" height="16px"/>
-                                                            </div>
-
+                                                            <div style="padding-left: 3px;font-weight: bold;">{{record.Description__c + ' ' + record.WeekId__c}}</div>
+                                                            <div style="font-weight: bold;text-align: right;">{{'£' + record.Amount__c.toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                            <div style="padding: 3px;z-index:1;">{{record.CashFlow__r.DayMonthYear__c}}</div>
+                                                            <div class="sourceIndicator" v-bind:class="record.Source__c + 'Indicator'">{{ record.Source__c }}</div>
                                                         </div>
                                                     </template>
                                                 </template>
@@ -843,14 +848,8 @@
                                             <template v-if="dragging === 'in'">
                                                 <div class="dropZone" v-bind:id="'IN' + week"
                                                      v-bind:data-type="'IN'" v-bind:data-week="week">
-
-
-                                                    <div style="width:100%;font-weight:bolder;font-size: 15px;opacity: 0.3;z-index:1;padding-right: 10px; ">
-                                                        WEEK COMMENCING
-                                                    </div>
-                                                    <div style="width:100%;font-weight:bolder;font-size: 35px;opacity: 0.3;z-index:1;padding-right: 10px;margin-bottom: 10px; ">
-                                                        {{ new Date(week).toDateString().substring(0,10)}}
-                                                    </div>
+                                                    <div style="width:100%;font-weight:bolder;font-size: 15px;opacity: 0.3;z-index:1;padding-right: 10px; ">WEEK COMMENCING</div>
+                                                    <div style="width:100%;font-weight:bolder;font-size: 35px;opacity: 0.3;z-index:1;padding-right: 10px;margin-bottom: 10px; ">{{ new Date(week).toDateString().substring(0,10)}}</div>
                                                 </div>
                                             </template>
                                         </div>
@@ -1023,8 +1022,8 @@
                     <div>START</div>
                     <div>END</div>
                     <div>REVENUE</div>
-                    <div>PROFIT</div>
                     <div>COS</div>
+                    <div>PROFIT</div>
                     <div>MARGIN</div>
                     <div>STATUS</div>
                 </div>
@@ -1034,35 +1033,36 @@
                         <div class="headerDivider reportHeader reportMonth">
                             <div>{{ monthIndex.toUpperCase() }}</div>
                             <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                             <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0] - graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                            <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                             <div>{{ (Math.abs(graphData.profit[monthIndex][0] / (graphData.revenue[monthIndex][0] > 0 ?
                                     graphData.revenue[monthIndex][0] : 1) * 100).toFixed(0)) + '%'}}</div>
                             <div></div>
                         </div>
                         <template v-for="stage,stageIndex in graphData['REPORTDATA'][monthIndex]">
                             <template v-if="stage.length > 0">
-                                <div class="headerDivider stage">
+                                <div class="headerDivider stage" v-bind:class="stageIndex === 'Closed Won' ? 'closed' : 'open'">
                                     <div> {{ stageIndex.toUpperCase() }}</div>
                                     <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                                    <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0] - graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     <div>{{ (Math.abs(graphData.profit[monthIndex][0] / graphData.revenue[monthIndex][0] * 100).toFixed(0)) + '%'}}</div>
                                     <div></div>
                                 </div>
                                 <template v-for="record in stage">
                                     <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'">
-                                        <div>{{ record.Owner.FirstName.substring(0,1) + record.Owner.LastName.substring(0,1) +
-                                                (record.Project_Manager__c ? '/' + record.Project_Manager__r.FirstName.substring(0,1)
-                                                + record.Project_Manager__r.LastName.substring(0,1) : '') }}</div>
+                                        <!--<div>{{ record.Owner.FirstName.substring(0,1) + record.Owner.LastName.substring(0,1) +-->
+                                                <!--(record.Project_Manager__c ? '/' + record.Project_Manager__r.FirstName.substring(0,1)-->
+                                                <!--+ record.Project_Manager__r.LastName.substring(0,1) : '') }}</div>-->
+                                        <div></div>
                                         <div>{{ record.Filtered_Job_Number__c }}</div>
                                         <div>{{ record.Name }}</div>
                                         <div>{{ record.Account.Name }}</div>
                                         <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
                                         <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
                                         <div>{{ '£' + Math.abs(record.Amount_Calder__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
-                                        <div>{{ '£' + Math.abs(record.Gross_profit_2__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
                                         <div>{{ '£' + Math.abs(record.Filtered_Cost_of_Sale__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                        <div>{{ '£' + Math.abs(record.Gross_profit_2__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
                                         <div>{{ record.Gross_Margin__c }}%</div>
                                         <div>{{ record.IsClosed ? record.Quote_Status__c : 'Prob: ' + record.Probability + '%'}}</div>
                                     </div>
@@ -1073,8 +1073,8 @@
                     </div>
                 </template>
 
-                <div class="headerDivider reportHeader reportMonth">
-                    <div>PERIOD TOTAL</div>
+                <div class="headerDivider reportCols reportTotals">
+                    <div>{{ period }} TOTAL</div>
                     <div></div><div></div><div></div><div></div><div></div>
                     <div>{{ }}</div>
                     <div>{{ }}</div>
@@ -1315,16 +1315,7 @@
                     // }
 
                 },
-                drawData : function(){
-                    app.drawBar('revenue',app.graphData['revenue']);
-                    app.drawLine('revenue', app.graphData['revenue']);
-                    app.drawBar('profit', app.graphData['profit']);
-                    app.drawLine('profit', app.graphData['profit']);
-                    app.drawBar('opex', app.graphData['opex']);
-                    app.drawLine('opex', app.graphData['opex']);
-                    app.drawBar('netProfit', app.graphData['netProfit']);
-                    app.drawLine('netProfit', app.graphData['netProfit']);
-                },
+
                 loadData : function(){
 
                     // step 1: get all performance figures
@@ -1336,10 +1327,7 @@
                             app.graphData = result;
                             console.log(result);
                             app.drawData();
-                        }, {
-                            escape : true
-                        }
-                    );
+                        });
 
                     // step 2: get all cashflow figures
                     Visualforce.remoting.Manager.invokeAction(
@@ -1349,10 +1337,7 @@
                         function (result) {
                             app.cashGraphData = result;
                             app.drawLine('cashFlow', app.cashGraphData);
-                        }, {
-                            escape : true
-                        }
-                    );
+                        });
 
                     // step 2: get all cashflow data
                     Visualforce.remoting.Manager.invokeAction(
@@ -1360,15 +1345,20 @@
                         function (result) {
                             app.cashflowData = result;
                             // app.drawLine('cashFlow', app.cashflowData['CASHFLOW']);
-
                             console.log(result);
-                        }, {
-                            escape : true
-                        }
-                    );
+                        });
 
                 },
-
+                drawData : function(){
+                    app.drawBar('revenue',app.graphData['revenue']);
+                    app.drawLine('revenue', app.graphData['revenue']);
+                    app.drawBar('profit', app.graphData['profit']);
+                    app.drawLine('profit', app.graphData['profit']);
+                    app.drawBar('opex', app.graphData['opex']);
+                    app.drawLine('opex', app.graphData['opex']);
+                    app.drawBar('netProfit', app.graphData['netProfit']);
+                    app.drawLine('netProfit', app.graphData['netProfit']);
+                },
                 drawBar : function(type, graphData) {
 
                     google.charts.load('current', {
@@ -1560,13 +1550,20 @@
                             }
 
                             var options = {
-                                lineWidth: 1,
+                                // lineWidth: 1,
+                                lineWidth: 2,
+                                vAxis: {
+                                    format: 'short',
+                                    viewWindow: {
+                                        min: type === 'cashFlow' ? -150000 : null
+                                    }
+                                },
                                 // isStacked : true,
                                 areaOpacity : 0.5,
                                 // areaOpacity : 1,
                                 series: {
                                     0: {
-                                        color: 'red',//#556B2F',
+                                        color: app.brand.budget,//#556B2F',
                                         format: '£#,###'
                                     },
                                     1: {
@@ -1590,7 +1587,8 @@
 
                             options = Object.assign(app.getOptions(), options);
 
-                            var chart = new google.visualization.AreaChart(document.getElementById(type + 'Line'));
+                            // var chart = new google.visualization.AreaChart(document.getElementById(type + 'Line'));
+                            var chart = new google.visualization.LineChart(document.getElementById(type + 'Line'));
                             var formatter = new google.visualization.NumberFormat({
                                 prefix: '£'
                             });
@@ -1650,7 +1648,7 @@
                                 app.dragging    = category;
                             },
                             stop: function(event, ui) {
-                                app.dragging = '';
+                                app.dragging    = '';
                             },
                             change: function(event, ui) {
                                 if(ui.sender) newList = ui.placeholder.parent().parent();
@@ -1660,30 +1658,19 @@
 
                         $('.' + category).droppable({
                             drop: function( event, ui ) {
-
-                                while (app.responsePending){}
-
                                 app.responsePending = true;
-
-
 
                                 var sourceRecord    = ui.helper.context.dataset;
                                 var targetWeekDiv   = event.target.dataset;
                                 var weekNumber      = parseInt(targetWeekDiv.week);
+                                var weekDate;
                                 if (weekNumber < 11){
-                                    var weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber + 1]);
-                                    console.log(weekDate);
+                                    weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber + 1]);
                                     weekDate.setDate(weekDate.getDate() -1);
                                 } else {
-                                    var weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber]);
+                                    weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber]);
                                     weekDate.setDate(weekDate.getDate() + 6);
                                 }
-
-
-                                console.log(sourceRecord);
-                                console.log(targetWeekDiv);
-                                console.log(app.cashflowData['WEEK COMMENCING'][targetWeekDiv.week + 1]);
-
 
                                 // step 2: get all cashflow figures
                                 Visualforce.remoting.Manager.invokeAction(
@@ -1691,22 +1678,24 @@
                                     sourceRecord.id,
                                     weekDate,
                                     function (result, event) {
-                                        console.log(event);
-                                        console.log(result);
                                         app.responsePending = false;
-
                                         if (event.status){
-
-                                            app.cashflowData = result;
-
+                                            Object.assign(app.cashflowData,result);
                                             app.drawLine('cashFlow', app.cashflowData['CASHFLOW']);
+                                            // app.cashflowData['RECORDS'].forEach(function(record){
+                                            //    if (record.Id === sourceRecord.id){
+                                            //        console.log('record found');
+                                            //        record.Description__c = 'updated';
+                                            //    }
+                                            // });
+                                            //
+                                            app.cashflowData['RECORDS'][sourceRecord.index].Description__c = 'wokred';
 
+                                        } else {
+                                            loadData();
                                         }
 
-                                    }, {
-                                        escape : true
-                                    }
-                                );
+                                    });
                             }
                         });
                     });

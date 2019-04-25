@@ -51,11 +51,7 @@ public class VueTestController {
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
-
-        system.debug('start date is ' + startDate);
-
         Map<Date, List<Object>> balanceMap = new Map<Date, List<Object>>();
-
         Date iterator = startDate;
 
         while (iterator <= endDate){
@@ -279,20 +275,26 @@ public class VueTestController {
     @RemoteAction
     public static Map<String,Object> getUpdateFlowEntry(String entryId, String dateString){
 
-        Date flowDate = Date.valueOf(dateString);
-        CashFlow__c flow = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
-        CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c WHERE Id = :entryId];
+        Date flowDate           = Date.valueOf(dateString);
+        CashFlow__c flow        = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
+        CashFlowEntry__c entry  = [SELECT Id, Description__c FROM CashFlowEntry__c WHERE Id = :entryId];
 
         System.debug('the to date is ' + flowDate + ' and id is ' + flow.Id);
 
-        entry.CashFlow__c = flow.Id;
+        entry.CashFlow__c       = flow.Id;
+        entry.Adjusted__c       = true;
+        entry.AdjustedDate__c   = flowDate;
 
         update entry;
 
         calculateBalances();
 
+        Map<String,Object> responseData = getCashflowData(false);
+        responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+                                    CashFlow__r.DayMonthYear__c
+                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
 
-        return getCashflowData(true);
+        return responseData;
 
     }
 
@@ -328,10 +330,7 @@ public class VueTestController {
         }
 
         update flows;
-
-
     }
-
 
     @RemoteAction
     public static Map<String,Object> getCashflowData(Boolean includeRecords){
@@ -376,17 +375,12 @@ public class VueTestController {
         Map<Date,CashFlow__c> flowMap = new Map<Date,CashFlow__c>();
 
         for (CashFlow__c flow : flows){
-
-            system.debug(flow);
-
             flowMap.put(flow.Date__c, flow);
         }
 
         Date endDate;
 
-        //
         for (Integer x = 0; x < 12; x++){
-
             Date startDate  = Date.valueOf(dates[x]);
 
             if (startDate.toStartOfWeek().addDays(3) < startDate){
@@ -455,8 +449,8 @@ public class VueTestController {
         cashflowDataMap.put('TOTAL OUTFLOW', totalOutflows);
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
         cashflowDataMap.put('IN', figures.clone());
-        cashflowDataMap.put('RECORDS', records);
         cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today()),String.valueOf(entryDate)));
+        if (includeRecords) cashflowDataMap.put('RECORDS', records);
 
         return cashflowDataMap;
 
