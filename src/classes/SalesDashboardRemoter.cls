@@ -1281,7 +1281,7 @@ global class SalesDashboardRemoter {
                                   WHERE Month__c >= :startDate
                                   AND Month__c <= :endDate
                                   AND Opportunity__r.Event_end__c < :startDate]){
-            floatingAdjustments.add(adj.Id);
+            floatingAdjustments.add(adj.Opportunity__c);
         }
 
         for (Opportunity opp : [SELECT Id, StageName, Owner.FirstName, Owner.LastName, Filtered_Job_Number__c, Project_Manager__c,
@@ -1300,6 +1300,8 @@ global class SalesDashboardRemoter {
                                 OR (Id IN: floatingAdjustments)
                                 ORDER BY Event_end__c ASC]){
 
+            System.debug(opp.Adjustments__r);
+
             if (opp.Name.contains('\'') || opp.Account.Name.contains('\'')){
                 System.debug('replacing');
                 opp.Name = opp.Name.replaceAll('\'','');
@@ -1310,11 +1312,15 @@ global class SalesDashboardRemoter {
                 reportingMap.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);
             }
 
+            Set<String> monthsAdded = new Set<String>();
+
             for (Adjustment__c adj : opp.Adjustments__r){
-                if (reportingMap.containsKey(adj.EventMonthYear__c)){
+                if (reportingMap.containsKey(adj.EventMonthYear__c) && !monthsAdded.contains(adj.EventMonthYear__c)){
                     reportingMap.get(adj.EventMonthYear__c).get('Closed Won').add(opp);
+                    monthsAdded.add(adj.EventMonthYear__c);
                 }
             }
+
         }
 
         return reportingMap;

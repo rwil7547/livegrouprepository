@@ -1874,6 +1874,8 @@
                 function(result, event){
                     if (event.status){
                         oppReportData = result;
+                        console.log('opp report data: ');
+                        console.log(result);
                     }
                 }
             );
