@@ -298,6 +298,74 @@ public class VueTestController {
 
     }
 
+    @RemoteAction
+    public static Map<String,Object> updateAmount(String entryId, Decimal amount){
+
+        update new CashFlowEntry__c(
+                Id          = entryId,
+                Amount__c   = amount,
+                Adjusted__c = true,
+                AmountAdjusted__c = true);
+        calculateBalances();
+        return getCashflowData(false);
+    }
+
+    @RemoteAction
+    public static Map<String,Object> deleteEntry(String entryId){
+        delete [SELECT Id FROM CashFlowEntry__c WHERE Id = :entryId];
+        calculateBalances();
+        return getCashflowData(false);
+    }
+
+    @RemoteAction
+    public static Boolean updateComment(String entryId, String comment){
+        update new CashFlowEntry__c(
+                Id          = entryId,
+                Comment__c  = comment);
+        return true;
+    }
+
+    @RemoteAction
+    public static Boolean toggleFreelancer(String entryId){
+
+        CashFlowEntry__c entry = [SELECT Id, Category__c, QuickbooksId__c, VendorRef__c
+                                  FROM CashFlowEntry__c
+                                  WHERE Id = :entryId];
+
+        if (entry.Category__c == 'Freelancers'){
+            delete [SELECT Id FROM QBSupplierProfile__c
+                    WHERE SupplierId__c = :entry.VendorRef__c];
+        } else {
+            insert new QBSupplierProfile__c(
+                    SupplierId__c   = entry.VendorRef__c,
+                    Category__c     = 'Freelancers',
+                    Type__c         = 'Freelancers'
+            );
+        }
+
+        return true;
+    }
+
+    @RemoteAction
+    public static Map<String,Object> rerunFlow(Boolean resetValues){
+        CashflowControl2.buildFlow(resetValues);
+        return getCashflowData(true);
+    }
+
+    @RemoteAction
+    public static Object getAttachmentLink(String billId){
+
+        String attachmentQuery = 'query?query=select%20%2a%20from%20attachable%20where%20AttachableRef.EntityRef.' +
+                'value%20%3d%20%27' + billId + '%27&minorversion=4';
+//        'query?query=select%20%2a%20from%20attachable%20where%20AttachableRef.EntityRef.value%20%3d%20%2724483%27&minorversion=4';
+        // do callout
+        Http attachmentHttp               = new Http();
+        HttpRequest attachmentRequest     = CashFlowUtils.doCallout(attachmentQuery);
+        HttpResponse attachmentResponse   = attachmentHttp.send(attachmentRequest);
+
+        return attachmentResponse.getStatusCode() == 200 ? JSON.deserializeUntyped(attachmentResponse.getBody()) : (Object)'error';
+    }
+
     private static void calculateBalances(){
 
         ////////////// STEP 11 - RECALCULATE BALANCES AND ADD OVERHEAD AMOUNTS TO THE 1ST OF EACH MONTH
@@ -402,7 +470,8 @@ public class VueTestController {
             for (CashFlow__c flow : [SELECT Date__c, InConfirmed__c, InPipeline__c, InBudget__c,
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
                                             (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-                                                    CashFlow__r.DayMonthYear__c
+                                                    CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
+                                                    TempDownloadUri__c
                                             FROM CashFlowEntries__r
                                             ORDER BY LastModifiedDate ASC, Source__c )
                                     FROM CashFlow__c

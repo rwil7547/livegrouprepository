@@ -59,7 +59,7 @@
             }
 
             /*::-webkit-scrollbar {*/
-                /*display: none;*/
+            /*display: none;*/
             /*}*/
 
             /*!* width *!*/
@@ -68,11 +68,11 @@
             }
 
             /*#settings > ::-webkit-scrollbar {*/
-                /*display: none;*/
+            /*display: none;*/
             /*}*/
 
             /*iframe > ::-webkit-scrollbar {*/
-                /*display: none;*/
+            /*display: none;*/
             /*}*/
 
             #cashFlowRowManager::-webkit-scrollbar {
@@ -95,7 +95,20 @@
                 background: #555;
             }
 
-buil
+            #dimmer {
+                position: fixed;
+                display: none;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: 0;
+                margin: auto;
+                height: 100vh;
+                width: 100vw;
+                background-color: white;
+                opacity: 0.75;
+                z-index: 99;
+            }
 
             .typeBlock, .totalsBlock, .cashBlock  {
                 width: 99%;
@@ -1982,8 +1995,8 @@ buil
                                 var iconClass;
                                 var image =
                                     (!imageMap[record.CreatedBy.FirstName + record.CreatedBy.LastName]) ?
-                                    '<div class="imageIcon" >' + record.CreatedBy.FirstName.substr(0, 1) + '' + record.CreatedBy.LastName.substr(0, 1) + '</div>' :
-                                    '<img class="photo" src="' + imageMap[record.CreatedBy.FirstName + record.CreatedBy.LastName] + '"/>';
+                                        '<div class="imageIcon" >' + record.CreatedBy.FirstName.substr(0, 1) + '' + record.CreatedBy.LastName.substr(0, 1) + '</div>' :
+                                        '<img class="photo" src="' + imageMap[record.CreatedBy.FirstName + record.CreatedBy.LastName] + '"/>';
 
                                 if (record.Month__c) {
 
@@ -2140,7 +2153,7 @@ buil
                                         totalIconClass = '<i class="fas fa-arrow-circle-down"></i>';
                                         dayTotalChange = '£' + (record.TotalRevenue__c * -1).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
                                     } else {
-                                            console.log('found a neutral');
+                                        console.log('found a neutral');
                                         totalColorClass = 'neutralChange';
                                         totalIconClass = '<i class="fas fa-minus-circle"></i>';
                                         dayTotalChange = '£0';
@@ -2244,7 +2257,7 @@ buil
                                 } else if (record.Parent && record.Field === 'Profit__c') {
 
                                     console.log('in changed commission record old val is ' + record.OldValue + ' new ' +
-                                    record.NewValued);
+                                        record.NewValued);
 
                                     var monthText = record.Parent.EventMonthYear__c;
                                     var oldAmount = (!record.OldValue) ? 0 : parseFloat(record.OldValue) * -1;
@@ -3853,7 +3866,9 @@ buil
                     iterator.forEach(function (element) {
 
                         var monthData   = oppReportData[element];
+
                         console.log(monthData);
+
                         var length      = monthData['Closed Won'].length +
                             monthData['Costed prospect'].length + monthData['Pipeline prospect'].length +
                             monthData['Repeat Prospect'].length;
@@ -4054,7 +4069,7 @@ buil
 
                                                     if ((oppRows[element].Adjustments__r[x].EventMonthYear__c === month) &&
                                                         (oppRows[element].Adjustments__r[x].Profit__c !== 0 ||
-                                                        oppRows[element].Adjustments__r[x].Revenue__c !== 0)) {
+                                                            oppRows[element].Adjustments__r[x].Revenue__c !== 0)) {
 
                                                         reportRevTotal  += oppRows[element].Adjustments__r[x].Revenue__c;
                                                         reportGPTotal   += oppRows[element].Adjustments__r[x].Profit__c;
@@ -5185,10 +5200,10 @@ buil
                                         AccountManager: oppRows[element].Owner.FirstName.substr(0, 1) + '. ' + oppRows[element].Owner.LastName,
                                         ProjectManager: projectMngr,
                                         Job: oppRows[element].Filtered_Job_Number__c,
-                                        Name: '"' + oppRows[element].Name.replace(/,/g, ' ') + '"',
-                                        Account: '"' + oppRows[element].Account.Name.replace(/,/g, ' ') + '"',
+                                        Name: '"' + oppRows[element].Name.replace(/[&|;|"|']/g, "") + '"',
+                                        Account: '"' + oppRows[element].Account.Name.replace(/[&|;|"|']/g, "") + '"',
                                         StartDate: '' + (new Date(oppRows[element].Event_end__c).getMonth() + 1) + '/' +
-                                                        new Date(oppRows[element].Event_end__c).getFullYear(),
+                                        new Date(oppRows[element].Event_end__c).getFullYear(),
                                         EndDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
                                         Stage: oppRows[element].StageName,
                                         Amount: revenue,
@@ -5213,7 +5228,7 @@ buil
                                                 AccountManager: '',
                                                 ProjectManager: '',
                                                 Job: '',
-                                                Name: oppRows[element].Filtered_Job_Number__c + ' ' + oppRows[element].Name,
+                                                Name: oppRows[element].Filtered_Job_Number__c + ' ' + '"' + oppRows[element].Name.replace(/[|&|;|"|']/g, "") + '"',
                                                 Account: '',
                                                 StartDate: '' + adjustments[x].Month__c.substring(5,7) + '/' +
                                                 adjustments[x].Month__c.substring(0,4),
@@ -5250,8 +5265,8 @@ buil
                                             AccountManager: '',
                                             ProjectManager: '',
                                             Job: oppRows[element].Filtered_Job_Number__c,
-                                            Name: oppRows[element].Name.replace(/,/g, ' '),
-                                            Account: oppRows[element].Account.Name.replace(/,/g, ' '),
+                                            Name: '"' + oppRows[element].Name.replace(/[&|;|"|']/g, "") + '"',
+                                            Account: '"' + oppRows[element].Account.Name.replace(/[&|;|"|']/g, "") + '"',
                                             StartDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
                                             EndDate: '' + (endDate.getMonth() + 1) + '/' + endDate.getFullYear(),
                                             Stage: oppRows[element].StageName,
@@ -5372,10 +5387,10 @@ buil
                 } else if (element === 'OPENING BALANCE'){
 
                     managerColumns += '<div style="position:sticky;top:50px;z-index:100;">' +
-                            '<div class="cashFlowManagerRow cashFlowManagerHeader">' +
-                            '<div style="position:sticky;left:0;top:0;background-color:white;z-index:100;">' +
-                            '   <div class="leftColumn leftColumnFixed" style="width:200px;">OPENING BALANCE</div>' +
-                            '</div>';
+                        '<div class="cashFlowManagerRow cashFlowManagerHeader">' +
+                        '<div style="position:sticky;left:0;top:0;background-color:white;z-index:100;">' +
+                        '   <div class="leftColumn leftColumnFixed" style="width:200px;">OPENING BALANCE</div>' +
+                        '</div>';
 
                     for (var x = 0; x < data.length; x++){
                         var colorClass = (data[x] < 0) ? 'negative' : ' ';
@@ -5387,7 +5402,7 @@ buil
                             '   <div class="weekColumn">' +
                             '       <div class="entryHolderContainer">' +
                             '           <div id="openingBalance' + x.toString() + '" class="' + colorClass + ' figure managerFigure">' +
-                                        '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +  '</div>' +
+                            '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +  '</div>' +
                             '       </div>' +
                             '   </div>' +
                             '</div>';
@@ -5470,7 +5485,7 @@ buil
                             '   <div class="weekColumn  cashFlowManagerHeader">' +
                             '       <div class="entryHolderContainer">' +
                             '           <div id="totalInflow' + x.toString() + '" class="' + colorClass + ' figure managerFigure">' + '£' +
-                                        (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</div>' +
+                            (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</div>' +
                             '       </div>' +
                             '   </div>' +
                             '</div>';
@@ -5556,7 +5571,7 @@ buil
                             '   <div class="weekColumn">' +
                             '       <div class="entryHolderContainer"  style="background-color: white;">' +
                             '           <div id="totalOutflow' + x.toString() + '" class="' + colorClass + ' figure managerFigure">' +
-                                        '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</div>' +
+                            '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</div>' +
                             '       </div>' +
                             '   </div>' +
                             '</div>';
@@ -5564,10 +5579,10 @@ buil
                     managerColumns += '</div></div>';
                 } else if (element === 'CLOSING BALANCE'){
                     managerColumns += '<div style="position:sticky;bottom:0;z-index:100;">' +
-                            '<div class="cashFlowManagerRow cashFlowManagerHeader">' +
-                            '<div style="position:sticky;left:0;background-color:white;z-index:100;">' +
-                            '   <div class="leftColumn leftColumnFixed" style="width:200px;">CLOSING BALANCE</div>' +
-                            '</div>';
+                        '<div class="cashFlowManagerRow cashFlowManagerHeader">' +
+                        '<div style="position:sticky;left:0;background-color:white;z-index:100;">' +
+                        '   <div class="leftColumn leftColumnFixed" style="width:200px;">CLOSING BALANCE</div>' +
+                        '</div>';
                     for (var x = 0; x < data.length; x++){
                         var colorClass = (data[x] < 0) ? 'negative' : ' ';
                         var multiplier = (data[x] < 0) ? -1 : 1;
@@ -5578,7 +5593,7 @@ buil
                             '   <div class="weekColumn">' +
                             '       <div class="entryHolderContainer" style="background-color: white;">' +
                             '           <div id="closingBalance' + x.toString() + '" class="' + colorClass + ' figure managerFigure">' +
-                                        '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +  '</div>' +
+                            '£' + (data[x] * multiplier).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +  '</div>' +
                             '       </div>' +
                             '   </div>' +
                             '</div>';

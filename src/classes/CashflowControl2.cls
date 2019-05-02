@@ -31,7 +31,7 @@ public with sharing class CashflowControl2 {
             budgetMap.put(budgetKey,pnl);
         }
 
-        Set<String> adjustedIds = new Set<String>();
+        Set<String> adjustedIds           = new Set<String>();
 
         List<CashFlowEntry__c> oldEntries = new List<CashFlowEntry__c>();
         List<CashFlowEntry__c> newEntries = new List<CashFlowEntry__c>();
@@ -57,7 +57,7 @@ public with sharing class CashflowControl2 {
                                             FROM QBSupplierProfile__c]){
             if (profile.Type__c == 'DD'){
                 directDebits.put(profile.SupplierId__c, profile);
-            } else {
+            } else if (profile.Type__c == 'Freelancers'){
                 freelancerIds.add(profile.SupplierId__c);
             }
         }
@@ -205,11 +205,36 @@ public with sharing class CashflowControl2 {
             }
         }
 
+//        // GET QUICKBOOKS BILL ATTACHMENT MAP
+//        Map<String,String> attachmentMap = new Map<String,String>();
+//
+//        String attachmentQuery = 'query?query=select%20%2a%20from%20attachable%20where%20AttachableRef.EntityRef.type%20' +
+//                '%3d%20%27Bill%27%20and%20MetaData.CreateTime%20%3e%20%272019-02-01%27%20and%20ContentType%20%3d%20%27ap' +
+//                'plication%2fpdf%27%20maxResults%201000&minorversion=4';
+//        // do callout
+//        Http attachmentHttp               = new Http();
+//        HttpRequest attachmentRequest     = CashFlowUtils.doCallout(attachmentQuery);
+//        HttpResponse attachmentResponse   = attachmentHttp.send(attachmentRequest);
+//
+//        if (attachmentResponse.getStatusCode() == 200){
+//            Map<String,Object> queryMap         = (Map<String,Object>)JSON.deserializeUntyped(attachmentResponse.getBody());
+//            Map<String,Object> attachmentArray  = (Map<String,Object>)queryMap.get('QueryResponse');
+//            List<Object> records                = (List<Object>)attachmentArray.get('Attachable');
+//
+//            for (Object record : records){
+//                Map<String,Object> fieldMap      = (Map<String,Object>)record;
+//                List<Object> attachableRef       = (List<Object>)fieldMap.get('AttachableRef');
+//                Map<String,Object> attachableRefMap = (Map<String,Object>)attachableRef[0];
+//                Map<String,Object> values        = (Map<String,Object>)attachableRefMap.get('EntityRef');
+//                String billId                    = (String)values.get('value');
+//                String tempDownloadUri           = (String)fieldMap.get('TempDownloadUri');
+//                attachmentMap.put(billId,tempDownloadUri);
+//
+//                system.debug(tempDownloadUri);
+//            }
+//        }
 
         // STEP 3: GET QUICKBOOKS BILLS
-
-        //// GET QB SUPPLIER PROFILE RECORDS
-//        Map<String, QBSupplierProfile__c> supplierProfilesMap = CashFlowUtils.getSupplierProfilesMap();
 
         String billQuery = 'query?query=select%20%2a%20from%20bill%20where%20Balance%20' +
                 '%21%3d%20%270%27&minorversion=4';
@@ -228,7 +253,8 @@ public with sharing class CashflowControl2 {
 
                     if (!directDebits.containsKey(bill.VendorRef.value)) {
 
-                        Date dueDate = adjustmentsMap.containsKey(bill.Id) ? adjustmentsMap.get(bill.Id) : Date.valueOf(bill.DueDate);
+                        Date dueDate = adjustmentsMap.containsKey(bill.Id) ?
+                                adjustmentsMap.get(bill.Id) : Date.valueOf(bill.DueDate);
 
                         if (dueDate <= Date.today()) {
                             dueDate = Date.today().addDays(1);
@@ -241,20 +267,22 @@ public with sharing class CashflowControl2 {
                                         'Officially due in ' + Date.today().daysBetween(Date.valueOf(bill.DueDate)) + ' days';
 
                         String category = freelancerIds.contains(bill.VendorRef.value) ?
-                                        'Freelancer' : bill.VendorRef.name == 'Barclaycard' ?
+                                        'Freelancers' : bill.VendorRef.name == 'Barclaycard' ?
                                         'Credit Card' : 'Payment run';
 
                         newEntries.add(new CashFlowEntry__c(
-                                CashFlow__c     = flowMap.get(dueDate).Id,
-                                Out__c          = true,
-                                Source__c       = 'Quickbooks',
-                                Stage__c        = 'Confirmed',
-                                Category__c     = category,
-                                Description__c  = bill.VendorRef.name,
-                                Details__c      = details,
-                                Amount__c       = bill.Balance,
-                                QuickbooksId__c = bill.Id,
-                                Adjusted__c     = (adjustmentsMap.containsKey(bill.Id)) ? true : false));
+                                CashFlow__c         = flowMap.get(dueDate).Id,
+                                Out__c              = true,
+                                Source__c           = 'Quickbooks',
+                                Stage__c            = 'Confirmed',
+                                Category__c         = category,
+                                Description__c      = bill.VendorRef.name,
+                                Details__c          = details,
+                                Amount__c           = bill.Balance,
+                                QuickbooksId__c     = bill.Id,
+                                VendorRef__c        = bill.VendorRef.value,
+//                                TempDownloadUri__c  = attachmentMap.containsKey(bill.Id) ? attachmentMap.get(bill.Id) : '',
+                                Adjusted__c         = (adjustmentsMap.containsKey(bill.Id)) ? true : false));
 
                         for (JSONParserQBOBillFlow.cls_Line line : bill.Line){
                             String account = line.AccountBasedExpenseLineDetail.AccountRef.name.split(' ',2)[1].split(':',2)[0];
@@ -448,10 +476,9 @@ public with sharing class CashflowControl2 {
 
 
         // STEP 6: PLOT REMAINING BUDGET ENTRIES
-
         for (QBProfitAndLoss__c budgetEntry : budgetMap.values()){
 
-            if (budgetEntry.Actual__c > 0 && budgetEntry.Category__c != 'Revenue'){
+            if (budgetEntry.Actual__c > 0 ){
                 Date entryDate = budgetEntry.Month__c.addMonths(1).addDays(-1);
 
                 if (flowMap.containsKey(entryDate)){
@@ -460,23 +487,19 @@ public with sharing class CashflowControl2 {
                     flowEntry.Description__c     = 'Budgeted ' + budgetEntry.Nominal__c;
                     flowEntry.Stage__c           = budgetEntry.Category__c == 'Revenue' ? 'Confirmed' : 'Budget';
                     flowEntry.Category__c        = budgetEntry.Category__c;
-                    flowEntry.Out__c             = budgetEntry.Category__c == 'Revenue' ? false : true;
+                    flowEntry.Out__c             = budgetEntry.Category__c != 'Revenue';
                     flowEntry.Amount__c          = budgetEntry.Actual__c;
                     flowEntry.QuickbooksId__c    = budgetEntry.Parent__c;
+                    flowEntry.Source__c          = 'Budget';
                     newEntries.add(flowEntry);
                 }
             }
-
-
         }
 
         delete oldEntries;
         upsert newEntries;
 
-
-
         // CREDIT CARD
-
 
 
         ////////////// STEP 11 - RECALCULATE BALANCES AND ADD OVERHEAD AMOUNTS TO THE 1ST OF EACH MONTH
@@ -495,7 +518,7 @@ public with sharing class CashflowControl2 {
 
             if (flow.Number__c == 0){
 
-                system.debug('setting initial balance value of ' + startingBalance);
+//                system.debug('setting initial balance value of ' + startingBalance);
 
                 confirmed           += startingBalance;
 
