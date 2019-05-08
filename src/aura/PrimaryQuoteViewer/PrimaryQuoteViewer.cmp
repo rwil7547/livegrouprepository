@@ -108,7 +108,7 @@
                                             <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
                                         </aura:if>
                                     </aura:if>
-                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
+                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,v.quote.SBQQ__Opportunity2__r.Legacy__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
                                         <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
                                     </aura:if>
 

@@ -211,7 +211,7 @@ public class SalesDashboardTest {
         List<CashFlowEntry__c> entries = new List<CashFlowEntry__c>();
 
         entries.add(new CashFlowEntry__c(
-                InFlow__c       = flows[1].Id,
+                CashFlow__c     = flows[1].Id,
                 Source__c       = 'Quickbooks',
                 Category__c     = 'Credit card',
                 Description__c  = 'Credit card',
@@ -223,7 +223,8 @@ public class SalesDashboardTest {
         ));
 
         entries.add(new CashFlowEntry__c(
-                OutFlow__c       = flows[2].Id,
+                CashFlow__c     = flows[2].Id,
+                Out__c          = true,
                 Source__c       = 'Quickbooks',
                 Category__c     = 'Credit card',
                 Description__c  = 'Credit card',
@@ -234,7 +235,8 @@ public class SalesDashboardTest {
         ));
 
         entries.add(new CashFlowEntry__c(
-                OutFlow__c       = flows[3].Id,
+                CashFlow__c     = flows[3].Id,
+                Out__c          = true,
                 Source__c       = 'Quickbooks',
                 Category__c     = 'Credit card',
                 Description__c  = 'Credit card',
@@ -245,7 +247,8 @@ public class SalesDashboardTest {
         ));
 
         entries.add(new CashFlowEntry__c(
-                OutFlow__c       = flows[4].Id,
+                CashFlow__c     = flows[4].Id,
+                Out__c          = true,
                 Source__c       = 'Custom',
                 Category__c     = 'Credit card',
                 Description__c  = 'Credit card',
@@ -511,7 +514,7 @@ public class SalesDashboardTest {
         Object priorsnapshot = SalesDashboardRemoter.getPriorTotals(endDate);
         SalesDashboardSnapshot__c snapshotData = SalesDashboardRemoter.getSnapshotData(createdDate, endDate);
 
-        SalesDashboardUtils.commitOpportunites();
+        SalesDashboardUtils.commitOpportunites(Date.today());
         SalesDashboardUtils.adjustOpportunities();
     }
 

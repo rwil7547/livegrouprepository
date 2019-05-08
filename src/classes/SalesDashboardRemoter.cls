@@ -150,12 +150,19 @@ global class SalesDashboardRemoter {
         List<String> months = new List<String>();
         months.addAll(revenueAggregates.keySet());
 
-        for (Opportunity opp : [SELECT EventMonthYear__c, Amount_Calder__c, Amount_Invoiced2__c,
+        for (Opportunity opp : [SELECT Name, EventMonthYear__c, Amount_Calder__c, Amount_Invoiced2__c,
                                         Amount_Paid__c, Filtered_Cost_of_Sale__c, Quickbooks_COS__c, Quickbooks_COS_Paid__c
                                 FROM Opportunity
                                 WHERE StageName = 'Closed Won'
                                 AND Event_end__c >= :startDate
                                 AND Event_end__c <= :endDate]){
+
+//            if (revenueAggregates.get(opp.EventMonthYear__c)[5] == null){
+                system.debug(opp.Id);
+                system.debug('evmonyear ' + opp.EventMonthYear__c);
+                system.debug('cos ' + opp.Filtered_Cost_of_Sale__c);
+                system.debug('QBcos ' + opp.Quickbooks_COS__c);
+//            }
 
             revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Paid__c;
             revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Invoiced2__c - opp.Amount_Paid__c);
@@ -1243,7 +1250,6 @@ global class SalesDashboardRemoter {
                     incrementDate.year();
 
             reportingMap.put(key, new Map<String,List<Object>>());
-
             reportingMap.get(key).put('Closed Won', new List<Object>());
             reportingMap.get(key).put('Costed prospect', new List<Object>());
             reportingMap.get(key).put('Pipeline prospect', new List<Object>());

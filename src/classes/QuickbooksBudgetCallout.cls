@@ -27,9 +27,20 @@ public class QuickbooksBudgetCallout {
         Date closeMonth;
         Boolean closeMonthChanged = false;
 
-        if (year.equalsIgnoreCase('CURRENT FY')){
+
+        if (year.equalsIgnoreCase('PREVIOUS FY')) {
+            fiscalYear = 'LAST_FISCAL_YEAR';
+//            yearsToAdd = 0;
+            startDate  = (Date.today().month() < 4) ?
+                    Date.newInstance(Date.today().year() -2, 04, 01) :
+                    Date.newInstance(Date.today().year() -1, 04, 01);
+            closeMonth = Date.valueOf(closeMonthString);
+            if (closeMonth != QBClosedMonth__c.getInstance('QBClosedMonth').Month__c){
+                closeMonthChanged = true;
+            }
+        } else if (year.equalsIgnoreCase('CURRENT FY')){
             fiscalYear = 'THIS_FISCAL_YEAR';
-            yearsToAdd = 0;
+//            yearsToAdd = 0;
             startDate  = (Date.today().month() < 4) ?
                           Date.newInstance(Date.today().year() -1, 04, 01) :
                           Date.newInstance(Date.today().year(), 04, 01);
@@ -58,7 +69,7 @@ public class QuickbooksBudgetCallout {
         }
 
         // query the PNL if the update is for the current financial year
-        if (fiscalYear == 'THIS_FISCAL_YEAR'){
+        if (fiscalYear == 'THIS_FISCAL_YEAR' || fiscalYear == 'LAST_FISCAL_YEAR'){
             Date calloutDate = startDate;
 
             while (calloutDate <= closeMonth) {
@@ -116,6 +127,9 @@ public class QuickbooksBudgetCallout {
         if (budgetResponse.getStatusCode() == 200) {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
+
+                system.debug('start date: ' + startDate);
+                system.debug('budget: ' + parsedResults.QueryResponse.Budget[0]);
 
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
@@ -182,7 +196,6 @@ public class QuickbooksBudgetCallout {
                                 new QBProfitAndLoss__c(
                                     Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
                                     Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
-//                                    Category__c = parentInfo.get(detail.AccountRef.name)[1],
                                     Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
                                     IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
                                     Month__c    = budgetDate,
@@ -242,7 +255,6 @@ public class QuickbooksBudgetCallout {
                         (String)details.get('Classification') :
                         (String)details.get('Name');
 
-//                System.debug('a classif of ' + classification);
                 parentTypeMap.put((String)details.get('Id'),classification);
 
                 List<String> parentDetails = new List<String>{(String)details.get('Name'), classification};

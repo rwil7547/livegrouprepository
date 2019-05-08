@@ -377,6 +377,7 @@
         .down {
             color: red;
         }
+
         .yearGrid {
             display: grid;
             grid-template-columns: 13% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 8%;
@@ -406,7 +407,7 @@
         }
         .reportCols {
             position: sticky;
-            top: 60px;
+            top: 88px;
             background-color: #555555;
             color: white;
             padding: 4px;
@@ -416,7 +417,7 @@
         }
         .reportMonth {
             font-weight: bold;
-            background-color: #80bbbf;
+            background-color: #262d3f;
             color: white;
         }
         .stage {
@@ -503,7 +504,7 @@
             background-color: #f7f7f7;
         }
         @-webkit-keyframes example {
-            from {height: 0px;width:0;}
+            from {height: 0;width:0;}
             to {height: auto;width: 100%;}
         }
         @keyframes example {
@@ -559,6 +560,63 @@
         .ddSetup > input, .ddSetup > select {
             width: 100%;
 
+        }
+        .adjustmentCount {
+            position: absolute;
+            right: -16px;
+            color: white;
+            /* background-color: #b2a5d1; */
+            width: 65px;
+            height: 65px;
+            /* border-radius: 50%; */
+            /* text-align: center; */
+            /* margin-top: -19px; */
+            font-weight: bold;
+            /* padding-top: 8px; */
+            /* padding-left: 17px; */
+            border-bottom: 77px solid #b2a5d1;
+            border-left: 25px solid transparent;
+        }
+        .rowContent {
+            width: 97%;
+            margin-left: 0.5%;
+            position: absolute;
+            background-color: white;
+            z-index: 100;
+            padding: 10px;
+            border-radius: 4px;
+            border: 0.5px solid grey;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+
+        }
+        .reportFilter {
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            margin-top: 7px;
+            border-radius: 3px;
+        }
+        .reportFilterOption {
+            cursor: pointer;
+            padding: 3px;
+            padding-left: 6px;
+            padding-right: 6px;
+            color: white;
+        }
+        .reportStage {
+            color: white;
+        }
+        .Closed {
+            background-color: #2c7495;
+        }
+        .Costed {
+            background-color: #21a5ab;
+        }
+        .Pipeline {
+            background-color: #5fc6c3;
+        }
+        .Repeat {
+            background-color: #8194bb;
         }
         #app {
             width: 100%;
@@ -631,19 +689,19 @@
                 <!-- VIEWING OPTIONS -->
                 <div>
                     <div  class="viewOptionHolder">
-                        <div class="viewOption" v-on:click="app.setting = 'graph'"
+                        <div class="viewOption" v-on:click="app.setting = 'graph';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'graph'}">
                             <i class="fas fa-chart-bar"></i> GRAPHS </div>
-                        <div class="viewOption" v-on:click="app.setting = 'report'"
+                        <div class="viewOption" v-on:click="app.setting = 'report';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'report'}">
                             <i class="fas fa-list"></i> REPORT </div>
-                        <div class="viewOption" v-on:click="app.setting = 'changes'"
+                        <div class="viewOption" v-on:click="app.setting = 'changes';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'changes'}">
                             <i class="fas fa-arrows-alt-v"></i> WHAT'S CHANGED </div>
-                        <div class="viewOption" v-on:click="app.setting = 'history'"
+                        <div class="viewOption" v-on:click="app.setting = 'history';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'history'}">
                             <i class="fas fa-history"></i> HISTORY </div>
-                        <div class="viewOption" v-on:click="app.setting = 'manage'"
+                        <div class="viewOption" v-on:click="app.setting = 'manage';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'manage'}">
                             <i class="fas fa-cog"></i> MANAGE </div>
                     </div>
@@ -652,6 +710,26 @@
                 <!-- LOGO -->
                 <div style="position:absolute;right:5px;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
             </div>
+
+            <template v-if="setting === 'report'">
+                <div style="display: flex;justify-content: center;width:100%">
+                    <div class="reportFilter">
+                        <div class="reportFilterOption Closed left"
+                             v-bind:style="{ opacity : !reportFilter['Closed Won'] ? '0.3' : ''}"
+                             v-on:click="reportFilter['Closed Won'] = !reportFilter['Closed Won']">CLOSED WON</div>
+                        <div class="reportFilterOption Costed"
+                             v-bind:style="{ opacity : !reportFilter['Costed prospect'] ? '0.3' : ''}"
+                             v-on:click="reportFilter['Costed prospect'] = !reportFilter['Costed prospect']">COSTED PROSPECT</div>
+                        <div class="reportFilterOption Pipeline"
+                             v-bind:style="{ opacity : !reportFilter['Pipeline prospect'] ? '0.3' : ''}"
+                             v-on:click="reportFilter['Pipeline prospect'] = !reportFilter['Pipeline prospect']">PIPELINE PROSPECT</div>
+                        <div class="reportFilterOption Repeat"
+                             v-bind:style="{ opacity : !reportFilter['Repeat Prospect'] ? '0.3' : ''}"
+                             v-on:click="reportFilter['Repeat Prospect'] = !reportFilter['Repeat Prospect']">REPEAT PROSPECT</div>
+                    </div>
+                </div>
+            </template>
+
         </div>
 
         <span v-bind:style="{ display : setting !== 'graph' ? 'none' : ''}">
@@ -688,9 +766,12 @@
                     <div class="title">GROSS PROFIT {{period}}</div>
                     <div class="optionsHolder">
                         <div class="options">
-                            <div class="option confirmed">CONFIRMED</div>
-                            <div class="option weighted">WEIGHTED</div>
-                            <div class="option pipeline">PIPELINE</div>
+                            <div class="option confirmed"
+                                 v-on:click="toggle('confirmed')" v-bind:class="{dim : !confirmed}">CONFIRMED</div>
+                            <div class="option weighted"
+                                 v-on:click="toggle('weighted')" v-bind:class="{dim : !weighted}">WEIGHTED</div>
+                            <div class="option pipeline"
+                                 v-on:click="toggle('pipeline')" v-bind:class="{dim : !pipeline}">PIPELINE</div>
                             <div class="option opex">OPEX</div>
                         </div>
                     </div>
@@ -740,9 +821,12 @@
                     <div class="title">NET PROFIT {{period}}</div>
                     <div class="optionsHolder">
                         <div class="options">
-                            <div class="option confirmed">CONFIRMED</div>
-                            <div class="option weighted">WEIGHTED</div>
-                            <div class="option pipeline">PIPELINE</div>
+                            <div class="option confirmed"
+                                 v-on:click="toggle('confirmed')" v-bind:class="{dim : !confirmed}">CONFIRMED</div>
+                            <div class="option weighted"
+                                 v-on:click="toggle('weighted')" v-bind:class="{dim : !weighted}">WEIGHTED</div>
+                            <div class="option pipeline"
+                                 v-on:click="toggle('pipeline')" v-bind:class="{dim : !pipeline}">PIPELINE</div>
                         </div>
                     </div>
                 </div>
@@ -1242,7 +1326,6 @@
                                                 </div>
                                             </div>
                                         </template>
-
                                     </template>
                                 </div>
                             </template>
@@ -1320,7 +1403,7 @@
         </span>
 
         <span v-bind:style="{ display : setting !== 'report' ? 'none' : ''}">
-            <div class="box" style="padding: 0;">
+            <div class="box" style="padding: 7px;">
                 <div class="colDivider reportCols">
                     <div>AM/PM</div>
                     <div>JOB</div>
@@ -1347,32 +1430,54 @@
                             <div></div>
                         </div>
                         <template v-for="stage,stageIndex in graphData['REPORTDATA'][monthIndex]">
-                            <template v-if="stage.length > 0">
-                                <div class="headerDivider stage" v-bind:class="stageIndex === 'Closed Won' ? 'closed' : 'open'">
+                            <template v-if="stage.length > 0 && reportFilter[stageIndex]">
+                                <!--<div class="headerDivider stage" v-bind:class="stageIndex === 'Closed Won' ? 'closed' : 'open'">-->
+                                <div class="headerDivider stage reportStage" v-bind:class="stageIndex.split(' ')[0]">
                                     <div> {{ stageIndex.toUpperCase() }}</div>
-                                    <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                    <div>{{ '£' + Math.abs(graphData['REPORTVALUES'][monthIndex][stageIndex + ' Revenue']).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     <div>{{ '£' + Math.abs(graphData.revenue[monthIndex][0] - graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     <div>{{ '£' + Math.abs(graphData.profit[monthIndex][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     <div>{{ (Math.abs(graphData.profit[monthIndex][0] / graphData.revenue[monthIndex][0] * 100).toFixed(0)) + '%'}}</div>
                                     <div></div>
                                 </div>
                                 <template v-for="record in stage">
-                                    <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'">
-                                        <!--<div>{{ record.Owner.FirstName.substring(0,1) + record.Owner.LastName.substring(0,1) +-->
-                                                <!--(record.Project_Manager__c ? '/' + record.Project_Manager__r.FirstName.substring(0,1)-->
-                                                <!--+ record.Project_Manager__r.LastName.substring(0,1) : '') }}</div>-->
-                                        <div></div>
-                                        <div>{{ record.Filtered_Job_Number__c }}</div>
-                                        <div>{{ record.Name }}</div>
-                                        <div>{{ record.Account.Name }}</div>
-                                        <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
-                                        <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
-                                        <div>{{ '£' + Math.abs(record.Amount_Calder__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
-                                        <div>{{ '£' + Math.abs(record.Filtered_Cost_of_Sale__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
-                                        <div>{{ '£' + Math.abs(record.Gross_profit_2__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
-                                        <div>{{ record.Gross_Margin__c }}%</div>
-                                        <div>{{ record.IsClosed ? record.Quote_Status__c : 'Prob: ' + record.Probability + '%'}}</div>
-                                    </div>
+                                    <template v-if="record.StageName">
+                                        <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'"
+                                             v-on:click="activeReportRow = activeReportRow !== record.Id ? record.Id : ''"
+                                             v-bind:style="{fontWeight: activeReportRow === record.Id ? 'bold' : ''}">
+                                            <div>{{ record.Owner.FirstName.substring(0,1) + record.Owner.LastName.substring(0,1) +
+                                                    (record.Project_Manager__c ? '/' + record.Project_Manager__r.FirstName.substring(0,1)
+                                                    + record.Project_Manager__r.LastName.substring(0,1) : '') }}</div>
+                                            <div>{{ record.Filtered_Job_Number__c }}</div>
+                                            <div>{{ record.Name }}</div>
+                                            <div>{{ record.Account.Name }}</div>
+                                            <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
+                                            <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
+                                            <div>{{ '£' + Math.abs(record.Amount_Calder__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                            <div>{{ '£' + Math.abs(record.Filtered_Cost_of_Sale__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                            <div>{{ '£' + Math.abs(record.Gross_profit_2__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</div>
+                                            <div>{{ record.Gross_Margin__c }}%</div>
+                                            <div style="position: relative;">
+                                                <span>{{ record.IsClosed ? record.RecStatus__c : record.Probability + '% probability'}}</span>
+                                                <span v-if="record.Adjustments__r" class="adjustmentCount">
+                                                    <!--<i class="fas fa-level-down-alt"></i>-->
+                                                    {{record.Adjustments__r.length}}
+                                                </span>
+                                            </div>
+
+
+
+                                        </div>
+
+                                        <template v-if="activeReportRow === record.Id">
+                                            <div class="rowContent">SOME CONTENT</div>
+                                        </template>
+
+
+                                        <template v-if="record.Adjustments__r">
+                                        </template>
+
+                                    </template>
                                 </template>
                             </template>
                         </template>
@@ -1509,7 +1614,17 @@
                     duration : ''
                 },
                 attachmentLink : '',
-
+                activeReportRow : '',
+                // stageIndex : {
+                //     'Closed Won' : 0
+                // },
+                reportFilter : {
+                    'Closed Won' : true,
+                    'Costed prospect' : true,
+                    'Pipeline prospect' : true,
+                    'Repeat Prospect' : true
+                },
+                // a comment
                 brand : {
                     main : '#262d3f',
                     second : '#2d7175',
@@ -1520,21 +1635,21 @@
                     other : '#F85D65',
                     opex : '#b86267',
                     budget : '#575858',
-                    revenue : {
-                        main : '#235b76',
-                        second : '#307fa4',
-                        third : '#43b0e2'
-                    },
-                    profit : {
-                        main : '#498a88',
-                        second : '#5fb4b2',
-                        third : '#81f3f1'
-                    },
-                    netProfit : {
-                        main : '#726985',
-                        second : '#9085a9',
-                        third : '#b2a5d1'
-                    },
+                    // revenue : {
+                    //     main : '#235b76',
+                    //     second : '#307fa4',
+                    //     third : '#43b0e2'
+                    // },
+                    // profit : {
+                    //     main : '#498a88',
+                    //     second : '#5fb4b2',
+                    //     third : '#81f3f1'
+                    // },
+                    // netProfit : {
+                    //     main : '#726985',
+                    //     second : '#9085a9',
+                    //     third : '#b2a5d1'
+                    // },
                     cashFlow : {
                         main : '#276684',
                         second : '#368eb7',
@@ -1608,32 +1723,29 @@
                         app.showManager = false;
                         app.drawLine('cashFlow', app.cashGraphData);
                     }
-                    //
-                    // if (!app.showManager){
-                    //     app.showManager = true;
-                    //     app.drawLine('cashFlow', app.cashflowData['CASHFLOW']);
-                    // } else {
-                    //     app.showManager = false;
-                    //     app.drawLine('cashFlow', app.cashGraphData);
-                    // }
                 },
-                toggle : function(stage){
+                toggle : function(stage, type){
                     app[stage] = !app[stage];
-                    // if (app.setting === 'graph'){
-                        app.drawData();
-                    // }
-
+                    app.drawData();
                 },
                 loadData : function(){
 
                     // step 1: get all performance figures
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.getOppRevenueTotals}',
+                        '{!$RemoteAction.VueTestController.getOppRecords}',
                         this.startDate,
                         this.endDate,
                         function (result) {
                             app.graphData = result;
                             console.log(result);
+                            Array.from(result['REPORTDATA']).forEach(function(month) {
+                                result['REPORTDATA'][month]['Closed Won'].forEach(function (record) {
+                                    if (record.Adjustments__r){
+                                        console.log(record);
+
+                                    }
+                                });
+                            });
                             app.drawData();
                         });
 
@@ -1699,7 +1811,7 @@
                                 });
                             }
 
-                            console.log('type is ' + type);
+                            // console.log('type is ' + type);
                             var options = {
                                 series: {
                                     0: {
@@ -1879,7 +1991,7 @@
                                         format: '£#,###'
                                     },
                                     2: {
-                                        color: app.brand[type].second,
+                                        color: app.brand.second,
                                         format: '£#,###'
                                     },
                                     3: {
@@ -1947,6 +2059,7 @@
 
                     var categories = ['in','paymentRun','payroll','freelancers','creditCard','managementFees','directDebit'];
 
+                    // use jQuery sortable librabry method to make each strand of the cashflow sortable
                     categories.forEach(function(category){
                         var oldList, newList, item;
                         $('.' + category).sortable({
@@ -1971,11 +2084,9 @@
 
                                     var sourceRecord    = ui.helper.context.dataset;
                                     var targetWeekDiv   = event.target.dataset;
-                                    console.log('target div');
-                                    console.log(event.target);
-
                                     var weekNumber      = parseInt(targetWeekDiv.week);
                                     var weekDate;
+
                                     if (weekNumber < 11){
                                         weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber + 1]);
                                         weekDate.setDate(weekDate.getDate() -1);
@@ -1983,8 +2094,6 @@
                                         weekDate    = new Date(app.cashflowData['WEEK COMMENCING'][weekNumber]);
                                         weekDate.setDate(weekDate.getDate() + 6);
                                     }
-
-                                    console.log('week is ' + app.cashflowData['WEEK COMMENCING'][weekNumber]);
 
                                     // step 2: get all cashflow figures
                                     Visualforce.remoting.Manager.invokeAction(
@@ -2052,7 +2161,6 @@
                                     '{!$RemoteAction.VueTestController.rerunFlow}', false,
                                     function (result, event) {
                                         app.responsePending = false;
-                                        console.log('successful toggle freelancer');
                                         Object.assign(app.cashflowData,result);
                                         app.drawLine('cashFlow', app.cashflowData['CASHFLOW']);
                                     });
@@ -2060,8 +2168,6 @@
                                 app.responsePending = false;
                             }
                         });
-
-
                 },
                 updateComment : function(comment){
                     app.responsePending = true;

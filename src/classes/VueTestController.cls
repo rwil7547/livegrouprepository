@@ -86,10 +86,11 @@ public class VueTestController {
     }
 
     @RemoteAction
-    public static Map<String,Object> getOppRevenueTotals(String start, String endD){
+    public static Map<String,Object> getOppRecords(String start, String endD){
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
+        // a comment
 
         Map<String,Object> figuresMap                   = new Map<String,Object>();
         Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
@@ -97,6 +98,7 @@ public class VueTestController {
         Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
         Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
         Map<String,Map<String,List<Object>>> reportData = new Map<String,Map<String,List<Object>>>();
+        Map<String,Map<String,Decimal>> reportValues    = new Map<String,Map<String,Decimal>>();
 
         Map<String,Decimal> totals                      = new Map<String,Decimal>();
         Decimal totalRevenue    = 0;
@@ -123,8 +125,19 @@ public class VueTestController {
                     'Pipeline prospect' => new List<Object>(),
                     'Repeat Prospect'   => new List<Object>()
             };
-
             reportData.put(month, stageMap);
+
+            Map<String,Decimal> stageValueMap = new Map<String,Decimal>{
+                    'Closed Won Revenue'        => 0,
+                    'Closed Won COS'            => 0,
+                    'Costed prospect Revenue'   => 0,
+                    'Costed prospect COS'       => 0,
+                    'Pipeline prospect Revenue' => 0,
+                    'Pipeline prospect COS'     => 0,
+                    'Repeat Prospect Revenue'   => 0,
+                    'Repeat Prospect COS'       => 0
+            };
+            reportValues.put(month, stageValueMap);
         }
 
         // get all committed opp data
@@ -135,33 +148,54 @@ public class VueTestController {
                                         CommittedProfit__c, CommittedCOS__c, IsClosed,
                                         Gross_profit_2__c, Event_End_Grouping__c,
                                         EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
-                                        Project_Manager__r.FirstName, Project_Manager__r.LastName
+                                        Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
+                                        (SELECT Revenue__c, Profit__c, CostOfSale__c, EventMonthYear__c, Month__c
+                                        FROM Adjustments__r)
                                 FROM Opportunity
                                 WHERE StageName != 'Closed Lost'
+                                AND Event_start__c != NULL
+                                AND Event_end__c != NULL
                                 AND Event_end__c >= :startDate
                                 AND Event_end__c <= :endDate]){
 
             reportData.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);
+
+//            reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
+//                    reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.Amount_Calder__c);
 
             if (opp.Committed__c){
                 totalRevenue += opp.CommittedRevenue__c;
                 totalProfit += opp.CommittedProfit__c;
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
                 profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
-            } else if (opp.StageName == 'Closed Won') {
-                totalRevenue += opp.Amount_Calder__c;
-                totalProfit += opp.Gross_profit_2__c;
-                revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
-                profitAggregates.get(opp.EventMonthYear__c)[0] += opp.Gross_profit_2__c;
+                reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
+                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.CommittedRevenue__c);
+                reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' COS',
+                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.CommittedCOS__c);
             } else {
-                revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Calder__c * opp.Probability) / 100;
-                profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
-                revenueAggregates.get(opp.EventMonthYear__c)[2] += opp.Amount_Calder__c - (opp.Amount_Calder__c * opp.Probability) / 100;
-                profitAggregates.get(opp.EventMonthYear__c)[2] += opp.Gross_profit_2__c - (opp.Gross_profit_2__c * opp.Probability) / 100;
+                if (opp.StageName == 'Closed Won') {
+                    totalRevenue += opp.Amount_Calder__c;
+                    totalProfit += (opp.Gross_profit_2__c == null) ? 0 : opp.Gross_profit_2__c;
+                    revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
+                    profitAggregates.get(opp.EventMonthYear__c)[0] += (opp.Gross_profit_2__c == null) ? 0 : opp.Gross_profit_2__c;
+                } else {
+                    revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Calder__c * opp.Probability) / 100;
+                    profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
+                    revenueAggregates.get(opp.EventMonthYear__c)[2] += opp.Amount_Calder__c - (opp.Amount_Calder__c * opp.Probability) / 100;
+                    profitAggregates.get(opp.EventMonthYear__c)[2] += opp.Gross_profit_2__c - (opp.Gross_profit_2__c * opp.Probability) / 100;
+                }
+                if (opp.Amount_Calder__c != null){
+                    reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
+                            reportValues.get(opp.EventMonthYear__c).get(opp.StageName + ' Revenue') + opp.Amount_Calder__c);
+                }
+                if (opp.Filtered_Cost_of_Sale__c != null){
+                    reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' COS',
+                            reportValues.get(opp.EventMonthYear__c).get(opp.StageName + ' COS') + opp.Filtered_Cost_of_Sale__c);
+                }
             }
         }
 
-        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, EventMonthYear__c
+        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, EventMonthYear__c, Opportunity__r.Name
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate]) {
@@ -242,6 +276,7 @@ public class VueTestController {
         figuresMap.put('netProfit',netProfitAggregates);
         figuresMap.put('totals',totals);
         figuresMap.put('REPORTDATA',reportData);
+        figuresMap.put('REPORTVALUES',reportValues);
         figuresMap.put('months',months);
         figuresMap.put('qbClose',QBClosedMonth__c.getInstance('QBClosedMonth'));
         figuresMap.put('sfCommit',QBClosedMonth__c.getInstance('SFCommitMonth'));

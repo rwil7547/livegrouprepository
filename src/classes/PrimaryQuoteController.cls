@@ -866,11 +866,12 @@ public with sharing class PrimaryQuoteController {
 
         String version = (type == 'Contract') ? 'Contract Amendment' + ' ' + count.size() :
                 type + ' ' + (count.size() + 1);
-        Boolean primary = type == 'Estimate' && !parentOpp.Legacy__c ? false : true;
+//        Boolean primary = type == 'Estimate' && !parentOpp.Legacy__c ? false : true;
+//        Boolean primary = false;
 
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
-        cloneQuote.SBQQ__Primary__c         = primary;
+        cloneQuote.SBQQ__Primary__c         = false;
         cloneQuote.Stage__c                 = type;
         cloneQuote.Version__c               = version;
         cloneQuote.HasDocument__c           = false;
@@ -1003,9 +1004,9 @@ public with sharing class PrimaryQuoteController {
             parentOpp.SBQQ__QuotePricebookId__c = cloneQuote.SBQQ__PriceBook__c;
         }
 
-        if (primary){
-            parentOpp.SBQQ__PrimaryQuote__c = cloneQuote.Id;
-        }
+//        if (primary){
+//            parentOpp.SBQQ__PrimaryQuote__c = cloneQuote.Id;
+//        }
 
         update parentOpp;
 
