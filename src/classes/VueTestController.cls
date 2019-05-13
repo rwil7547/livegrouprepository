@@ -160,18 +160,15 @@ public class VueTestController {
 
             reportData.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);
 
-//            reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
-//                    reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.Amount_Calder__c);
-
             if (opp.Committed__c){
                 totalRevenue += opp.CommittedRevenue__c;
                 totalProfit += opp.CommittedProfit__c;
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
                 profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
                 reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
-                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.CommittedRevenue__c);
+                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName + ' Revenue') + opp.CommittedRevenue__c);
                 reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' COS',
-                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName) + opp.CommittedCOS__c);
+                        reportValues.get(opp.EventMonthYear__c).get(opp.StageName + ' COS') + opp.CommittedCOS__c);
             } else {
                 if (opp.StageName == 'Closed Won') {
                     totalRevenue += opp.Amount_Calder__c;
@@ -242,7 +239,7 @@ public class VueTestController {
                     opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
                 }
 
-                opexAggregates.get(qpl.EventMonthYear__c)[2] += (qpl.Budget__c * multiplier);
+                opexAggregates.get(qpl.EventMonthYear__c)[2]   += (qpl.Budget__c * multiplier);
                 profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
 
                 if (qpl.Grouping__c == 'Payroll'){
@@ -258,9 +255,9 @@ public class VueTestController {
         }
 
         for (Integer x = 0; x < months.size(); x++){
-            netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[0]);
-            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[0]);
-            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[0]);
+            netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[1]);
+            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
+            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
         }
 
         totals.put('revenue', totalRevenue);
@@ -308,13 +305,20 @@ public class VueTestController {
     }
 
     @RemoteAction
+    public static Map<String,Object> rerunFlow(Boolean resetAgeing){
+
+        CashflowControl2.buildFlow(resetAgeing);
+
+        return getCashflowData(true);
+
+    }
+
+    @RemoteAction
     public static Map<String,Object> getUpdateFlowEntry(String entryId, String dateString){
 
         Date flowDate           = Date.valueOf(dateString);
         CashFlow__c flow        = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
         CashFlowEntry__c entry  = [SELECT Id, Description__c FROM CashFlowEntry__c WHERE Id = :entryId];
-
-        System.debug('the to date is ' + flowDate + ' and id is ' + flow.Id);
 
         entry.CashFlow__c       = flow.Id;
         entry.Adjusted__c       = true;
@@ -343,6 +347,36 @@ public class VueTestController {
                 AmountAdjusted__c = true);
         calculateBalances();
         return getCashflowData(false);
+    }
+
+    @RemoteAction
+    public static Map<String,Object> addCustomEntry(String type, String description, Decimal amount, String dateString){
+
+        Date flowDate       = Date.valueOf(dateString);
+        CashFlow__c flow    = [SELECT Id FROM CashFlow__c WHERE Date__c = :flowDate];
+
+        if (flow != null){
+            CashFlowEntry__c customEntry    = new CashFlowEntry__c();
+            customEntry.Source__c           = 'Custom';
+            customEntry.Out__c              = (type != 'Revenue');
+            customEntry.Category__c         = (type == 'Revenue') ? 'Custom entry' : type;
+            customEntry.Description__c      = description;
+            customEntry.CashFlow__c         = flow.Id;
+            customEntry.Amount__c           = amount;
+            insert customEntry;
+
+            calculateBalances();
+
+            Map<String,Object> responseData = getCashflowData(false);
+            responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+                                        CashFlow__r.DayMonthYear__c
+                                        FROM CashFlowEntry__c WHERE Id = :customEntry.Id]);
+
+            return responseData;
+
+        } else {
+            return null;
+        }
     }
 
     @RemoteAction
@@ -380,6 +414,12 @@ public class VueTestController {
 
         return true;
     }
+//
+//    @RemoteAction
+//    public static Map<String,Object> convertToDirectDebit(CashFlowEntry__c entry,
+//                                                            String ){
+//
+//    }
 
     @RemoteAction
     public static Map<String,Object> rerunFlow(Boolean resetValues){
@@ -508,17 +548,22 @@ public class VueTestController {
                                                     CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
                                                     TempDownloadUri__c
                                             FROM CashFlowEntries__r
-                                            ORDER BY LastModifiedDate ASC, Source__c )
+                                            ORDER BY Category__c ASC, Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
                                     AND Date__c <= : endDate]){
 
-                totalInflow += flow.InConfirmed__c;
-                totalOutflow += flow.OutConfirmed__c;
+//                totalInflow += flow.InConfirmed__c;
+                totalInflow += flow.InBudget__c;
+//                totalOutflow += flow.OutConfirmed__c;
+                totalOutflow += flow.OutBudget__c;
 
                 for (CashFlowEntry__c entry : flow.CashFlowEntries__r){
 
                     if (entry.Out__c){
+
+                        system.debug(entry.Category__c);
+
                         if (!outEntries.containsKey(entry.Category__c)){
                             outEntries.put(entry.Category__c, figures.clone());
                         }
@@ -553,7 +598,7 @@ public class VueTestController {
         cashflowDataMap.put('TOTAL OUTFLOW', totalOutflows);
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
         cashflowDataMap.put('IN', figures.clone());
-        cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today()),String.valueOf(entryDate)));
+        cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today().addDays(-7)),String.valueOf(entryDate)));
         if (includeRecords) cashflowDataMap.put('RECORDS', records);
 
         return cashflowDataMap;

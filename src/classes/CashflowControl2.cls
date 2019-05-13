@@ -41,9 +41,11 @@ public with sharing class CashflowControl2 {
                                                 OutFlow__r.Date__c, InFlow__r.Date__c, Description__c
                                         FROM CashFlowEntry__c]){
             if (resetValues && entry.Adjusted__c){
-                entry.CashFlow__c = flowMap.get(entry.AdjustedDate__c).Id;
-                newEntries.add(entry);
-                adjustedIds.add(entry.QuickbooksId__c);
+                if (flowMap.containsKey(entry.AdjustedDate__c)){
+                    entry.CashFlow__c = flowMap.get(entry.AdjustedDate__c).Id;
+                    newEntries.add(entry);
+                    adjustedIds.add(entry.QuickbooksId__c);
+                }
             } else {
                 oldEntries.add(entry);
             }
@@ -444,7 +446,7 @@ public with sharing class CashflowControl2 {
             String vatKey   = String.valueOf((Integer) ar.get('quarter')) + String.valueOf((Integer) ar.get('year'));
             Integer year    = (Integer) ar.get('year');
             Integer quarter = (Integer) ar.get('quarter');
-            Date vatYear    = Date.newInstance(year, 01, 10);
+            Date vatYear    = Date.newInstance(year, 01, 15);
             Date vatDate    = vatYear.addMonths((quarter * 3) + 4);
             Decimal sum     = ar.get('actual') != null ? (Decimal) ar.get('actual') : 0;
             Decimal vatAmt  = (String) ar.get('Category__c') == 'Revenue' ? sum * 0.2 : (sum * -1) * 0.15;
@@ -462,6 +464,7 @@ public with sharing class CashflowControl2 {
                     vatEntry.Out__c             = true;
                     vatEntry.Amount__c          = 0;
                     vatEntry.QuickbooksId__c    = vatKey;
+                    vatEntry.Source__c          = 'Budget';
                     vatEntryMap.put(vatKey, vatEntry);
                 }
 
