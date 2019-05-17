@@ -99,6 +99,7 @@ public class VueTestController {
         Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
         Map<String,Map<String,List<Object>>> reportData = new Map<String,Map<String,List<Object>>>();
         Map<String,Map<String,Decimal>> reportValues    = new Map<String,Map<String,Decimal>>();
+        Set<String> nominalStrings                      = new Set<String>();
 
         Map<String,Decimal> totals                      = new Map<String,Decimal>();
         Decimal totalRevenue    = 0;
@@ -222,6 +223,8 @@ public class VueTestController {
 
         for (QBProfitAndLoss__c qpl : results) {
 
+            nominalStrings.add(qpl.Parent__c);
+
             if (qpl.Opex__c){
                 Decimal multiplier = 1;
 
@@ -277,6 +280,7 @@ public class VueTestController {
         figuresMap.put('months',months);
         figuresMap.put('qbClose',QBClosedMonth__c.getInstance('QBClosedMonth'));
         figuresMap.put('sfCommit',QBClosedMonth__c.getInstance('SFCommitMonth'));
+        figuresMap.put('nominalStrings',nominalStrings);
 
         List<SalesDashboardSnapshot__c> priorSnaps =
                             [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
@@ -305,16 +309,7 @@ public class VueTestController {
     }
 
     @RemoteAction
-    public static Map<String,Object> rerunFlow(Boolean resetAgeing){
-
-        CashflowControl2.buildFlow(resetAgeing);
-
-        return getCashflowData(true);
-
-    }
-
-    @RemoteAction
-    public static Map<String,Object> getUpdateFlowEntry(String entryId, String dateString){
+    public static Map<String,Object> changeEntryDate(String entryId, String dateString){
 
         Date flowDate           = Date.valueOf(dateString);
         CashFlow__c flow        = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
@@ -363,16 +358,12 @@ public class VueTestController {
             customEntry.Description__c      = description;
             customEntry.CashFlow__c         = flow.Id;
             customEntry.Amount__c           = amount;
+            customEntry.Stage__c            = 'Confirmed';
             insert customEntry;
 
             calculateBalances();
 
-            Map<String,Object> responseData = getCashflowData(false);
-            responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-                                        CashFlow__r.DayMonthYear__c
-                                        FROM CashFlowEntry__c WHERE Id = :customEntry.Id]);
-
-            return responseData;
+            return getCashflowData(true);
 
         } else {
             return null;
@@ -414,12 +405,41 @@ public class VueTestController {
 
         return true;
     }
-//
-//    @RemoteAction
-//    public static Map<String,Object> convertToDirectDebit(CashFlowEntry__c entry,
-//                                                            String ){
-//
-//    }
+
+    @RemoteAction
+    public static QBSupplierProfile__c convertToDirectDebit(String vendorRef, String supplierName, String frequency,
+                                                    Integer occurence, Decimal amount, Integer duration, String nominal){
+
+        // create a new supplier profile which the cashflow can use to implement the direct debits
+        QBSupplierProfile__c profile = new QBSupplierProfile__c(
+                SupplierId__c   = vendorRef,
+                SupplierName__c = supplierName,
+                Category__c     = nominal,
+                Type__c         = 'DD',
+                Amount__c       = amount,
+                Terms__c        = frequency,
+                Day__c          = occurence,
+                EndDate__c      = (duration != 0) ? Date.today().addMonths(duration) : null
+        );
+
+        insert profile;
+        return profile;
+    }
+
+    @RemoteAction
+    public static Boolean disableDirectDebit(String supplierId){
+
+        // remove the QB supplier profile used to calculate the direct debits
+        delete [SELECT Id FROM QBSupplierProfile__c
+                WHERE SupplierId__c = :supplierId
+                AND Type__c = 'DD'];
+
+        // remove the existing direct debit entries from the cashflow
+        delete [SELECT Id FROM CashFlowEntry__c WHERE QuickbooksId__c = :supplierId];
+
+        return true;
+
+    }
 
     @RemoteAction
     public static Map<String,Object> rerunFlow(Boolean resetValues){
@@ -441,27 +461,22 @@ public class VueTestController {
         return attachmentResponse.getStatusCode() == 200 ? JSON.deserializeUntyped(attachmentResponse.getBody()) : (Object)'error';
     }
 
-    private static void calculateBalances(){
+    public static void calculateBalances(){
 
-        ////////////// STEP 11 - RECALCULATE BALANCES AND ADD OVERHEAD AMOUNTS TO THE 1ST OF EACH MONTH
         Decimal confirmed   = 0;
         Decimal pipeline    = 0;
         Decimal budget      = 0;
 
         List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c,
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
-                                            Balance__c, BalancePlus__c, BalancePredict__c, Number__c, InDescription__c
+                                            Balance__c, BalancePlus__c, BalancePredict__c,
+                                            Number__c, InDescription__c
                                 FROM CashFlow__c
                                 ORDER BY Number__c ASC];
 
         for (CashFlow__c flow : flows) {
-            if (flow.Number__c == 0){
-                confirmed   += (flow.InConfirmed__c - flow.OutConfirmed__c) + Decimal.valueOf(flow.InDescription__c);
-                pipeline    += (flow.InPipeline__c - flow.OutPipeline__c);
-                budget      += (flow.InBudget__c - flow.OutBudget__c);
-                flow.Balance__c         = confirmed;
-                flow.BalancePlus__c     = confirmed + pipeline;
-                flow.BalancePredict__c  = confirmed + pipeline + budget;
+            if (flow.Number__c == -1){
+                confirmed   += flow.Balance__c;
             } else {
                 confirmed   += (flow.InConfirmed__c - flow.OutConfirmed__c);
                 pipeline    += (flow.InPipeline__c - flow.OutPipeline__c);
@@ -534,9 +549,7 @@ public class VueTestController {
                 endDate = startDate.addDays(6);
             }
 
-            Integer days = (x == 0) ? 0 : -1;
-
-            openingBalances.add(flowMap.get(startDate.addDays(-days)).BalancePlus__c);
+            openingBalances.add(flowMap.get(startDate.addDays(-1)).BalancePlus__c);
             closingBalances.add(flowMap.get(endDate).BalancePlus__c);
 
             Decimal totalInflow     = 0;
@@ -546,24 +559,18 @@ public class VueTestController {
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
                                             (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
                                                     CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
-                                                    TempDownloadUri__c
+                                                    TempDownloadUri__c, Details__c, VendorRef__c
                                             FROM CashFlowEntries__r
                                             ORDER BY Category__c ASC, Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
                                     AND Date__c <= : endDate]){
 
-//                totalInflow += flow.InConfirmed__c;
-                totalInflow += flow.InBudget__c;
-//                totalOutflow += flow.OutConfirmed__c;
-                totalOutflow += flow.OutBudget__c;
+                totalInflow += flow.InConfirmed__c + flow.InPipeline__c + flow.InBudget__c;
+                totalOutflow += flow.OutConfirmed__c + flow.OutPipeline__c + flow.OutBudget__c;
 
                 for (CashFlowEntry__c entry : flow.CashFlowEntries__r){
-
                     if (entry.Out__c){
-
-                        system.debug(entry.Category__c);
-
                         if (!outEntries.containsKey(entry.Category__c)){
                             outEntries.put(entry.Category__c, figures.clone());
                         }
