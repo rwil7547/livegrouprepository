@@ -8,43 +8,27 @@ public class VueTestController {
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
+        Map<Integer,String> monthsMap = new Map<Integer,String>{
+                1 => 'Jan',2 => 'Feb',3 => 'Mar',4 => 'Apr',5 => 'May',6 => 'Jun',
+                7 => 'Jul',8 => 'Aug',9 => 'Sep',10 => 'Oct',11 => 'Nov',12 => 'Dec'
+        };
 
-        Map<Integer,String> monthsMap = new Map<Integer,String>();
-        monthsMap.put(1, 'Jan');
-        monthsMap.put(2, 'Feb');
-        monthsMap.put(3, 'Mar');
-        monthsMap.put(4, 'Apr');
-        monthsMap.put(5, 'May');
-        monthsMap.put(6, 'Jun');
-        monthsMap.put(7, 'Jul');
-        monthsMap.put(8, 'Aug');
-        monthsMap.put(9, 'Sep');
-        monthsMap.put(10, 'Oct');
-        monthsMap.put(11, 'Nov');
-        monthsMap.put(12, 'Dec');
 
         Map<String,List<Decimal>> objectAggregates = new Map<String,List<Decimal>>();
-
-        Date incrementDate = startDate;
-
+        Date incrementDate  = startDate;
         List<String> months = new List<String>();
 
         while (incrementDate < endDate.addMonths(1).toStartOfMonth().addDays(-1)){
 
             objectAggregates.put(monthsMap.get(incrementDate.month()) + ' ' +
                     incrementDate.year(), new List<Decimal>{0,0,0,0,0,0,0,0,0,0,0,0,0,0});
-
             months.add(monthsMap.get(incrementDate.month()) + ' ' +
                     incrementDate.year());
-
             incrementDate = incrementDate.addMonths(1);
         }
 
         return objectAggregates;
-
     }
-
-
 
     @RemoteAction
     public static Map<Date, List<Object>> getBalances(String start, String endD){
@@ -54,32 +38,46 @@ public class VueTestController {
         Map<Date, List<Object>> balanceMap = new Map<Date, List<Object>>();
         Date iterator = startDate;
 
+        // populate object map with blank values
         while (iterator <= endDate){
-            balanceMap.put(iterator, new List<Object>{'',null,null,null});
+            balanceMap.put(iterator, new List<Object>{'',null,null,null,null});
             iterator = iterator.addDays(1);
         }
 
+        // add any historical balances which fit in the date range
         for (QBBalance__c b : [SELECT Date__c, DayMonthYear__c, Confirmed__c, Weighted__c,
                                         Predictive__c
                                 FROM QBBalance__c
                                 WHERE Date__c >= :startDate
                                 AND Date__c <= :endDate
                                 ORDER BY Date__c ASC]){
+
             balanceMap.get(b.Date__c)[0] = b.DayMonthYear__c;
             balanceMap.get(b.Date__c)[1] = b.Confirmed__c;
+            balanceMap.get(b.Date__c)[2] = 0;
+            balanceMap.get(b.Date__c)[3] = 0;
+            balanceMap.get(b.Date__c)[4] = 0;
         }
 
-
+        // add any forecast balances which fit in the date range
         for (CashFlow__c c : [SELECT Date__c, DayMonthYear__c, Balance__c, BalancePlus__c,
                                         BalancePredict__c
                                 FROM CashFlow__c
                                 WHERE Date__c >= :startDate
                                 AND Date__c <= :endDate]){
+
+//            if (c.Date__c == startDate.addDays(1)){
+//                balanceMap.get(c.Date__c.addDays(-1))[1] = c.Balance__c;
+////                balanceMap.get(c.Date__c.addDays(-1))[3] = c.BalancePlus__c;
+////                balanceMap.get(c.Date__c.addDays(-1))[4] = c.BalancePredict__c;
+//            }
+
             balanceMap.get(c.Date__c)[0] = c.DayMonthYear__c;
-//            balanceMap.get(c.Date__c)[1] = c.Balance__c;
-            balanceMap.get(c.Date__c)[1] = c.Balance__c;
-            balanceMap.get(c.Date__c)[2] = c.BalancePlus__c;
-            balanceMap.get(c.Date__c)[3] = c.BalancePredict__c;
+            balanceMap.get(c.Date__c)[1] = c.Date__c == Date.today().addDays(-1) ? c.Balance__c : 0;
+            balanceMap.get(c.Date__c)[2] = c.Balance__c;
+            balanceMap.get(c.Date__c)[3] = c.BalancePlus__c;
+            balanceMap.get(c.Date__c)[4] = c.BalancePredict__c;
+
         }
 
         return balanceMap;
@@ -97,6 +95,8 @@ public class VueTestController {
         Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
         Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
         Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
+        Map<String,List<Decimal>> qbRevenueAggregates   = buildMap(start,endD);
+        Map<String,List<Decimal>> qbProfitAggregates    = buildMap(start,endD);
         Map<String,Map<String,List<Object>>> reportData = new Map<String,Map<String,List<Object>>>();
         Map<String,Map<String,Decimal>> reportValues    = new Map<String,Map<String,Decimal>>();
         Set<String> nominalStrings                      = new Set<String>();
@@ -129,14 +129,10 @@ public class VueTestController {
             reportData.put(month, stageMap);
 
             Map<String,Decimal> stageValueMap = new Map<String,Decimal>{
-                    'Closed Won Revenue'        => 0,
-                    'Closed Won COS'            => 0,
-                    'Costed prospect Revenue'   => 0,
-                    'Costed prospect COS'       => 0,
-                    'Pipeline prospect Revenue' => 0,
-                    'Pipeline prospect COS'     => 0,
-                    'Repeat Prospect Revenue'   => 0,
-                    'Repeat Prospect COS'       => 0
+                    'Closed Won Revenue'        => 0, 'Closed Won COS'         => 0,
+                    'Costed prospect Revenue'   => 0, 'Costed prospect COS'    => 0,
+                    'Pipeline prospect Revenue' => 0, 'Pipeline prospect COS'  => 0,
+                    'Repeat Prospect Revenue'   => 0, 'Repeat Prospect COS'    => 0
             };
             reportValues.put(month, stageValueMap);
         }
@@ -147,7 +143,7 @@ public class VueTestController {
                                         Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
                                         EventMonthYear__c, Committed__c, CommittedRevenue__c,
                                         CommittedProfit__c, CommittedCOS__c, IsClosed,
-                                        Gross_profit_2__c, Event_End_Grouping__c,
+                                        Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c,
                                         EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
                                         Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
                                         (SELECT Revenue__c, Profit__c, CostOfSale__c, EventMonthYear__c, Month__c
@@ -224,23 +220,28 @@ public class VueTestController {
         for (QBProfitAndLoss__c qpl : results) {
 
             nominalStrings.add(qpl.Parent__c);
+            Decimal multiplier = 1;
+
+            if (qpl.Month__c.month() == startDate.month()) {
+                multiplier = startPortion;
+            } else if (qpl.Month__c.month() == endDate.month()) {
+                multiplier = endPortion;
+            }
+
+
 
             if (qpl.Opex__c){
-                Decimal multiplier = 1;
+//                if (qpl.QBUpdated__c) {
+//                    totalOpex += (qpl.Actual__c * multiplier);
+//                    opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
+//                } else {
+//                    totalOpex += (qpl.Actual__c * multiplier);
+//                    opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
+//                }
 
-                if (qpl.Month__c.month() == startDate.month()) {
-                    multiplier = startPortion;
-                } else if (qpl.Month__c.month() == endDate.month()) {
-                    multiplier = endPortion;
-                }
+                totalOpex += (qpl.Actual__c * multiplier);
 
-                if (qpl.QBUpdated__c) {
-                    totalOpex += (qpl.Actual__c * multiplier);
-                    opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
-                } else {
-                    totalOpex += (qpl.Actual__c * multiplier);
-                    opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
-                }
+                opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
 
                 opexAggregates.get(qpl.EventMonthYear__c)[2]   += (qpl.Budget__c * multiplier);
                 profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
@@ -254,6 +255,8 @@ public class VueTestController {
                 } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
                     opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
                 }
+            } else {
+
             }
         }
 
@@ -268,16 +271,31 @@ public class VueTestController {
         totals.put('opex', totalOpex);
         totals.put('netProfit', totalProfit - totalOpex);
 
+        for (String month : reportValues.keySet()){
+            reportValues.get(month).put('Closed Won Profit',
+                (reportValues.get(month).get('Closed Won Revenue' ) - reportValues.get(month).get('Closed Won COS')));
+            reportValues.get(month).put('Costed prospect Profit',
+                    (reportValues.get(month).get('Costed prospect Revenue' ) - reportValues.get(month).get('Costed prospect COS')));
+            reportValues.get(month).put('Pipeline prospect Profit',
+                    (reportValues.get(month).get('Pipeline prospect Revenue' ) - reportValues.get(month).get('Pipeline prospect COS')));
+            reportValues.get(month).put('Repeat Prospect Profit',
+                    (reportValues.get(month).get('Repeat Prospect Revenue' ) - reportValues.get(month).get('Repeat Prospect COS')));
+        }
+
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
         figuresMap.put('opex',opexAggregates);
-        figuresMap.put('qbRevenue',revenueAggregates);
-        figuresMap.put('qbProfit',profitAggregates);
+
         figuresMap.put('netProfit',netProfitAggregates);
+
         figuresMap.put('totals',totals);
         figuresMap.put('REPORTDATA',reportData);
         figuresMap.put('REPORTVALUES',reportValues);
         figuresMap.put('months',months);
+
+        figuresMap.put('qbRevenue',revenueAggregates);
+        figuresMap.put('qbProfit',profitAggregates);
+
         figuresMap.put('qbClose',QBClosedMonth__c.getInstance('QBClosedMonth'));
         figuresMap.put('sfCommit',QBClosedMonth__c.getInstance('SFCommitMonth'));
         figuresMap.put('nominalStrings',nominalStrings);
@@ -336,16 +354,27 @@ public class VueTestController {
     public static Map<String,Object> updateAmount(String entryId, Decimal amount){
 
         update new CashFlowEntry__c(
-                Id          = entryId,
-                Amount__c   = amount,
-                Adjusted__c = true,
-                AmountAdjusted__c = true);
+                Id                  = entryId,
+                Amount__c           = amount,
+                Adjusted__c         = true,
+                AmountAdjusted__c   = true);
         calculateBalances();
         return getCashflowData(false);
     }
 
     @RemoteAction
-    public static Map<String,Object> addCustomEntry(String type, String description, Decimal amount, String dateString){
+    public static Map<String,Object> markAsPaid(String entryId){
+
+        update new CashFlowEntry__c(
+                Id                  = entryId,
+                Paid__c             = true);
+        calculateBalances();
+        return getCashflowData(true);
+    }
+
+    @RemoteAction
+    public static Map<String,Object> addCustomEntry(String type, String description, String budgetKey,
+                                                    Decimal amount, String dateString){
 
         Date flowDate       = Date.valueOf(dateString);
         CashFlow__c flow    = [SELECT Id FROM CashFlow__c WHERE Date__c = :flowDate];
@@ -359,10 +388,23 @@ public class VueTestController {
             customEntry.CashFlow__c         = flow.Id;
             customEntry.Amount__c           = amount;
             customEntry.Stage__c            = 'Confirmed';
+            customEntry.BudgetKey__c        = budgetKey;
             insert customEntry;
 
-            calculateBalances();
+            Date budgetDate = flowDate.addMonths(1).toStartOfMonth().addDays(-1);
 
+            List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
+                                                FROM CashFlowEntry__c
+                                                WHERE Source__c = 'Budget'
+                                                AND BudgetKey__c = :budgetKey
+                                                AND Date__c = :budgetDate];
+
+            if (budgetEntries.size() == 1){
+                budgetEntries[0].Amount__c -= amount;
+                update budgetEntries;
+            }
+
+            calculateBalances();
             return getCashflowData(true);
 
         } else {
@@ -372,7 +414,25 @@ public class VueTestController {
 
     @RemoteAction
     public static Map<String,Object> deleteEntry(String entryId){
-        delete [SELECT Id FROM CashFlowEntry__c WHERE Id = :entryId];
+
+        CashFlowEntry__c deleteEntry = [SELECT Id, Amount__c, Date__c, BudgetKey__c
+                                        FROM CashFlowEntry__c WHERE Id = :entryId];
+
+        Date budgetDate = deleteEntry.Date__c.addMonths(1).toStartOfMonth().addDays(-1);
+
+        List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
+                                        FROM CashFlowEntry__c
+                                        WHERE Source__c = 'Budget'
+                                        AND BudgetKey__c = :deleteEntry.BudgetKey__c
+                                        AND Date__c = :budgetDate];
+
+        if (budgetEntries.size() == 1){
+            budgetEntries[0].Amount__c += deleteEntry.Amount__c;
+            update budgetEntries;
+        }
+
+        delete deleteEntry;
+
         calculateBalances();
         return getCashflowData(false);
     }
@@ -438,7 +498,6 @@ public class VueTestController {
         delete [SELECT Id FROM CashFlowEntry__c WHERE QuickbooksId__c = :supplierId];
 
         return true;
-
     }
 
     @RemoteAction
@@ -452,13 +511,13 @@ public class VueTestController {
 
         String attachmentQuery = 'query?query=select%20%2a%20from%20attachable%20where%20AttachableRef.EntityRef.' +
                 'value%20%3d%20%27' + billId + '%27&minorversion=4';
-//        'query?query=select%20%2a%20from%20attachable%20where%20AttachableRef.EntityRef.value%20%3d%20%2724483%27&minorversion=4';
         // do callout
         Http attachmentHttp               = new Http();
         HttpRequest attachmentRequest     = CashFlowUtils.doCallout(attachmentQuery);
         HttpResponse attachmentResponse   = attachmentHttp.send(attachmentRequest);
 
-        return attachmentResponse.getStatusCode() == 200 ? JSON.deserializeUntyped(attachmentResponse.getBody()) : (Object)'error';
+        return attachmentResponse.getStatusCode() == 200 ?
+                JSON.deserializeUntyped(attachmentResponse.getBody()) : (Object)'error';
     }
 
     public static void calculateBalances(){
@@ -559,8 +618,9 @@ public class VueTestController {
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
                                             (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
                                                     CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
-                                                    TempDownloadUri__c, Details__c, VendorRef__c
+                                                    TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c
                                             FROM CashFlowEntries__r
+                                            WHERE Paid__c = FALSE
                                             ORDER BY Category__c ASC, Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
@@ -596,7 +656,13 @@ public class VueTestController {
             totalOutflows.add(totalOutflow);
         }
 
-        /// load data map with opening balances
+        Map<String,QBSupplierProfile__c> supplierProfiles = new Map<String,QBSupplierProfile__c>();
+        for (QBSupplierProfile__c profile : [SELECT Id,SupplierId__c,Category__c,Amount__c,Terms__c,Day__c
+                                             FROM QBSupplierProfile__c WHERE Type__c = 'DD']){
+            supplierProfiles.put(profile.SupplierId__c, profile);
+        }
+
+        // load data map with opening balances
         cashflowDataMap.put('WEEK COMMENCING', dates);
         cashflowDataMap.put('OPENING BALANCE', openingBalances);
         cashflowDataMap.put('IN ENTRIES', inEntries);
@@ -606,6 +672,7 @@ public class VueTestController {
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
         cashflowDataMap.put('IN', figures.clone());
         cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today().addDays(-7)),String.valueOf(entryDate)));
+        cashflowDataMap.put('SUPPLIER PROFILES',supplierProfiles);
         if (includeRecords) cashflowDataMap.put('RECORDS', records);
 
         return cashflowDataMap;

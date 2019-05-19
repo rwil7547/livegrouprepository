@@ -1,6 +1,3 @@
-/**
- * Created by Ronan Williams on 18/06/2018.
- */
 
 public class QuickbooksBudgetCallout {
 
@@ -22,7 +19,7 @@ public class QuickbooksBudgetCallout {
         Map<String,List<String>> parentInfo = getNominalMap();
 
         String fiscalYear;
-        Integer yearsToAdd;
+//        Integer yearsToAdd;
         Date startDate;
         Date closeMonth;
         Boolean closeMonthChanged = false;
@@ -117,7 +114,6 @@ public class QuickbooksBudgetCallout {
             }
         }
 
-
         // obtain callout information and call Quickbooks change data capture web service
         String budgetQuery = 'query?query=select%20%2a%20from%20budget%20where%20id%20%3d%20%27' + budgetId + '%27&minorversion=4';
         Http http = new Http();
@@ -128,8 +124,8 @@ public class QuickbooksBudgetCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
-                system.debug('start date: ' + startDate);
-                system.debug('budget: ' + parsedResults.QueryResponse.Budget[0]);
+//                system.debug('start date: ' + startDate);
+//                system.debug('budget: ' + parsedResults.QueryResponse.Budget[0]);
 
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
@@ -226,12 +222,12 @@ public class QuickbooksBudgetCallout {
 
     public static Map<String,List<String>> getNominalMap(){
 
-        Map<String,String> parentKeyMap  = new Map<String,String>();
-        Map<String,String> parentTypeMap = new Map<String,String>();
+        Map<String,String> parentKeyMap     = new Map<String,String>();
+        Map<String,String> parentTypeMap    = new Map<String,String>();
         Map<String,List<String>> childToParent = new Map<String,List<String>>();
-        List<Object> accounts   = new List<Object>();
+        List<Object> accounts               = new List<Object>();
 
-        Http http               = new Http();
+        Http http = new Http();
 
         String activeQuery                  = 'query?query=select%20%2a%20from%20account%20maxResults%201000&minorversion=4';
         HttpRequest activeRequest           = buildCallout(activeQuery);
