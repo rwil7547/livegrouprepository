@@ -6,7 +6,7 @@ global class JSONParserQBOBillFlowMock implements HttpCalloutMock {
 
     global HttpResponse respond(HttpRequest req) {
 
-// mock response
+        // mock response
         HttpResponse res = new HttpResponse();
         res.setHeader('Content-Type', 'application/json');
         res.setBody('{' +

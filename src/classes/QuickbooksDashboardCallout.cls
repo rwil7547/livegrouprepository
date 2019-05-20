@@ -77,7 +77,7 @@ public class QuickbooksDashboardCallout {
                 String start = calloutDate.year() + '-' + calloutDate.month() + '-' + calloutDate.day();
                 Date endDate = calloutDate.addMonths(1).addDays(-1);
                 String endD  = endDate.year() + '-' + endDate.month() + '-' + endDate.day();
-                String query = '/reports/ProfitAndLoss?start_date=' + start + '&end_date=' + endD;
+                String query = Test.isRunningTest() ? 'pnl' : '/reports/ProfitAndLoss?start_date=' + start + '&end_date=' + endD;
 
                 Http http = new Http();
                 HttpRequest request = buildCallout(query);
@@ -87,19 +87,24 @@ public class QuickbooksDashboardCallout {
 
                     JSONParserQBOProfitAndLoss parsedResults = JSONParserQBOProfitAndLoss.parse(response.getBody());
 
+                    System.debug(parsedResults);
+
                     for (JSONParserQBOProfitAndLoss.cls_Row row : parsedResults.Rows.Row){
                         if (row.Rows != null) {
                             for (JSONParserQBOProfitAndLoss.cls_Row row2 : row.Rows.Row) {
                                 if (row2.Summary != null) {
-                                    String parent = row2.Summary.ColData[0].value.split(' ',3)[2];
-                                    String identifier   = calloutDate.month() + parent;
+
+                                    System.debug(row2.Summary.ColData[0]);
+
+                                    String parent           = row2.Summary.ColData[0].value.split(' ',3)[2];
+                                    String identifier       = calloutDate.month() + parent;
 
                                     QBProfitAndLoss__c qbp  = new QBProfitAndLoss__c();
                                     qbp.Nominal__c          = parent;
                                     qbp.Parent__c           = parent;
-//                                    qbp.Category__c         = parentInfo.get(parent)[1];
                                     qbp.Category__c         = getCategory(parent);
-                                    qbp.IsOpex__c           = parentInfo.get(parent)[1] == 'Expense';
+                                    qbp.IsOpex__c           = parentInfo.containsKey(parent) ?
+                                                                parentInfo.get(parent)[1] == 'Expense' : false;
                                     qbp.Actual__c           = Decimal.valueOf(row2.Summary.ColData[1].value);
                                     qbp.Budget__c           = 0;
                                     qbp.Month__c            = calloutDate;
@@ -117,7 +122,7 @@ public class QuickbooksDashboardCallout {
             }
         }
 
-        // obtain callout information and call Quickbooks change data capture web service
+        // obtain budget figures from Quickbooks based on the Id parameter passed to the method
         String budgetQuery = 'query?query=select%20%2a%20from%20budget%20where%20id%20%3d%20%27' + budgetId + '%27&minorversion=4';
         Http http = new Http();
         HttpRequest budgetRequest   = buildCallout(budgetQuery);
@@ -127,43 +132,45 @@ public class QuickbooksDashboardCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
-//                system.debug('start date: ' + startDate);
-//                system.debug('budget: ' + parsedResults.QueryResponse.Budget[0]);
-
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
 
-                    Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
-                    String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
+                    Date budgetDate   = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 
-                    if (entriesMap.containsKey(identifier)){
-                        entriesMap.get(identifier).Budget__c         += detail.Amount;
-                        if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name){
-                            entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                    if (parentInfo.containsKey(detail.AccountRef.name)){
+                        String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
+
+                        if (entriesMap.containsKey(identifier)){
+                            entriesMap.get(identifier).Budget__c += detail.Amount;
+                            if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name){
+                                entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                            }
+                        } else {
+                            entriesMap.put(
+                                    identifier,
+                                    new  QBProfitAndLoss__c(
+                                            Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
+                                            Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
+                                            Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
+                                            IsOpex__c   = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
+                                            Month__c    = budgetDate,
+                                            Budget__c   = detail.Amount,
+                                            Actual__c   = 0,
+                                            BudgetSource__c = parsedResults.QueryResponse.Budget[0].Name
+                                    )
+                            );
                         }
-                    } else {
-                        entriesMap.put(
-                                identifier,
-                                new  QBProfitAndLoss__c(
-                                        Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
-                                        Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
-//                                Category__c = parentInfo.get(detail.AccountRef.name)[1],
-                                        Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
-                                        IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
-                                        Month__c    = budgetDate,
-                                        Budget__c   = detail.Amount,
-                                        Actual__c   = 0,
-                                        BudgetSource__c = parsedResults.QueryResponse.Budget[0].Name
-                                )
-                        );
                     }
+
+
                 }
             }
         } else {
             return false;
         }
 
+        // obtain forecast figures from Quickbooks based on the Id parameter passed to the method
         String forecastQuery = 'query?query=select%20%2a%20from%20budget%20where%20id%20%3d%20%27' + forecastId +
                 '%27&minorversion=4';
         HttpRequest forecastRequest   = buildCallout(forecastQuery);
@@ -180,29 +187,32 @@ public class QuickbooksDashboardCallout {
                     Date budgetDate     = Date.valueOf(detail.BudgetDate).addYears(yearOffset);
 
                     if (fiscalYear == 'NEXT_FISCAL_YEAR' || budgetDate > closeMonth) {
-                        String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
+                        if (parentInfo.containsKey(detail.AccountRef.name)) {
 
-                        if (entriesMap.containsKey(identifier)) {
+                            String identifier = budgetDate.month() + parentInfo.get(detail.AccountRef.name)[0];
 
-                            entriesMap.get(identifier).Actual__c += detail.Amount;
+                            if (entriesMap.containsKey(identifier)) {
 
-                            if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name){
-                                entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                                entriesMap.get(identifier).Actual__c += detail.Amount;
+
+                                if (entriesMap.get(identifier).ForecastSource__c != parsedResults.QueryResponse.Budget[0].Name) {
+                                    entriesMap.get(identifier).ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name;
+                                }
+                            } else {
+                                entriesMap.put(
+                                        identifier,
+                                        new QBProfitAndLoss__c(
+                                                Nominal__c = parentInfo.get(detail.AccountRef.name)[0],
+                                                Parent__c = parentInfo.get(detail.AccountRef.name)[0],
+                                                Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
+                                                IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
+                                                Month__c = budgetDate,
+                                                Budget__c = 0,
+                                                Actual__c = detail.Amount,
+                                                ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name
+                                        )
+                                );
                             }
-                        } else {
-                            entriesMap.put(
-                                    identifier,
-                                    new QBProfitAndLoss__c(
-                                            Nominal__c  = parentInfo.get(detail.AccountRef.name)[0],
-                                            Parent__c   = parentInfo.get(detail.AccountRef.name)[0],
-                                            Category__c = getCategory(parentInfo.get(detail.AccountRef.name)[0]),
-                                            IsOpex__c = parentInfo.get(detail.AccountRef.name)[1] == 'Expense',
-                                            Month__c    = budgetDate,
-                                            Budget__c   = 0,
-                                            Actual__c   = detail.Amount,
-                                            ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name
-                                    )
-                            );
                         }
                     }
                 }
@@ -263,6 +273,9 @@ public class QuickbooksDashboardCallout {
 
         for (Object account : accounts){
             Map<String,Object> details = (Map<String,Object>) account;
+
+            System.debug(details.get('SubAccount'));
+
             if ((Boolean)details.get('SubAccount')){
 
                 Map<String,Object> parentObj    = (Map<String,Object>)details.get('ParentRef');

@@ -61,16 +61,10 @@ public class InsightsController {
 
         // add any forecast balances which fit in the date range
         for (CashFlow__c c : [SELECT Date__c, DayMonthYear__c, Balance__c, BalancePlus__c,
-                BalancePredict__c
-        FROM CashFlow__c
-        WHERE Date__c >= :startDate
-        AND Date__c <= :endDate]){
-
-//            if (c.Date__c == startDate.addDays(1)){
-//                balanceMap.get(c.Date__c.addDays(-1))[1] = c.Balance__c;
-////                balanceMap.get(c.Date__c.addDays(-1))[3] = c.BalancePlus__c;
-////                balanceMap.get(c.Date__c.addDays(-1))[4] = c.BalancePredict__c;
-//            }
+                                        BalancePredict__c
+                                FROM CashFlow__c
+                                WHERE Date__c >= :startDate
+                                AND Date__c <= :endDate]){
 
             balanceMap.get(c.Date__c)[0] = c.DayMonthYear__c;
             balanceMap.get(c.Date__c)[1] = c.Date__c == Date.today().addDays(-1) ? c.Balance__c : 0;
@@ -88,7 +82,6 @@ public class InsightsController {
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
-        // a comment
 
         Map<String,Object> figuresMap                   = new Map<String,Object>();
         Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
@@ -139,21 +132,21 @@ public class InsightsController {
 
         // get all committed opp data
         for (Opportunity opp : [SELECT Amount_Calder__c, Probability, StageName, Name, Account.Name,
-                Event_start__c, Event_end__c, Filtered_Cost_of_Sale__c,
-                Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
-                EventMonthYear__c, Committed__c, CommittedRevenue__c,
-                CommittedProfit__c, CommittedCOS__c, IsClosed,
-                Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c,
-                EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
-                Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
-        (SELECT Revenue__c, Profit__c, CostOfSale__c, EventMonthYear__c, Month__c
-        FROM Adjustments__r)
-        FROM Opportunity
-        WHERE StageName != 'Closed Lost'
-        AND Event_start__c != NULL
-        AND Event_end__c != NULL
-        AND Event_end__c >= :startDate
-        AND Event_end__c <= :endDate]){
+                                        Event_start__c, Event_end__c, Filtered_Cost_of_Sale__c,
+                                        Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
+                                        EventMonthYear__c, Committed__c, CommittedRevenue__c,
+                                        CommittedProfit__c, CommittedCOS__c, IsClosed,
+                                        Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c,
+                                        EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
+                                        Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
+                                (SELECT Revenue__c, Profit__c, CostOfSale__c, EventMonthYear__c, Month__c
+                                FROM Adjustments__r)
+                                FROM Opportunity
+                                WHERE StageName != 'Closed Lost'
+                                AND Event_start__c != NULL
+                                AND Event_end__c != NULL
+                                AND Event_end__c >= :startDate
+                                AND Event_end__c <= :endDate]){
 
             reportData.get(opp.EventMonthYear__c).get(opp.StageName).add(opp);
 
@@ -190,9 +183,9 @@ public class InsightsController {
         }
 
         for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, EventMonthYear__c, Opportunity__r.Name
-        FROM Adjustment__c
-        WHERE Month__c >= :startDate
-        AND Month__c <= :endDate]) {
+                                    FROM Adjustment__c
+                                    WHERE Month__c >= :startDate
+                                    AND Month__c <= :endDate]) {
 
             reportData.get(adj.EventMonthYear__c).get('Closed Won').add(adj);
 
@@ -203,19 +196,19 @@ public class InsightsController {
         }
 
         for (QBProfitAndLoss__c target : [SELECT Budget__c, EventMonthYear__c
-        FROM QBProfitAndLoss__c
-        WHERE Parent__c = 'Revenue'
-        AND Month__c >= :startDate
-        AND Month__c <= :endDate]) {
+                                        FROM QBProfitAndLoss__c
+                                        WHERE Parent__c = 'Revenue'
+                                        AND Month__c >= :startDate
+                                        AND Month__c <= :endDate]) {
             revenueAggregates.get(target.EventMonthYear__c)[3] = target.Budget__c;
         }
 
         List<QBProfitAndLoss__c> results = [SELECT Actual__c, Parent__c, Budget__c, Grouping__c,
-                Month__c, EventMonthYear__c, QBUpdated__c, Opex__c
-        FROM QBProfitAndLoss__c
-        WHERE Month__c >= :startDate.toStartOfMonth()
-        AND Month__c <= :endDate
-        ORDER BY Month__c DESC];
+                                                    Month__c, EventMonthYear__c, QBUpdated__c, Opex__c
+                                            FROM QBProfitAndLoss__c
+                                            WHERE Month__c >= :startDate.toStartOfMonth()
+                                            AND Month__c <= :endDate
+                                            ORDER BY Month__c DESC];
 
         for (QBProfitAndLoss__c qpl : results) {
 
@@ -228,21 +221,10 @@ public class InsightsController {
                 multiplier = endPortion;
             }
 
-
-
             if (qpl.Opex__c){
-//                if (qpl.QBUpdated__c) {
-//                    totalOpex += (qpl.Actual__c * multiplier);
-//                    opexAggregates.get(qpl.EventMonthYear__c)[0] += (qpl.Actual__c * multiplier);
-//                } else {
-//                    totalOpex += (qpl.Actual__c * multiplier);
-//                    opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
-//                }
 
                 totalOpex += (qpl.Actual__c * multiplier);
-
                 opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
-
                 opexAggregates.get(qpl.EventMonthYear__c)[2]   += (qpl.Budget__c * multiplier);
                 profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
 
@@ -343,8 +325,8 @@ public class InsightsController {
 
         Map<String,Object> responseData = getCashflowData(false);
         responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-                CashFlow__r.DayMonthYear__c
-        FROM CashFlowEntry__c WHERE Id = :entryId]);
+                                            CashFlow__r.DayMonthYear__c
+                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
 
         return responseData;
 
@@ -394,10 +376,10 @@ public class InsightsController {
             Date budgetDate = flowDate.addMonths(1).toStartOfMonth().addDays(-1);
 
             List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
-            FROM CashFlowEntry__c
-            WHERE Source__c = 'Budget'
-            AND BudgetKey__c = :budgetKey
-            AND Date__c = :budgetDate];
+                                                    FROM CashFlowEntry__c
+                                                    WHERE Source__c = 'Budget'
+                                                    AND BudgetKey__c = :budgetKey
+                                                    AND Date__c = :budgetDate];
 
             if (budgetEntries.size() == 1){
                 budgetEntries[0].Amount__c -= amount;
@@ -416,15 +398,15 @@ public class InsightsController {
     public static Map<String,Object> deleteEntry(String entryId){
 
         CashFlowEntry__c deleteEntry = [SELECT Id, Amount__c, Date__c, BudgetKey__c
-        FROM CashFlowEntry__c WHERE Id = :entryId];
+                                        FROM CashFlowEntry__c WHERE Id = :entryId];
 
         Date budgetDate = deleteEntry.Date__c.addMonths(1).toStartOfMonth().addDays(-1);
 
         List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
-        FROM CashFlowEntry__c
-        WHERE Source__c = 'Budget'
-        AND BudgetKey__c = :deleteEntry.BudgetKey__c
-        AND Date__c = :budgetDate];
+                                                FROM CashFlowEntry__c
+                                                WHERE Source__c = 'Budget'
+                                                AND BudgetKey__c = :deleteEntry.BudgetKey__c
+                                                AND Date__c = :budgetDate];
 
         if (budgetEntries.size() == 1){
             budgetEntries[0].Amount__c += deleteEntry.Amount__c;
@@ -449,12 +431,12 @@ public class InsightsController {
     public static Boolean toggleFreelancer(String entryId){
 
         CashFlowEntry__c entry = [SELECT Id, Category__c, QuickbooksId__c, VendorRef__c
-        FROM CashFlowEntry__c
-        WHERE Id = :entryId];
+                                    FROM CashFlowEntry__c
+                                    WHERE Id = :entryId];
 
         if (entry.Category__c == 'Freelancers'){
             delete [SELECT Id FROM QBSupplierProfile__c
-            WHERE SupplierId__c = :entry.VendorRef__c];
+                    WHERE SupplierId__c = :entry.VendorRef__c];
         } else {
             insert new QBSupplierProfile__c(
                     SupplierId__c   = entry.VendorRef__c,
@@ -491,8 +473,8 @@ public class InsightsController {
 
         // remove the QB supplier profile used to calculate the direct debits
         delete [SELECT Id FROM QBSupplierProfile__c
-        WHERE SupplierId__c = :supplierId
-        AND Type__c = 'DD'];
+                WHERE SupplierId__c = :supplierId
+                AND Type__c = 'DD'];
 
         // remove the existing direct debit entries from the cashflow
         delete [SELECT Id FROM CashFlowEntry__c WHERE QuickbooksId__c = :supplierId];
@@ -527,11 +509,11 @@ public class InsightsController {
         Decimal budget      = 0;
 
         List<CashFlow__c> flows = [SELECT Id, InConfirmed__c, InPipeline__c, InBudget__c,
-                OutConfirmed__c, OutPipeline__c, OutBudget__c,
-                Balance__c, BalancePlus__c, BalancePredict__c,
-                Number__c, InDescription__c
-        FROM CashFlow__c
-        ORDER BY Number__c ASC];
+                                            OutConfirmed__c, OutPipeline__c, OutBudget__c,
+                                            Balance__c, BalancePlus__c, BalancePredict__c,
+                                            Number__c, InDescription__c
+                                    FROM CashFlow__c
+                                    ORDER BY Number__c ASC];
 
         for (CashFlow__c flow : flows) {
             if (flow.Number__c == -1){
@@ -615,16 +597,16 @@ public class InsightsController {
             Decimal totalOutflow    = 0;
 
             for (CashFlow__c flow : [SELECT Date__c, InConfirmed__c, InPipeline__c, InBudget__c,
-                    OutConfirmed__c, OutPipeline__c, OutBudget__c,
-            (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-                    CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
-                    TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c
-            FROM CashFlowEntries__r
-            WHERE Paid__c = FALSE
-            ORDER BY Category__c ASC, Source__c )
-            FROM CashFlow__c
-            WHERE Date__c >= : startDate
-            AND Date__c <= : endDate]){
+                                            OutConfirmed__c, OutPipeline__c, OutBudget__c,
+                                    (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+                                            CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
+                                            TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c
+                                    FROM CashFlowEntries__r
+                                    WHERE Paid__c = FALSE
+                                    ORDER BY Category__c ASC, Source__c )
+                                    FROM CashFlow__c
+                                    WHERE Date__c >= : startDate
+                                    AND Date__c <= : endDate]){
 
                 totalInflow += flow.InConfirmed__c + flow.InPipeline__c + flow.InBudget__c;
                 totalOutflow += flow.OutConfirmed__c + flow.OutPipeline__c + flow.OutBudget__c;

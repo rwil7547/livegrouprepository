@@ -99,9 +99,9 @@ public with sharing class CashflowGenerator {
             Map<String, String> customerMap  = CashFlowUtils.getCustomerMap(scheduleNumbers);
 
             List<Invoice_Schedule__c> credits = [SELECT Credit_Note__c, QBOInvoiceId__c
-            FROM Invoice_Schedule__c
-            WHERE QBOInvoiceId__c IN :invoiceIds
-            AND Credit_Note__c > 0];
+                                                FROM Invoice_Schedule__c
+                                                WHERE QBOInvoiceId__c IN :invoiceIds
+                                                AND Credit_Note__c > 0];
 
             for (Invoice_Schedule__c is : credits) {
                 creditMap.put(is.QBOInvoiceId__c, is.Credit_Note__c * 1.2);
@@ -148,14 +148,14 @@ public with sharing class CashflowGenerator {
 
         // STEP 2: GET SALESFORCE INVOICES
         List<Invoice_Schedule__c> schedules = [SELECT Id, Amount__c, Payment_Date__c, Send_Date__c,
-                Opportunity__r.Account.QuickbooksId__c, Invoice_Id__c,
-                Opportunity__r.Name, Opportunity__r.Event_end__c,
-                Name, Job_Number__c, Opportunity__r.Account.Name,
-                Opportunity__r.Comments__c
-        FROM Invoice_Schedule__c
-        WHERE Invoice_Sent__c = FALSE
-        AND Invoice_Paid__c = FALSE
-        AND Opportunity__r.Event_end__c >= LAST_N_MONTHS:12];
+                                                    Opportunity__r.Account.QuickbooksId__c, Invoice_Id__c,
+                                                    Opportunity__r.Name, Opportunity__r.Event_end__c,
+                                                    Name, Job_Number__c, Opportunity__r.Account.Name,
+                                                    Opportunity__r.Comments__c
+                                            FROM Invoice_Schedule__c
+                                            WHERE Invoice_Sent__c = FALSE
+                                            AND Invoice_Paid__c = FALSE
+                                            AND Opportunity__r.Event_end__c >= LAST_N_MONTHS:12];
 
         for (Invoice_Schedule__c schedule : schedules) {
 
@@ -253,11 +253,11 @@ public with sharing class CashflowGenerator {
 
         // STEP 4: GET SALESFORCE COS
         List<Opportunity> opps = [SELECT Filtered_Cost_of_Sale__c, Name,
-                Quickbooks_COS__c, Event_end__c, Filtered_Job_Number__c
-        FROM Opportunity
-        WHERE StageName = 'Closed Won'
-        AND Quote_Status__c != 'Reconciliation - completed'
-        AND Event_end__c >= LAST_N_DAYS:100];
+                                        Quickbooks_COS__c, Event_end__c, Filtered_Job_Number__c
+                                FROM Opportunity
+                                WHERE StageName = 'Closed Won'
+                                AND Quote_Status__c != 'Reconciliation - completed'
+                                AND Event_end__c >= LAST_N_DAYS:100];
 
         Map<String, CashFlowEntry__c> cosEntries = new Map<String, CashFlowEntry__c>();
 
@@ -305,14 +305,14 @@ public with sharing class CashflowGenerator {
 
         // STEP 5: GET SALESFORCE PIPELINE DATA
         List<Opportunity> unconfirmedOpps = [SELECT Amount_Calder__c, Name, Probability, Event_end__c,
-                Filtered_Cost_of_Sale__c, Filtered_Job_Number__c, ExpectedRevenue,
-                Account.Name, LastModifiedDate, LastModifiedBy.Name
-        FROM Opportunity
-        WHERE StageName != 'Closed Won'
-        AND StageName != 'Closed Lost'
-        AND StageName != 'Repeat Prospect'
-        AND Amount > 0 AND Event_end__c > TODAY
-        AND Event_end__c != NULL AND Event_start__c != NULL];
+                                                    Filtered_Cost_of_Sale__c, Filtered_Job_Number__c, ExpectedRevenue,
+                                                    Account.Name, LastModifiedDate, LastModifiedBy.Name
+                                            FROM Opportunity
+                                            WHERE StageName != 'Closed Won'
+                                            AND StageName != 'Closed Lost'
+                                            AND StageName != 'Repeat Prospect'
+                                            AND Amount > 0 AND Event_end__c > TODAY
+                                            AND Event_end__c != NULL AND Event_start__c != NULL];
 
         Map<Date, CashFlowEntry__c> pipelineCosEntries = new Map<Date, CashFlowEntry__c>();
 
@@ -381,7 +381,9 @@ public with sharing class CashflowGenerator {
             // work out the end date for the direct debit
             Date endDate = (directDebit.EndDate__c != null) ? directDebit.EndDate__c : Date.today().addDays(170);
 
-            if (directDebit.Terms__c == 'weekly'){
+            system.debug('dd profile is ' + directDebit);
+
+            if (directDebit.Terms__c.equalsIgnoreCase('weekly')){
 
                 Date processingDate = (directDebit.LastInstance__c == null) ?
                         Date.today().toStartOfWeek().addDays(Integer.valueOf(directDebit.Day__c) - 1) :
@@ -418,7 +420,7 @@ public with sharing class CashflowGenerator {
                     }
                     processingDate = processingDate.addDays(7);
                 }
-            } else if (directDebit.Terms__c == 'monthly'){
+            } else if (directDebit.Terms__c.equalsIgnoreCase('monthly')){
 
                 Date processingDate = (directDebit.LastInstance__c == null) ?
                         Date.today().toStartOfMonth().addDays(Integer.valueOf(directDebit.Day__c)) :
@@ -455,7 +457,7 @@ public with sharing class CashflowGenerator {
                     }
                     processingDate = processingDate.addMonths(1);
                 }
-            } else if (directDebit.Terms__c == 'quarterly'){
+            } else if (directDebit.Terms__c.equalsIgnoreCase('quarterly')){
 
                 Date processingDate = (directDebit.LastInstance__c == null) ?
                         Date.newInstance(Date.today().year(),Integer.valueOf(directDebit.Day__c),15) :
@@ -499,12 +501,14 @@ public with sharing class CashflowGenerator {
         Map<String,CashFlowEntry__c> vatEntryMap = new Map<String,CashFlowEntry__c>();
 
         for (AggregateResult ar : [SELECT SUM(Actual__c)actual, FISCAL_QUARTER(Month__c)quarter,
-                FISCAL_YEAR(Month__c)year, Category__c
-        FROM QBProfitAndLoss__c
-        WHERE (Category__c = 'Revenue' OR Category__c = 'Cost of sales' OR Category__c = 'Expense')
-        AND Month__c <= NEXT_FISCAL_YEAR
-        AND Month__c >= LAST_N_MONTHS:3
-        GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]) {
+                                            FISCAL_YEAR(Month__c)year, Category__c
+                                    FROM QBProfitAndLoss__c
+                                    WHERE (Category__c = 'Revenue'
+                                          OR Category__c = 'Cost of sales'
+                                          OR Category__c = 'Expense')
+                                    AND Month__c <= NEXT_FISCAL_YEAR
+                                    AND Month__c >= LAST_N_MONTHS:3
+                                    GROUP BY Category__c,FISCAL_YEAR(Month__c), FISCAL_QUARTER(Month__c)]) {
 
             String vatKey   = String.valueOf((Integer) ar.get('quarter')) + String.valueOf((Integer) ar.get('year'));
             Integer year    = (Integer) ar.get('year');

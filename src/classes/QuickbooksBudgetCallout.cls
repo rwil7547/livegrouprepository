@@ -124,9 +124,6 @@ public class QuickbooksBudgetCallout {
             JSONParserQBOBudget parsedResults = JSONParserQBOBudget.parse(budgetResponse.getBody());
             if (parsedResults.QueryResponse != null && parsedResults.QueryResponse.Budget.size() == 1) {
 
-//                system.debug('start date: ' + startDate);
-//                system.debug('budget: ' + parsedResults.QueryResponse.Budget[0]);
-
                 Integer yearOffset  = startDate.year() - Date.valueOf(parsedResults.QueryResponse.Budget[0].StartDate).year();
 
                 for (JSONParserQBOBudget.cls_BudgetDetail detail : parsedResults.QueryResponse.Budget[0].BudgetDetail) {
