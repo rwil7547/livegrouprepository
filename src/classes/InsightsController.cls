@@ -195,12 +195,12 @@ public class InsightsController {
             profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
         }
 
-        for (QBProfitAndLoss__c target : [SELECT Budget__c, EventMonthYear__c
+        for (QBProfitAndLoss__c target : [SELECT Actual__c, Budget__c, EventMonthYear__c
                                         FROM QBProfitAndLoss__c
                                         WHERE Parent__c = 'Revenue'
                                         AND Month__c >= :startDate
                                         AND Month__c <= :endDate]) {
-            revenueAggregates.get(target.EventMonthYear__c)[3] = target.Budget__c;
+            revenueAggregates.get(target.EventMonthYear__c)[3] = target.Actual__c;
         }
 
         List<QBProfitAndLoss__c> results = [SELECT Actual__c, Parent__c, Budget__c, Grouping__c,
@@ -244,8 +244,10 @@ public class InsightsController {
 
         for (Integer x = 0; x < months.size(); x++){
             netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[1]);
-            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
-            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
+            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[0] +
+                    profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
+            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[0] +
+                    profitAggregates.get(months[x])[1] + profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
         }
 
         totals.put('revenue', totalRevenue);
@@ -366,7 +368,7 @@ public class InsightsController {
             customEntry.Source__c           = 'Custom';
             customEntry.Out__c              = (type != 'Revenue');
             customEntry.Category__c         = (type == 'Revenue') ? 'Custom entry' : type;
-            customEntry.Description__c      = description;
+            customEntry.Description__c      = description + ' (' + budgetKey + ')';
             customEntry.CashFlow__c         = flow.Id;
             customEntry.Amount__c           = amount;
             customEntry.Stage__c            = 'Confirmed';
@@ -379,7 +381,8 @@ public class InsightsController {
                                                     FROM CashFlowEntry__c
                                                     WHERE Source__c = 'Budget'
                                                     AND BudgetKey__c = :budgetKey
-                                                    AND Date__c = :budgetDate];
+                                                    AND Date__c = :budgetDate
+                                                    AND AmountAdjusted__c = FALSE];
 
             if (budgetEntries.size() == 1){
                 budgetEntries[0].Amount__c -= amount;
@@ -450,7 +453,7 @@ public class InsightsController {
 
     @RemoteAction
     public static QBSupplierProfile__c convertToDirectDebit(String vendorRef, String supplierName, String frequency,
-            Integer occurence, Decimal amount, Integer duration, String nominal){
+            Integer occurence, Decimal amount, String endDate, String nominal){
 
         // create a new supplier profile which the cashflow can use to implement the direct debits
         QBSupplierProfile__c profile = new QBSupplierProfile__c(
@@ -461,7 +464,7 @@ public class InsightsController {
                 Amount__c       = amount,
                 Terms__c        = frequency,
                 Day__c          = occurence,
-                EndDate__c      = (duration != 0) ? Date.today().addMonths(duration) : null
+                EndDate__c      = Date.valueOf(endDate)
         );
 
         insert profile;
@@ -639,8 +642,10 @@ public class InsightsController {
         }
 
         Map<String,QBSupplierProfile__c> supplierProfiles = new Map<String,QBSupplierProfile__c>();
-        for (QBSupplierProfile__c profile : [SELECT Id,SupplierId__c,Category__c,Amount__c,Terms__c,Day__c
-        FROM QBSupplierProfile__c WHERE Type__c = 'DD']){
+        for (QBSupplierProfile__c profile : [SELECT Id,SupplierId__c,Category__c,Amount__c,Terms__c,Day__c, EndDate__c
+                                             FROM QBSupplierProfile__c WHERE Type__c = 'DD']){
+//            if (profile.EndDate__c)
+
             supplierProfiles.put(profile.SupplierId__c, profile);
         }
 
@@ -660,5 +665,327 @@ public class InsightsController {
         return cashflowDataMap;
 
     }
+
+
+    @RemoteAction
+    public static Map<String,List<Object>> getOppProfitChanges(String start, String endD, Integer days, Decimal currentTotal){
+
+        Date startDate      = Date.valueOf(start);
+        Date endDate        = Date.valueOf(endD);
+
+        Map<String,List<Object>> changeMap = new Map<String,List<Object>>();
+
+        Map<String,String> imageMap = new Map<String,String>();
+
+        for (Employee1__c emp : [SELECT FirstName__c, LastName__c, ImageLink__c FROM Employee1__c WHERE ImageLink__c != NULL]){
+            imageMap.put(emp.FirstName__c + emp.LastName__c, emp.ImageLink__c);
+        }
+
+        if (!imageMap.isEmpty()){
+            changeMap.put('Images', new List<Object>{imageMap});
+        }
+
+        for (Integer x = 0; x < days; x++){
+            changeMap.put(String.valueOf(x), new List<Object>());
+        }
+
+        Date fallBack = Date.valueOf(Date.today().addDays(-(days-1)));
+
+        List<SalesDashboardSnapshot__c> snapshots =
+                            [SELECT TotalGrossProfit__c, DateCreated__c, CreatedDate,
+                                    CreatedBy.FirstName, CreatedBy.LastName
+                            FROM SalesDashboardSnapshot__c
+                            WHERE DateCreated__c >= :fallBack.addDays(-1)
+                            AND PeriodEnd__c <= :endDate
+                            ORDER BY CreatedDate DESC];
+
+        List<SalesDashboardSnapshot__c> snapshotsClone = snapshots.deepClone(false);
+
+        for (Integer x = 0; x < snapshots.size() - 1; x++){
+
+            if (x == 0){
+                snapshots[x].TotalGrossProfit__c = currentTotal - snapshots[x].TotalGrossProfit__c;
+            } else {
+                snapshots[x].TotalGrossProfit__c = snapshotsClone[x + 1].TotalGrossProfit__c - snapshots[x].TotalGrossProfit__c;
+            }
+            changeMap.get(String.valueOf(x)).add(snapshots[x]);
+        }
+
+        // track date changes
+        List<OpportunityFieldHistory> dateChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                                        Opportunity.Gross_Profit_Field_History__c,
+                                                        Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                                        CreatedBy.FirstName, CreatedBy.LastName
+                                                FROM OpportunityFieldHistory
+                                                WHERE Opportunity.StageName = 'Closed Won'
+                                                AND CreatedDate >= :fallBack
+                                                AND Field = 'Event_end__c'
+                                                ORDER BY CreatedDate DESC];
+
+        for (OpportunityFieldHistory ofs : dateChanges) {
+
+            Date createdDate = Date.newInstance(ofs.CreatedDate.year(), ofs.CreatedDate.month(), ofs.CreatedDate.day());
+            String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+
+            // Revenue which has gone out of the current financial year
+            if (((Date)ofs.OldValue >= startDate && (Date)ofs.OldValue <= endDate)
+                    && ((Date)ofs.NewValue < startDate || (Date)ofs.NewValue > endDate)) {
+
+                changeMap.get(dayString).add(ofs);
+
+                // Revenue which has entered the current financial year
+            } else if (((Date)ofs.OldValue < startDate || (Date)ofs.OldValue > endDate)
+                    && ((Date)ofs.NewValue >= startDate && (Date)ofs.NewValue <= endDate)) {
+
+                changeMap.get(dayString).add(ofs);
+            }
+        }
+
+
+        // capture amount changes and relevant stage (Closed Won) at time of change
+        List<OpportunityFieldHistory> revenueChanges =
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount_Calder__c, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.FirstName, CreatedBy.LastName, CreatedById
+                                    FROM OpportunityFieldHistory
+                                    WHERE Opportunity.Event_end__c >= :startDate
+                                    AND Opportunity.Event_end__c <= :endDate
+                                    AND CreatedDate >= :fallBack
+                                    AND Field = 'Gross_Profit_Field_History__c'
+                                    ORDER BY CreatedDate DESC];
+
+        Map<Id,List<OpportunityFieldHistory>> stageHistoriesByIds   = new Map<Id,List<OpportunityFieldHistory>>();
+
+        for (OpportunityFieldHistory ofs : revenueChanges) {
+            stageHistoriesByIds.put(ofs.OpportunityId, new List<OpportunityFieldHistory>());
+        }
+
+        // track stage at time of change
+        for (OpportunityFieldHistory ofs :
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.FirstName, CreatedBy.LastName
+                                    FROM OpportunityFieldHistory
+                                    WHERE Field = 'StageName'
+                                    AND OpportunityId IN :stageHistoriesByIds.keySet()
+                                    ORDER BY CreatedDate ASC]){
+            stageHistoriesByIds.get(ofs.OpportunityId).add(ofs);
+        }
+
+        // derive possible source of profit change as Quickbooks integration
+        Map<String,List<Expense__c>> expenseMap = new Map<String,List<Expense__c>>();
+
+        for (Expense__c expense : [SELECT Id, Amount__c, Description__c, Opportunity__c, CreatedDate
+                                    FROM Expense__c
+                                    WHERE Opportunity__c IN :stageHistoriesByIds.keySet()]){
+            String key = expense.Opportunity__c + String.valueOf(expense.CreatedDate.getTime()).substring(0,8);
+            if (!expenseMap.containsKey(key)){
+                expenseMap.put(key, new List<Expense__c>());
+            }
+            expenseMap.get(key).add(expense);
+        }
+
+
+        Map<String,OpportunityFieldHistory> revenueHistoryMap = new Map<String,OpportunityFieldHistory>();
+
+        // derive possible source of profit change as revenue change
+        for (OpportunityFieldHistory ofs :
+                        [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                Opportunity.Amount, Opportunity.Calder_Opportunity__c,
+                                Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                CreatedBy.FirstName, CreatedBy.LastName
+                        FROM OpportunityFieldHistory
+                        WHERE Field = 'Amount'
+                        AND OpportunityId IN :stageHistoriesByIds.keySet()
+                        ORDER BY CreatedDate ASC]){
+            String key = ofs.OpportunityId + String.valueOf(ofs.CreatedDate.getTime()).substring(0,8);
+            revenueHistoryMap.put(key, ofs);
+        }
+
+
+        // detect duplicate entries caused by quote change
+        Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
+
+        for (OpportunityFieldHistory ofs : revenueChanges) {
+            if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
+
+                Boolean isDuplicate = false;
+                List<Object> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
+
+                for (Integer x = 0; x < siblings.size(); x++){
+
+                    Map<String,Object> fieldMap = (Map<String, Object>)siblings[x];
+                    String dateString           = (String)fieldMap.get('CreatedDate');
+                    dateString                  = dateString.replace('T',' ');
+                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.substring(0,19));
+
+                    if (siblingCreatedTime <= ofs.CreatedDate.addMinutes(2) && siblingCreatedTime >= ofs.CreatedDate.addMinutes(-2)) {
+
+                        isDuplicate = true;
+                        fieldMap.put('OldValue', ofs.OldValue);
+                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
+                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
+                    }
+                }
+
+                if (!isDuplicate){
+
+                    String ofsString = JSON.serialize(ofs);
+                    Object ofsObject = JSON.deserializeUntyped(ofsString);
+                    changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
+                }
+            } else {
+
+                String ofsString = JSON.serialize(ofs);
+                Object ofsObject = JSON.deserializeUntyped(ofsString);
+                changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<Object>{ofsObject});
+            }
+        }
+
+        for (String jobNo : changeTimeMap.keySet()) {
+
+            for (Object ofsObject : changeTimeMap.get(jobNo)) {
+
+                Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
+                Map<String,Object> oppMap = (Map<String,Object>)fieldMap.get('Opportunity');
+
+                String createdString    = (String)fieldMap.get('CreatedDate');
+                createdString           = createdString.replace('T',' ');
+                Date createdDate        = Date.valueOf(createdString);
+                createdDate             = Date.newInstance(createdDate.year(), createdDate.month(), createdDate.day());
+                Datetime createdTime    = Datetime.valueOf(createdString);
+
+                if (stageHistoriesByIds.containsKey((String)fieldMap.get('OpportunityId'))){
+
+                    for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get((String)fieldMap.get('OpportunityId'))){
+                        if (stageHistory.CreatedDate.getTime() <= createdTime.getTime()){
+                            oppMap.put('StageName', stageHistory.NewValue );
+                        }
+                    }
+                }
+
+                if (oppMap.get('StageName') == (String)'Closed Won'){
+
+                    // get key
+                    String key  = (String)fieldMap.get('OpportunityId') +
+                            String.valueOf(createdTime.getTime()).substring(0,8);
+
+                    // check both maps
+                    if (expenseMap.containsKey(key)){
+
+                        system.debug('found matching expenses');
+                        fieldMap.put('Expenses', expenseMap.get(key));
+                    }
+
+                    if (revenueHistoryMap.containsKey(key)){
+                        system.debug('found revenue changes');
+                        fieldMap.put('Revenue', revenueHistoryMap.get(key));
+                    }
+                    // add values to obj if found in maps
+
+                    fieldMap.put('Opportunity', oppMap);
+                    String newOfsString = JSON.serialize(fieldMap);
+                    Object newOfsObject = JSON.deserializeUntyped(newOfsString);
+                    String dayString    = String.valueOf(createdDate.daysBetween(Date.today()));
+                    changeMap.get(dayString).add(newOfsObject);
+                }
+            }
+        }
+
+        // capture stage changes and relevant amounts at time of change
+        List<OpportunityFieldHistory> stageChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                    Opportunity.Gross_Profit_Field_History__c, Opportunity.Calder_Opportunity__c,
+                                    Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                    CreatedBy.FirstName, CreatedBy.LastName, Opportunity.Gross_profit_2__c
+                            FROM OpportunityFieldHistory
+                            WHERE Opportunity.Event_end__c >= :startDate
+                            AND Opportunity.Event_end__c <= :endDate
+                            AND CreatedDate >= :fallBack
+                            AND Field = 'StageName'
+                            ORDER BY CreatedDate DESC];
+
+        Map<Id,List<OpportunityFieldHistory>> revenueHistoriesByIds   = new Map<Id,List<OpportunityFieldHistory>>();
+
+        for (OpportunityFieldHistory ofs : stageChanges) {
+            // Revenue which has gone out of the current financial year
+            if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
+                revenueHistoriesByIds.put(ofs.OpportunityId, new List<OpportunityFieldHistory>());
+            }
+        }
+
+        for (OpportunityFieldHistory ofs :
+                            [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                    Opportunity.Amount, Opportunity.Calder_Opportunity__c,
+                                    Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                    CreatedBy.FirstName, CreatedBy.LastName
+                            FROM OpportunityFieldHistory
+                            WHERE Field = 'Gross_Profit_Field_History__c'
+                            AND OpportunityId IN :revenueHistoriesByIds.keySet()
+                            ORDER BY CreatedDate ASC]){
+            revenueHistoriesByIds.get(ofs.OpportunityId).add(ofs);
+        }
+
+        for (OpportunityFieldHistory ofs : stageChanges){
+
+            if (revenueHistoriesByIds.containsKey(ofs.OpportunityId)){
+                for (OpportunityFieldHistory revenueHistory : revenueHistoriesByIds.get(ofs.OpportunityId)){
+                    if (revenueHistory.CreatedDate.getTime() <= ofs.CreatedDate.getTime()){
+                        ofs.Opportunity.Gross_Profit_Field_History__c = Decimal.valueOf((String)revenueHistory.NewValue);
+                    }
+                }
+            }
+
+            if (ofs.Opportunity.Gross_Profit_Field_History__c == null){
+                ofs.Opportunity.Gross_Profit_Field_History__c = ofs.Opportunity.Gross_profit_2__c;
+            }
+
+            Date createdDate = Date.newInstance(ofs.CreatedDate.year(), ofs.CreatedDate.month(), ofs.CreatedDate.day());
+            String dayString = String.valueOf(createdDate.daysBetween(Date.today().addDays(0)));
+
+            // Revenue which has gone out of the current financial year
+            if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
+                String ofsString = JSON.serialize(ofs);
+                Object ofsObject = JSON.deserializeUntyped(ofsString);
+                changeMap.get(dayString).add(ofsObject);
+            }
+        }
+
+
+        List<Adjustment__c> newCommissions =
+                                [SELECT Profit__c, CreatedDate, Month__c, CreatedBy.FirstName,
+                                        CreatedBy.LastName, EventMonthYear__c
+                                FROM Adjustment__c WHERE Calder__c = TRUE
+                                AND CreatedDate >= :fallBack
+                                AND Month__c >= :startDate
+                                AND Month__c <= :endDate];
+
+        for (Adjustment__c adj : newCommissions){
+            Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
+            String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+            changeMap.get(dayString).add(adj);
+        }
+
+        List<Adjustment__History> changedCommissions =
+                                [SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.FirstName,
+                                        CreatedBy.LastName, Parent.Calder__c,
+                                        Parent.Month__c, Parent.EventMonthYear__c
+                                FROM Adjustment__History
+                                WHERE CreatedDate >= :fallBack
+                                AND Parent.Calder__c = TRUE
+                                AND Parent.Month__c >= :startDate
+                                AND Parent.Month__c <= :endDate];
+
+        for (Adjustment__History adj : changedCommissions){
+            Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
+            String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+            changeMap.get(dayString).add(adj);
+        }
+
+
+        return changeMap;
+    }
+
 
 }

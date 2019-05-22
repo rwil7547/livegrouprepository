@@ -31,9 +31,10 @@
         }
         .line {
             display: grid;
-            grid-template-columns: 20% 20% 10% 40%;
+            grid-template-columns: 20% 40% 10% 10%;
             margin-top: 4px;
             border-bottom: 0.5px solid lightgrey;
+            padding-bottom: 1px;
         }
         .strong {
             font-weight: bold;
@@ -70,6 +71,7 @@
 
     <script>
         var csvString = '';
+        var reports;
 
         function uploadCSV() {
 
@@ -80,7 +82,8 @@
             Visualforce.remoting.Manager.invokeAction(
                 '{!$RemoteAction.CreditCardExportController.parseCSVString}',
                 csvString,
-                loadResponse
+                loadResponse,
+                {escape: false}
             );
         }
 
@@ -92,7 +95,6 @@
                     alert('Please select a file of the appropriate type!');
                     return;
                 }
-                console.log(files[x].type);
             }
 
             var file    = files[0];
@@ -106,6 +108,7 @@
                 if (evt.target.readyState === FileReader.DONE) {
                     document.getElementById('uploadButton').style.display = 'block';
                     csvString = evt.target.result;
+                    uploadCSV();
                 }
             };
 
@@ -119,45 +122,44 @@
 
             document.getElementById('uploadButton').style.display = 'none';
 
-            console.log('length is ' + result.length);
+            reports = result;
 
-            for (var x = 0; x < result.length; x++){
+            for (var x = 0; x < reports.length; x++){
 
-                console.log('adding block');
-
-                var exported        = !!(result[x].ExpensifyId__c);
-                var expensifyId     = (exported) ? result[x].ExpensifyId__c : '';
+                var exported        = !!(reports[x].ExpensifyId);
+                var expensifyId     = (exported) ? reports[x].ExpensifyId : '';
                 var checkedStatus   = (exported) ? 'checked' : '';
 
-                var submitButton = (exported) ? '' : '<input class="exportButton" id="' + result[x].Id + 'button" ' +
-                    'type="button" value="Export" onclick="exportReport(\'' + result[x].Id + '\')" />';
+                var submitButton = (exported) ? '' : '<input class="exportButton" id="' + x + 'button" ' +
+                    'type="button" value="Export" onclick="exportReport(' + x + ')" />';
                 var headerInfo = '<div class="header">' +
-                    '<h2>' + result[x].Employee__r.FirstName__c + ' ' + result[x].Employee__r.LastName__c + '</h2>' +
-                    '<h2 style="margin-left:30px;">' + 'Card statement for ' + new Date(result[x].Date__c).toString().substr(0, 10) + '</h2>' +
-                    '<h2 style="margin-left:30px;">' + '£' + result[x].TotalAmount__c.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</h2>' +
-                    '<h2 style="margin-left:30px;">Imported: <input type="checkbox" id="' + result[x].Id + 'checkbox" ' +
-                        // ' disabled="true" checked="' + exported + '"/></h2>' +
-                        ' disabled="true" ' +  checkedStatus + '/></h2>' +
-                    '<h2 style="margin-left:30px;" id="' + result[x].Id + 'expensify">Expensify Id: ' + expensifyId +  '</h2>' +
+                    '<h2>' + reports[x].Employee.FirstName__c + ' ' + reports[x].Employee.LastName__c + '</h2>' +
+                    '<h2 style="margin-left:30px;">' + 'Card statement for ' + new Date(reports[x].ReportDate).toString().substr(0, 10) + '</h2>' +
+                    '<h2 style="margin-left:30px;">' + '£' + reports[x].TotalAmount.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</h2>' +
+                    '<h2 style="margin-left:30px;">Imported: <input type="checkbox" id="' + x + 'checkbox" ' +
+                    ' disabled="true" ' +  checkedStatus + '/></h2>' +
+                    '<h2 style="margin-left:30px;" id="' + x + 'expensify">Expensify Id: ' + expensifyId +  '</h2>' +
                     '</div>';
                 var lineInfo = '<div class="line strong">' +
                     '<div>TRANSACTION DATE</div>' +
                     '<div>MERCHANT</div>' +
                     '<div style="text-align:right;padding-right: 10px;">AMOUNT (GBP)</div>' +
-                    '<div>COMMENT</div>' +
+                    '<div></div>' +
                     '</div>';
 
-                var lines = result[x].CreditCardLines__r;
+                var lines = reports[x].CreditCardLines;
                 for (var y = 0; y < lines.length; y++){
-                    var date = new Date(lines[y].TransactionDate__c);
+                    var date = new Date(lines[y].TransactionDate);
                     lineInfo +=
                         '<div class="line">' +
-                            '<div>' + date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + '</div>' +
-                            '<div>' + lines[y].Merchant__c + '</div>' +
-                            '<div style="text-align:right;padding-right: 10px;">' +
-                                    '£' + lines[y].Amount__c.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
-                            '</div>' +
-                            '<div></div>' +
+                        '<div>' + (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + '/' +
+                        (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '/' + date.getFullYear() + '</div>' +
+                        // '<div>' + lines[y].Merchant + '</div>' +
+                        '<div><input id="' + x + y + '" type="text" style="width:100%;border:none;" value="' + lines[y].Merchant + '"></input></div>' +
+                        '<div style="text-align:right;padding-right: 10px;">' +
+                        '£' + lines[y].Amount.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
+                        '</div>' +
+                        '<div></div>' +
                         '</div>';
                 }
 
@@ -165,29 +167,35 @@
             }
         }
 
-        function exportReport(Id){
+        function exportReport(index){
 
-            document.getElementById(Id + 'button').disabled = 'true';
-            document.getElementById(Id + 'button').style.opacity = '0.5';
+            document.getElementById(index + 'button').disabled = 'true';
+            document.getElementById(index + 'button').style.opacity = '0.5';
+
+            var report = reports[index];
+
+            // for (var x = 0; x < report.CreditCardLines.length; x++){
+            //     report.CreditCardLines[x].Merchant = document.getElementById('\'' + index + x + '\'').value;
+            // }
 
             Visualforce.remoting.timeout = 120000;
             Visualforce.remoting.Manager.invokeAction(
                 '{!$RemoteAction.CreditCardExportController.postReport}',
-                Id,
+                // reports[index],
+                report,
                 function(result){
                     if (result){
                         if (result === 'ERROR'){
-                            document.getElementById(Id + 'expensify').innerHTML = 'EXPORT FAILED';
+                            document.getElementById(index + 'expensify').innerHTML = 'EXPORT FAILED';
                         } else {
                             console.log(result);
-                            document.getElementById(Id + 'button').style.display = 'none';
-                            document.getElementById(Id + 'expensify').innerHTML = 'Expensify Id: ' + result;
-                            document.getElementById(Id + 'checkbox').checked = 'true';
+                            document.getElementById(index + 'button').style.display = 'none';
+                            document.getElementById(index + 'expensify').innerHTML = 'Expensify Id: ' + result;
+                            document.getElementById(index + 'checkbox').checked = 'true';
                         }
                     }
                 }
             );
         }
-
     </script>
 </apex:page>

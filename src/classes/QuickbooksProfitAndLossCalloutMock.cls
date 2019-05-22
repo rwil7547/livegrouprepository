@@ -2,6 +2,7 @@
  * Created by Ronan Williams on 19/10/2018.
  */
 
+@IsTest
 global with sharing class QuickbooksProfitAndLossCalloutMock implements HttpCalloutMock{
 
     global HTTPResponse respond(HTTPRequest req) {

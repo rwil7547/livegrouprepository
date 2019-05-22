@@ -1,7 +1,7 @@
 <!--
  - Created by Ronan Williams on 19/05/2019.
  -->
-<apex:page id="Insights" controller="VueTestController" lightningStylesheets="true">
+<apex:page id="Insights" controller="InsightsController" lightningStylesheets="true">
 
     <html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
     <head>
@@ -389,7 +389,6 @@
         .down {
             color: red;
         }
-
         .yearGrid {
             display: grid;
             grid-template-columns: 13% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 6.6% 8%;
@@ -413,10 +412,6 @@
         }
         .monthTile:hover {
             background-color: #f2f2f2;
-            /*font-size: 14px;*/
-            /*padding: 5px;*/
-            /*width: 100px;*/
-            /*z-index:100;*/
         }
         .reportCols {
             position: sticky;
@@ -438,12 +433,7 @@
             z-index:1;
         }
         .stage {
-            /*background-color: #c2e9eb;*/
-            /*padding: 3px;*/
-
-
             padding: 3px;
-            /*font-weight: bold;*/
             font-size: 17px;
             border-top: 0.5px solid black;
             position: sticky;
@@ -464,11 +454,6 @@
         }
         .reportTotals {
             font-size: 18px;
-        }
-        .open {
-            /*font-style: italic;*/
-            /*font-weight: lighter;*/
-            /*color: grey;*/
         }
         .dragPrevent {
             position: fixed;
@@ -620,7 +605,6 @@
         }
         .rowContent {
             width: 97%;
-            margin-left: 0.5%;
             position: absolute;
             background-color: white;
             z-index: 100;
@@ -628,19 +612,11 @@
             border-radius: 4px;
             border: 0.5px solid grey;
             box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
-
         }
         .reportFilter {
-            /*display: flex;*/
-            /*justify-content: center;*/
-            /*overflow: hidden;*/
-            /*margin-top: 7px;*/
-            /*border-radius: 3px;*/
-
             display: flex;
             justify-content: center;
             overflow: hidden;
-            /* margin-top: 7px; */
             border-radius: 3px;
             position: absolute;
             top: 13px;
@@ -653,9 +629,28 @@
             padding-right: 10px;
             color: white;
         }
-        /*.reportStage {*/
-        /*color: white;*/
-        /*}*/
+        .flowManagerIcons {
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 3px;
+            position: absolute;
+            top: 11px;
+            right: 58px;
+            font-size: 24px;
+            opacity: 0.5;
+        }
+        .flowManagerIcon {
+            padding: 4px;
+            border-radius: 4px;
+            margin-left:4px;
+            cursor: pointer;
+        }
+        .flowManagerIcon:hover {
+            color: white;
+            background: grey;
+        }
+
         .Closed {
             background-color: #2c7495;
         }
@@ -709,7 +704,6 @@
         .indicator {
             font-weight: bold;
             border-radius: 50%;
-            /*background-color: black;*/
             color: white;
             height: 15px;
             width: 15px;
@@ -851,8 +845,8 @@
             border-radius: 50%;
             margin: 72px auto;
             position: fixed;
-            left: 48%;
-            top: 40%;
+            left: 46%;
+            top: 23%;
             z-index: 10000000000;
             -webkit-transform: translateZ(0);
             -ms-transform: translateZ(0);
@@ -906,10 +900,11 @@
             left: 0;
             color: black;
             z-index: 10000000000;
-            font-size: 16px;
+            font-size: 19px;
             width: 100%;
             display: flex;
             justify-content: center;
+            text-align: center;
         }
         .probabilityIndicator {
             position: absolute;
@@ -973,6 +968,23 @@
             right:-20px;
             top:0;
         }
+        .historyIcon {
+            position: absolute;
+            right: 53px;
+            top: 11px;
+            font-size: 24px;
+            opacity:0.5;
+            cursor:pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .historyIcon:hover {
+            color: white;
+            background: grey;
+        }
+        .forbidden {
+            background-color: lightcoral;
+        }
     </style>
 
     <div id="app">
@@ -1032,46 +1044,60 @@
                             <div class="viewOption" v-on:click="app.setting = 'changes';window.scrollTo(0,0);"
                                  v-bind:class="{ activeSetting : setting === 'changes'}">
                                 <i class="fas fa-arrows-alt-v"></i> CHANGES </div>
-                            <!--<div class="viewOption" v-on:click="app.setting = 'history';window.scrollTo(0,0);"-->
-                            <!--v-bind:class="{ activeSetting : setting === 'history'}">-->
-                            <!--<i class="fas fa-history"></i> HISTORY </div>-->
                             <div class="viewOption" v-on:click="app.setting = 'manage';window.scrollTo(0,0);"
                                  v-bind:class="{ activeSetting : setting === 'manage'}">
                                 <i class="fas fa-cog"></i> MANAGE </div>
                         </template>
                         <div class="viewOption" v-on:click="app.setting = 'cashflow';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'cashflow'}">
-                            <i class="fas fa-pound-sign"></i> CASH FLOW </div>
+                            <i class="fas fa-pound-sign"></i> CASH FLOW {{window.scrollTop}}</div>
                     </div>
                 </div>
 
                 <!-- LOGO -->
-                <div style="position:absolute;right:5px;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="30" /></div>
+                <div style="position:absolute;right:5px;"><apex:image url="{!$Resource.LiveGroupNewLogo}" height="36" /></div>
             </div>
 
             <template v-if="setting === 'report'">
                 <div style="display: flex;justify-content: center;width:100%">
                     <div class="reportFilter">
                         <div class="reportFilterOption Closed left"
-                             v-bind:style="{ opacity : !reportFilter['Closed Won'] ? '0.3' : ''}"
-                             v-on:click="reportFilter['Closed Won'] = !reportFilter['Closed Won']">W</div>
+                             v-bind:style="{ opacity : !reportFilter['Closed Won'] ? '0.2' : ''}"
+                             v-on:click="reportFilter['Closed Won'] = !reportFilter['Closed Won']">WON</div>
                         <div class="reportFilterOption Costed"
-                             v-bind:style="{ opacity : !reportFilter['Costed prospect'] ? '0.3' : ''}"
-                             v-on:click="reportFilter['Costed prospect'] = !reportFilter['Costed prospect']">C</div>
+                             v-bind:style="{ opacity : !reportFilter['Costed prospect'] ? '0.2' : ''}"
+                             v-on:click="reportFilter['Costed prospect'] = !reportFilter['Costed prospect']">COSTED</div>
                         <div class="reportFilterOption Pipeline"
-                             v-bind:style="{ opacity : !reportFilter['Pipeline prospect'] ? '0.3' : ''}"
-                             v-on:click="reportFilter['Pipeline prospect'] = !reportFilter['Pipeline prospect']">P</div>
+                             v-bind:style="{ opacity : !reportFilter['Pipeline prospect'] ? '0.2' : ''}"
+                             v-on:click="reportFilter['Pipeline prospect'] = !reportFilter['Pipeline prospect']">PIPELINE</div>
                         <div class="reportFilterOption Repeat"
-                             v-bind:style="{ opacity : !reportFilter['Repeat Prospect'] ? '0.3' : ''}"
-                             v-on:click="reportFilter['Repeat Prospect'] = !reportFilter['Repeat Prospect']">R</div>
+                             v-bind:style="{ opacity : !reportFilter['Repeat Prospect'] ? '0.2' : ''}"
+                             v-on:click="reportFilter['Repeat Prospect'] = !reportFilter['Repeat Prospect']">REPEAT</div>
                     </div>
                 </div>
             </template>
             <template v-if="showChanges && setting === 'graph'">
-                <div style="position: absolute;right: 45px;right: 53px;top: 14px;font-size: 24px;opacity:0.5;">
-                    <i class="fas fa-history"></i>
+                <div class="historyIcon" >
+                    <i class="fas fa-camera"></i>
                 </div>
             </template>
+            <template v-if="setting === 'cashflow' && showManager && manageAllowed">
+                        <div class="flowManagerIcons">
+                            <template v-if="manageAllowed && showManager">
+                                <i class="fas flowManagerIcon" v-bind:class="managing ? 'fa-times-circle' : 'fa-edit'" v-on:click="toggleManaging()"></i>
+                            </template>
+                            <template v-if="managing">
+                                <i class="fas fa-redo-alt flowManagerIcon" v-on:click="rerunFlow(false)"></i>
+                                <i class="fas fa-plus-circle flowManagerIcon" v-on:click="addingEntry = true;"></i>
+
+                                <!--<div class="flowOptionButton" v-on:click="rerunFlow(false)">RF</div>-->
+                                <!--<div class="flowOptionButton" v-on:click="rerunFlow(true)">RA</div>-->
+                                <!--<div class="flowOptionButton" v-on:click="addingEntry = true;">ADD</div>-->
+                                <!--<div class="flowOptionButton" v-on:click="manageAll = !manageAll;">{{ manageAll ? 'COL' : 'EXP' }}</div>-->
+                            </template>
+                        </div>
+            </template>
+
 
         </div>
 
@@ -1413,9 +1439,24 @@
                 </div>
 
             </div>
-
-
         </span>
+
+        <!--<span v-bind:class="{setting !== 'changes' ? 'hiddenTab' : ''}">-->
+
+            <!--<div class="box">-->
+
+                <!--<template v-for="entry in changeData">-->
+                    <!--<div class="boxLite">-->
+
+                        <!--{{ entry }}-->
+                    <!--</div>-->
+
+                <!--</template>-->
+
+            <!--</div>-->
+
+        <!--</span>-->
+
 
         <span v-bind:class="{hiddenTab : setting !== 'manage'}">
 
@@ -1561,20 +1602,6 @@
                 <div v-bind:class=" responsePending || dragId ? 'dragPrevent' : '' " v-on:click="abortEdit()"></div>
 
                 <template v-if="showManager">
-                    <span v-if="manageAllowed">
-                        <div class="boxLite" style="display: flex;width: 99%;">
-                            <template v-if="manageAllowed && showManager">
-                                <div class="flowOptionButton" v-on:click="toggleManaging()"> {{ managing ? 'CLOSE' : 'EDIT' }}</div>
-                            </template>
-                            <template v-if="managing">
-                                <div class="flowOptionButton" v-on:click="rerunFlow(false)">RERUN FLOW</div>
-                                <div class="flowOptionButton" v-on:click="rerunFlow(true)">RESET AGEING</div>
-                                <div class="flowOptionButton" v-on:click="addingEntry = true;">ADD ENTRY</div>
-                                <div class="flowOptionButton" v-on:click="manageAll = !manageAll;">{{ manageAll ? 'COLLAPSE ALL' : 'MANAGE ALL' }}</div>
-                            </template>
-                        </div>
-                    </span>
-
                     <div class="boxLite" v-bind:class="managing ? 'scroll' : ''">
                         <div class="row" v-bind:class="managing ? 'rowGrow' : 'rowTight'" id="week" style="">
                             <div class="column ">WEEK COMMENCING</div>
@@ -1640,21 +1667,22 @@
                                                         <div style="padding: 3px;">
                                                             <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
-                                                                    <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
-                                                                        <div class="recordOptionButton">
+                                                                    <template v-if="(record.Source__c === 'Custom' || record.Source__c === 'Budget') && !commenting">
+                                                                        <div class="recordOptionButton" >
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount" class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c"
-                                                                                  placeholder="Add comments here"
+                                                                                  placeholder="Add comments here" v-on:focus="commenting = true;"
                                                                                   v-on:blur="updateComment(record.Comment__c)"></textarea>
                                                                     </div>
                                                                 </div>
@@ -1718,7 +1746,6 @@
                                     <template v-if="!managing || activeCategory !== 'paymentRun' && !manageAll">
                                         {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                     </template>
-                                    <!--<template v-if="managing && (activeCategory === 'paymentRun' || manageAll)">-->
                                     <span v-bind:style="managing && (activeCategory === 'paymentRun' || manageAll) ? '' : 'display:none;'">
 
                                         <div class="sortable paymentRun" v-bind:data-week="index" v-bind:data-type="'paymentRun'">
@@ -1853,13 +1880,7 @@
                                                                                         <div class="ddSetup">
                                                                                             <div>Duration: </div>
                                                                                             <div>
-                                                                                                <select v-model="ddConfig.duration">
-                                                                                                    <option value="0">Indefinite</option>
-                                                                                                    <option value="1">1 month</option>
-                                                                                                    <option value="3">3 months</option>
-                                                                                                    <option value="6">6 months</option>
-                                                                                                    <option value="12">1 year</option>
-                                                                                                </select>
+                                                                                                <input type="date" v-model="ddConfig.date" v-bind:min="newEntryConfig.min"/>
                                                                                             </div>
                                                                                         </div>
                                                                                         <div class="ddSetup">
@@ -1873,7 +1894,7 @@
                                                                                             </div>
                                                                                         </div>
                                                                                         <template v-if="ddConfig.frequency && ddConfig.occurence && ddConfig.amount
-                                                                                                        && ddConfig.duration && ddConfig.category">
+                                                                                                        && ddConfig.date && ddConfig.category">
                                                                                             <div class="recordButtons recordButtonsSmall">
                                                                                                 <div v-on:click="converting = false;event.stopPropagation();"
                                                                                                      class="recordButton recordButtonSmall cancel">
@@ -2045,111 +2066,107 @@
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton"  v-on:blur="converting = false" style="display: block;">
-                                                                                    <div style="display: grid;grid-template-columns: 10% 90%;" v-on:click="converting = true;">
-                                                                                        <i class="fas fa-money-check-alt"></i>
-                                                                                        <div>MANAGE PROFILE</div>
-                                                                                    </div>
-                                                                                    <div v-if="converting">
-                                                                                        <div class="warnText">
-                                                                                            Any changes to the direct debit profile for this supplier
-                                                                                            will force a mass re-calculation of the cashflow and will
-                                                                                            override any adjusted amounts and comments for this supplier.
-                                                                                        </div>
-                                                                                        <div class="ddSetup">
-                                                                                            <div>Frequency:</div>
-                                                                                            <div>
-                                                                                                <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c]"
-                                                                                                        v-on:change="ddConfig.day = '';ddConfig.month = '';ddConfig.weekDay = '';">
-                                                                                                    <option selected="true" ></option>
-                                                                                                    <option value="weekly">Weekly</option>
-                                                                                                    <option value="monthly">Monthly</option>
-                                                                                                    <option value="quarterly">Quarterly</option>
-                                                                                                </select>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <template v-if="ddConfig.frequency === 'weekly'">
-                                                                                            <div class="ddSetup">
-                                                                                                <div>Day of week: </div>
-                                                                                                <div>
-                                                                                                    <select v-model="ddConfig.occurence">
-                                                                                                        <option selected="true"></option>
-                                                                                                        <template v-for="day,dayIndex in weekDays">
-                                                                                                            <option v-bind:value="dayIndex + 1">{{day}}</option>
-                                                                                                        </template>
-                                                                                                    </select>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </template>
-                                                                                        <template v-if="ddConfig.frequency === 'monthly'">
-                                                                                            <div class="ddSetup">
-                                                                                                <div>Day:</div>
-                                                                                                <div>
-                                                                                                    <select v-model="ddConfig.occurence">
-                                                                                                        <option selected="true"></option>
-                                                                                                        <template v-for="number in 31">
-                                                                                                            <option v-bind:value="number">{{number}}</option>
-                                                                                                        </template>
-                                                                                                    </select>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </template>
-                                                                                        <template v-if="ddConfig.frequency === 'quarterly'">
-                                                                                            <div class="ddSetup">
-                                                                                                <div>Starting month:</div>
-                                                                                                <div>
-                                                                                                    <select v-model="ddConfig.occurence">
-                                                                                                        <option selected="true"></option>
-                                                                                                        <template v-for="month,monthIndex in months">
-                                                                                                            <option v-bind:value="monthIndex + 1">{{month}}</option>
-                                                                                                        </template>
-                                                                                                    </select>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </template>
-                                                                                        <div class="ddSetup">
-                                                                                            <div>Amount:</div>
-                                                                                            <div>
-                                                                                                <input v-model="ddConfig.amount" type="number" class="amountInput" />
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div class="ddSetup">
-                                                                                            <div>Duration: </div>
-                                                                                            <div>
-                                                                                                <select v-model="ddConfig.duration">
-                                                                                                    <option value="0">Indefinite</option>
-                                                                                                    <option value="1">1 month</option>
-                                                                                                    <option value="3">3 months</option>
-                                                                                                    <option value="6">6 months</option>
-                                                                                                    <option value="12">1 year</option>
-                                                                                                </select>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div class="ddSetup">
-                                                                                            <div>Category: </div>
-                                                                                            <div>
-                                                                                                <select v-model="ddConfig.category">
-                                                                                                    <template v-for="category in graphData['nominalStrings']">
-                                                                                                        <option >{{ category }}</option>
-                                                                                                    </template>
-                                                                                                </select>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <template v-if="ddConfig.frequency && ddConfig.occurence && ddConfig.amount
-                                                                                                        && ddConfig.duration && ddConfig.category">
-                                                                                            <div class="recordButtons recordButtonsSmall">
-                                                                                                <div v-on:click="converting = false;event.stopPropagation();"
-                                                                                                     class="recordButton recordButtonSmall cancel">
-                                                                                                    <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
-                                                                                                </div>
-                                                                                                <div v-on:click="convertToDirectDebit(record.VendorRef__c,record.Description__c)"
-                                                                                                     class="recordButton recordButtonSmall save">
-                                                                                                    <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </template>
+                                                                    <div class="recordOptionButton" style="display: block;">
+                                                                            <div style="display: grid;grid-template-columns: 10% 90%;" v-on:click="managingProfile = true;">
+                                                                                <i class="fas fa-money-check-alt"></i>
+                                                                                <div>MANAGE PROFILE</div>
+                                                                            </div>
+                                                                            <div v-if="managingProfile">
+                                                                                <div class="warnText">
+                                                                                    Any changes to the direct debit profile for this supplier
+                                                                                    will force a mass re-calculation of the cashflow and will
+                                                                                    override any adjusted amounts and comments for this supplier.
+                                                                                </div>
+                                                                                <div class="ddSetup">
+                                                                                    <div>Frequency:</div>
+                                                                                    <div>
+                                                                                        <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c">
+                                                                                                <!--v-on:change="ddConfig.day = '';ddConfig.month = '';ddConfig.weekDay = '';">-->
+                                                                                            <!--<option selected="true" ></option>-->
+                                                                                            <!--<option value="weekly" v-bind:selected="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c">Weekly</option>-->
+                                                                                            <option value="Weekly" >Weekly</option>
+                                                                                            <option value="Monthly">Monthly</option>
+                                                                                            <option value="Quarterly">Quarterly</option>
+                                                                                        </select>
                                                                                     </div>
                                                                                 </div>
+                                                                                <template v-if="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c === 'Weekly'">
+                                                                                    <div class="ddSetup">
+                                                                                        <div>Day of week: </div>
+                                                                                        <div>
+                                                                                            <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Day__c">
+                                                                                                <option selected="true"></option>
+                                                                                                <template v-for="day,dayIndex in weekDays">
+                                                                                                    <option v-bind:value="dayIndex + 1">{{day}}</option>
+                                                                                                </template>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                                <template v-if="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c === 'Monthly'">
+                                                                                    <div class="ddSetup">
+                                                                                        <div>Day:</div>
+                                                                                        <div>
+                                                                                            <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Day__c">
+                                                                                                <option selected="true"></option>
+                                                                                                <template v-for="number in 31">
+                                                                                                    <option v-bind:value="number">{{number}}</option>
+                                                                                                </template>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                                <template v-if="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c === 'Quarterly'">
+                                                                                    <div class="ddSetup">
+                                                                                        <div>Starting month:</div>
+                                                                                        <div>
+                                                                                            <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Day__c">
+                                                                                                <option selected="true"></option>
+                                                                                                <template v-for="month,monthIndex in months">
+                                                                                                    <option v-bind:value="monthIndex + 1">{{month}}</option>
+                                                                                                </template>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                                <div class="ddSetup">
+                                                                                    <div>Amount:</div>
+                                                                                    <div>
+                                                                                        <input v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Amount__c" type="number" class="amountInput" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="ddSetup">
+                                                                                    <div>Duration: {{cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].EndDate__c}}</div>
+                                                                                    <div>
+                                                                                        <input type="date" v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].EndDate__c" v-bind:min="newEntryConfig.min"/>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="ddSetup">
+                                                                                    <div>Category:</div>
+                                                                                    <div>
+                                                                                        <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Category__c">
+                                                                                            <template v-for="category in graphData['nominalStrings']">
+                                                                                                <option >{{ category }}</option>
+                                                                                            </template>
+                                                                                        </select>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div class="recordButtons recordButtonsSmall">
+                                                                                    <div v-on:click="managingProfile = false;event.stopPropagation();"
+                                                                                         class="recordButton recordButtonSmall cancel">
+                                                                                        <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                                                                                    </div>
+                                                                                    <template v-if="ddConfig.frequency && ddConfig.occurence && ddConfig.amount
+                                                                                                    && ddConfig.duration && ddConfig.category">
+                                                                                        <div v-on:click="convertToDirectDebit(record.VendorRef__c,record.Description__c)"
+                                                                                             class="recordButton recordButtonSmall save">
+                                                                                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                                                                                        </div>
+                                                                                    </template>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
                                                                     <div class="recordOptionButton" v-on:click="converting = true;" style="display: block;">
                                                                         <div class="recordOptionGrid">
                                                                             <i class="fas fa-undo"></i>
@@ -2229,8 +2246,7 @@
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'payroll'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
-                                                                        (record.Source__c !== 'Budget' ? ' draggable' : '')">
+                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' draggable'">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
@@ -2300,14 +2316,16 @@
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'freelancer'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
-                                                                        (record.Source__c !== 'Budget' ? ' draggable' : '')">
+                                                         v-bind:class="(dragId === record.Id ? dragProhibited ? 'selectedRecord forbidden ' : 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                                        (record.Source__c !== 'Budget' ? ' draggable ' : '')
+                                                                         +
+                                                                        ' ' + (dragId === record.Id && dragProhibited ? ' forbidden ' : '')">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
                                                         <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="dragId === record.Id  && !dragging ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
@@ -2389,13 +2407,14 @@
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
                                                         <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'" style="margin-top:-185px;"   >
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   />
                                                                         </div>
                                                                         <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
@@ -2477,10 +2496,11 @@
                     </div>
                     <div class="entryGrid">
                         <div>Date:</div>
-                        <input type="date" v-model="newEntryConfig.date" min="2019-03-03"/>
+                        <input type="date" v-model="newEntryConfig.date" v-bind:min="newEntryConfig.min"
+                               v-bind:max="newEntryConfig.max"/>
                     </div>
-                    <div class="entryGrid">
-                        <div>Category: </div>
+                    <div class="entryGrid" v-if="newEntryConfig.type">
+                        <div>Budget category: </div>
                         <div>
                             <select v-model="newEntryConfig.category">
                                 <template v-for="category in graphData['nominalStrings']">
@@ -2507,7 +2527,7 @@
 
         <div v-bind:class="attachmentLink ? 'billframe' : 'billframeHidden'" v-on:click="attachmentLink = '';">
             <div class="box" style="height:422px;" v-on:click="event.stopPropagation();">
-                <iframe width="600" height="400" v-bind:src="attachmentLink" frameborder="0" ></iframe>
+                <iframe width="700" height="400" v-bind:src="attachmentLink" frameborder="0" ></iframe>
             </div>
         </div>
 
@@ -2532,6 +2552,7 @@
                 graphData : '',
                 cashGraphData : '',
                 cashflowData : '',
+                changeData : '',
                 setting : 'graph',
                 showGo : false,
                 showReport : false,
@@ -2542,38 +2563,46 @@
                 showManager : false,
                 managing : false,
                 activeCategory : '',
-                manageAll : false,
+                // manageAll : false,
+                manageAll : true,
                 manageOut : false,
                 sortable : false,
                 dragging : '',
+                draggingId : '',
                 dragId : '',
+                dragProhibited: false,
                 confirmed : true,
                 weighted : true,
                 pipeline : true,
                 splitOpex : false,
                 responsePending : false,
                 commenting : false,
+                changingAmount : false,
                 freelancerConvert : false,
                 converting : false,
                 addingEntry : false,
+                managingProfile : false,
                 newEntryConfig : {
                     description: '',
                     amount : 0,
                     date : '',
                     type : '',
-                    category : ''
+                    category : '',
+                    min : '',
+                    max : ''
                 },
                 ddConfig : {
                     frequency : '',
                     occurence : '',
                     amount : '',
                     duration : '',
+                    date : '',
                     category : ''
                 },
                 weekDays : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
                 months : ['January','February','March','April','May','June','July','August',
-                    'September','October','November','December'],
-                types : ['Revenue','Payment run','Freelancer','Direct debit','Management fee','VAT'],
+                            'September','October','November','December'],
+                types : ['Revenue','Payment run','Credit card','Direct debit','Freelancer','Payroll','VAT'],
                 attachmentLink : '',
                 activeReportRow : '',
                 reportFilter : {
@@ -2674,7 +2703,7 @@
 
                     // step 1: get all performance figures
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.getOppRecords}',
+                        '{!$RemoteAction.InsightsController.getOppRecords}',
                         this.startDate,
                         this.endDate,
                         function (result) {
@@ -2688,7 +2717,7 @@
 
                     // step 2: get all cashflow figures
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.getBalances}',
+                        '{!$RemoteAction.InsightsController.getBalances}',
                         this.startDate,
                         this.endDate,
                         function (result) {
@@ -2698,14 +2727,33 @@
                         },
                         {escape: false});
 
-                    // step 2: get all cashflow data
+                    // step 3: get all cashflow data
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.getCashflowData}',true,
+                        '{!$RemoteAction.InsightsController.getCashflowData}',true,
                         function (result) {
                             app.cashflowData = result;
                             console.log(result);
                         },
                         {escape: false});
+
+
+                    // step 4: get all database changes
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.InsightsController.getOppProfitChanges}',
+                        this.startDate,
+                        this.endDate,
+                        7,
+                        10909,
+                        function (result) {
+                            app.changeData = result;
+                            console.log(result);
+                        },
+                        {escape: false});
+
+
+
+
+                    // getOppProfitChanges(String start, String endD, Integer days, Decimal currentTotal)
 
                 },
                 drawData : function(includeOpex){
@@ -2798,7 +2846,7 @@
                                     },
                                         {
                                             calc: function (dt, row) {
-                                                return '£' + ((dt.getValue(row, 1) + dt.getValue(row, 2) + dt.getValue(row, 3) + dt.getValue(row, 4)) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                                                return '£' + Math.abs((dt.getValue(row, 1) + dt.getValue(row, 2) + dt.getValue(row, 3) + dt.getValue(row, 4)) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
                                             },
                                             type: "string",
                                             role: "annotation",
@@ -2817,7 +2865,7 @@
                                     },
                                         {
                                             calc: function (dt, row) {
-                                                return '£' + (dt.getValue(row, 1) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                                                return '£' + (Math.abs(dt.getValue(row, 1) / 1000)).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
                                             },
                                             type: "string",
                                             role: "annotation"
@@ -2835,10 +2883,11 @@
                                 },
                                     {
                                         calc: function (dt, row) {
-                                            return '£' + ((dt.getValue(row, 1) + dt.getValue(row, 2) + dt.getValue(row, 3)) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                                            return '£' + (Math.abs(dt.getValue(row, 1) + dt.getValue(row, 2) + dt.getValue(row, 3)) / 1000).toFixed(0).replace(/\d(?=(\d{3})+\.)/g, '$&,');
                                         },
                                         type: "string",
-                                        role: "annotation"
+                                        role: "annotation",
+                                        color: 'red'
                                     }
                                 ]);
 
@@ -2921,12 +2970,9 @@
                                 vAxis: {
                                     format: 'short',
                                     viewWindow: {
-                                        min: type === 'cashFlow' ? -200000 : null
+                                        // min: type === 'cashFlow' ? -200000 : null
                                     }
                                 },
-                                // isStacked : true,
-                                // areaOpacity : 0.8,
-                                // areaOpacity : 1,
                                 series: {
                                     0: {
                                         color: app.brand[type],
@@ -2975,6 +3021,20 @@
                         fontName: 'Salesforce Sans',
                         fontSize: 13,
                         height: '370px',
+                        annotations: {
+                            // textStyle: {
+                            //     fontName: 'Times-Roman',
+                            //     fontSize: 18,
+                            //     bold: true,
+                            //     italic: true,
+                            //     // The color of the text.
+                            //     color: '#871b47',
+                            //     // The color of the text outline.
+                            //     auraColor: '#d799ae',
+                            //     // The transparency of the text.
+                            //     opacity: 0.8
+                            // }
+                        },
                         hAxis: {
                             format: 'MMM d',
                             height: '30px',
@@ -3019,12 +3079,17 @@
                                 }
                             },
                             start: function(event, ui) {
+                                if(!ui.item[0].classList.contains('draggable')){
+                                    console.log(ui.item[0]);
+                                    app.dragProhibited = true;
+                                }
                                 item            = ui.item;
                                 newList         = oldList = ui.item.parent().parent();
                                 app.dragging    = category;
                             },
                             stop: function(event, ui) {
                                 app.dragging    = '';
+                                app.dragProhibited = false;
                             },
                             change: function(event, ui) {
                                 if (ui.sender) newList = ui.placeholder.parent().parent();
@@ -3055,7 +3120,7 @@
 
                                     // step 2: get all cashflow figures
                                     Visualforce.remoting.Manager.invokeAction(
-                                        '{!$RemoteAction.VueTestController.changeEntryDate}',
+                                        '{!$RemoteAction.InsightsController.changeEntryDate}',
                                         sourceRecord.id,
                                         weekDate,
                                         function (result, event) {
@@ -3083,7 +3148,7 @@
                     app.message         = 'Recalculating the cash flow...';
 
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.rerunFlow}', resetAgeing,
+                        '{!$RemoteAction.InsightsController.rerunFlow}', resetAgeing,
                         function (result, event) {
                             app.responsePending = false;
                             app.message         = '';
@@ -3099,7 +3164,7 @@
                     app.dragId          = '';
 
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.deleteEntry}',
+                        '{!$RemoteAction.InsightsController.deleteEntry}',
                         recordId,
                         function (result, event) {
                             app.responsePending = false;
@@ -3113,13 +3178,14 @@
                         {escape: false});
                 },
                 updateAmount : function(amount){
+                    app.changingAmount  = false;
                     app.responsePending = true;
                     app.message         = 'Updating the record amount and recalculating the cash flow...';
 
                     var recordId = app.dragId;
                     app.dragId = '';
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.updateAmount}',
+                        '{!$RemoteAction.InsightsController.updateAmount}',
                         recordId,
                         amount,
                         function (result, event) {
@@ -3139,7 +3205,7 @@
                     var recordId = app.dragId;
                     app.dragId = '';
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.toggleFreelancer}',
+                        '{!$RemoteAction.InsightsController.toggleFreelancer}',
                         recordId,
                         function (result, event) {
                             if (result){
@@ -3152,24 +3218,25 @@
                         {escape: false});
                 },
                 updateComment : function(comment){
-                    app.responsePending = true;
-                    app.message         = 'Updating your comment...';
+                    app.commenting      = false;
+                    // app.responsePending = true;
+                    // app.message         = 'Updating your comment...';
 
                     var recordId        = app.dragId;
                     app.dragId          = '';
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.updateComment}',
+                        '{!$RemoteAction.InsightsController.updateComment}',
                         recordId,
                         comment,
                         function (result, event) {
-                            app.responsePending = false;
-                            app.message         = '';
+                            // app.responsePending = false;
+                            // app.message         = '';
                         },
                         {escape: false});
                 },
                 getAttachmentLink : function(billId){
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.getAttachmentLink}',
+                        '{!$RemoteAction.InsightsController.getAttachmentLink}',
                         billId,
                         function (result, event) {
                             if (result.QueryResponse && result.QueryResponse.Attachable[0]){
@@ -3186,13 +3253,13 @@
                     app.dragId          = '';
 
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.convertToDirectDebit}',
+                        '{!$RemoteAction.InsightsController.convertToDirectDebit}',
                         vendorRef,
                         vendorName,
                         app.ddConfig.frequency,
                         app.ddConfig.occurence,
                         app.ddConfig.amount,
-                        app.ddConfig.duration,
+                        app.ddConfig.date,
                         app.ddConfig.category,
                         function (result, event) {
                             if (result){
@@ -3213,7 +3280,7 @@
                     console.log(supplierId);
 
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.disableDirectDebit}',
+                        '{!$RemoteAction.InsightsController.disableDirectDebit}',
                         supplierId,
                         function (result, event) {
                             if (result){
@@ -3226,6 +3293,7 @@
                         {escape : false});
                 },
                 abortEdit : function(){
+                    app.changingAmount      = false;
                     app.commenting          = false;
                     app.converting          = false;
                     app.addingEntry         = false;
@@ -3243,7 +3311,7 @@
 
                     // send new entry configuration data to controller
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.addCustomEntry}',
+                        '{!$RemoteAction.InsightsController.addCustomEntry}',
                         app.newEntryConfig.type,
                         app.newEntryConfig.description,
                         app.newEntryConfig.category,
@@ -3273,7 +3341,7 @@
 
                     // send new entry configuration data to controller
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.VueTestController.markAsPaid}',
+                        '{!$RemoteAction.InsightsController.markAsPaid}',
                         recordId,
                         function (result) {
                             app.responsePending = false;
@@ -3287,10 +3355,22 @@
             beforeMount() {
 
                 // set default date range
-                this.today       = new Date();
-                this.yearText    = (this.today.getMonth() + 1 > 3) ? this.today.getFullYear() : this.today.getFullYear() -1;
-                this.startDate   = new Date(this.yearText, 3, 1);
-                this.endDate     = new Date(this.yearText + 1, 2, 31);
+                this.today      = new Date();
+                this.yearText   = (this.today.getMonth() + 1 > 3) ? this.today.getFullYear() : this.today.getFullYear() -1;
+                this.startDate  = new Date(this.yearText, 3, 1);
+                this.endDate    = new Date(this.yearText + 1, 2, 31);
+
+                var today       = new Date();
+                var ddOpen      = (today.getDate() < 10) ? '0' + (today.getDate() + 1) : today.getDate();
+                var mmOpen      = ((today.getMonth()+1) < 10) ? '0' + (today.getMonth() + 1) : today.getMonth()+1; //January is 0!
+                var yyyyOpen    = today.getFullYear();
+                this.newEntryConfig.min = yyyyOpen+'-'+mmOpen+'-'+ddOpen;
+
+                var close       = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
+                var ddClose      = (close.getDate() < 10) ? '0' + (close.getDate() + 1) : close.getDate();
+                var mmClose      = ((close.getMonth()+1) < 10) ? '0' + (close.getMonth() + 1) : close.getMonth()+1; //January is 0!
+                var yyyyClose    = close.getFullYear();
+                this.newEntryConfig.max = yyyyClose+'-'+mmClose+'-'+ddClose;
 
                 this.loadData();
             }
