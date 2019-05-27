@@ -310,9 +310,7 @@ public class QuickbooksDashboardCallout {
                 name == 'Pension Costs'  ){
             return 'Payroll';
         } else if (name == 'Freelancers'||
-                name == 'Management Fees'){
-            return name;
-        } else if (name == 'Revenue'){
+                name == 'Revenue'){
             return name;
         } else {
             return 'Payment run';

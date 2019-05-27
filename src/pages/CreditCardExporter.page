@@ -174,9 +174,9 @@
 
             var report = reports[index];
 
-            // for (var x = 0; x < report.CreditCardLines.length; x++){
-            //     report.CreditCardLines[x].Merchant = document.getElementById('\'' + index + x + '\'').value;
-            // }
+            for (var x = 0; x < report.CreditCardLines.length; x++){
+                report.CreditCardLines[x].Merchant = document.getElementById('\'' + index + x + '\'').value;
+            }
 
             Visualforce.remoting.timeout = 120000;
             Visualforce.remoting.Manager.invokeAction(

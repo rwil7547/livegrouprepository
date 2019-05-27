@@ -88,14 +88,12 @@ public class CreditCardExportController {
         if (response.getStatus() != 'OK'){
             responseString = 'ERROR CONNECTING TO EXPENSIFY';
         } else {
-            System.debug(response.getBody());
-
+//            System.debug(response.getBody());
             Map<String,Object> responseMap = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
-
             if (responseMap.containsKey('reportID')){
                 responseString = (String)responseMap.get('reportID');
             } else {
-                System.debug((String)responseMap.get('responseMessage'));
+//                System.debug((String)responseMap.get('responseMessage'));
                 responseString = 'NO ID RETURNED: ' + response.getStatus();
             }
         }

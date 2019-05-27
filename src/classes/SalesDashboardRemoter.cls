@@ -1770,7 +1770,8 @@ global class SalesDashboardRemoter {
     @RemoteAction
     global static Boolean updateBudgets(String budgetId, String forecastId, String year, String month){
 
-        Boolean result = QuickbooksBudgetCallout.updateOpexForecast(budgetId, forecastId, year, month);
+//        Boolean result = QuickbooksBudgetCallout.updateOpexForecast(budgetId, forecastId, year, month);
+        Boolean result = QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, month);
         return result;
     }
 

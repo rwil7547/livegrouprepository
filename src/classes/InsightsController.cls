@@ -285,12 +285,12 @@ public class InsightsController {
         figuresMap.put('nominalStrings',nominalStrings);
 
         List<SalesDashboardSnapshot__c> priorSnaps =
-        [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
-                TotalNetProfit__c
-        FROM SalesDashboardSnapshot__c
-        WHERE PeriodEnd__c = :Date.valueOf(endDate)
-        AND TotalRevenue__c != NULL
-        ORDER BY CreatedDate DESC LIMIT 6];
+                                        [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
+                                                TotalNetProfit__c
+                                        FROM SalesDashboardSnapshot__c
+                                        WHERE PeriodEnd__c = :Date.valueOf(endDate)
+                                        AND TotalRevenue__c != NULL
+                                        ORDER BY CreatedDate DESC LIMIT 6];
 
         if (priorSnaps.isEmpty()){
             figuresMap.put('priorTotals',JSON.deserializeUntyped(
@@ -315,7 +315,16 @@ public class InsightsController {
 
         Date flowDate           = Date.valueOf(dateString);
         CashFlow__c flow        = [SELECT Id, Date__c, Number__c FROM CashFlow__c WHERE Date__c = :flowDate];
-        CashFlowEntry__c entry  = [SELECT Id, Description__c FROM CashFlowEntry__c WHERE Id = :entryId];
+        CashFlowEntry__c entry  = [SELECT Id, Description__c, BudgetKey__c, Date__c, Amount__c
+                                    FROM CashFlowEntry__c WHERE Id = :entryId];
+
+        // if the record has been moved across months, detect if budget entries need to be updated.
+        if (entry.Date__c.month() != flowDate.month()){
+            // add the value of the record to the budget in the month it is being removed from
+            updateBudgets(entry.Date__c,entry.BudgetKey__c,entry.Amount__c);
+            // subtract the value of the record to the budget in the the month it is being removed from
+            updateBudgets(flowDate,entry.BudgetKey__c, (entry.Amount__c * -1));
+        }
 
         entry.CashFlow__c       = flow.Id;
         entry.Adjusted__c       = true;
@@ -325,10 +334,11 @@ public class InsightsController {
 
         calculateBalances();
 
-        Map<String,Object> responseData = getCashflowData(false);
-        responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-                                            CashFlow__r.DayMonthYear__c
-                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
+        Map<String,Object> responseData = getCashflowData(true);
+//        Map<String,Object> responseData = getCashflowData(false);
+//        responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+//                                            CashFlow__r.DayMonthYear__c
+//                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
 
         return responseData;
 
@@ -337,13 +347,26 @@ public class InsightsController {
     @RemoteAction
     public static Map<String,Object> updateAmount(String entryId, Decimal amount){
 
-        update new CashFlowEntry__c(
-                Id                  = entryId,
-                Amount__c           = amount,
-                Adjusted__c         = true,
-                AmountAdjusted__c   = true);
+        CashFlowEntry__c entry = [SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
+                                        CashFlow__r.DayMonthYear__c, Date__c, BudgetKey__c
+                                FROM CashFlowEntry__c WHERE Id = :entryId];
+
+        // if the entry is not a budget record, we need to return all records to the VF as changing it's value
+        // will change budget record values
+        Boolean returnRecords = entry.Source__c != 'Budget';
+
+        if (returnRecords){
+            updateBudgets(entry.Date__c,entry.BudgetKey__c,((amount - entry.Amount__c) * -1));
+        }
+
+        entry.Amount__c         = amount;
+        entry.Adjusted__c       = true;
+        entry.AmountAdjusted__c = true;
+
+        update entry;
+
         calculateBalances();
-        return getCashflowData(false);
+        return getCashflowData(returnRecords);
     }
 
     @RemoteAction
@@ -367,7 +390,7 @@ public class InsightsController {
             CashFlowEntry__c customEntry    = new CashFlowEntry__c();
             customEntry.Source__c           = 'Custom';
             customEntry.Out__c              = (type != 'Revenue');
-            customEntry.Category__c         = (type == 'Revenue') ? 'Custom entry' : type;
+            customEntry.Category__c         = type;
             customEntry.Description__c      = description + ' (' + budgetKey + ')';
             customEntry.CashFlow__c         = flow.Id;
             customEntry.Amount__c           = amount;
@@ -375,19 +398,7 @@ public class InsightsController {
             customEntry.BudgetKey__c        = budgetKey;
             insert customEntry;
 
-            Date budgetDate = flowDate.addMonths(1).toStartOfMonth().addDays(-1);
-
-            List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
-                                                    FROM CashFlowEntry__c
-                                                    WHERE Source__c = 'Budget'
-                                                    AND BudgetKey__c = :budgetKey
-                                                    AND Date__c = :budgetDate
-                                                    AND AmountAdjusted__c = FALSE];
-
-            if (budgetEntries.size() == 1){
-                budgetEntries[0].Amount__c -= amount;
-                update budgetEntries;
-            }
+            updateBudgets(flowDate,budgetKey,(amount * -1));
 
             calculateBalances();
             return getCashflowData(true);
@@ -403,19 +414,7 @@ public class InsightsController {
         CashFlowEntry__c deleteEntry = [SELECT Id, Amount__c, Date__c, BudgetKey__c
                                         FROM CashFlowEntry__c WHERE Id = :entryId];
 
-        Date budgetDate = deleteEntry.Date__c.addMonths(1).toStartOfMonth().addDays(-1);
-
-        List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
-                                                FROM CashFlowEntry__c
-                                                WHERE Source__c = 'Budget'
-                                                AND BudgetKey__c = :deleteEntry.BudgetKey__c
-                                                AND Date__c = :budgetDate];
-
-        if (budgetEntries.size() == 1){
-            budgetEntries[0].Amount__c += deleteEntry.Amount__c;
-            update budgetEntries;
-        }
-
+        updateBudgets(deleteEntry.Date__c, deleteEntry.BudgetKey__c, deleteEntry.Amount__c);
         delete deleteEntry;
 
         calculateBalances();
@@ -453,7 +452,11 @@ public class InsightsController {
 
     @RemoteAction
     public static QBSupplierProfile__c convertToDirectDebit(String vendorRef, String supplierName, String frequency,
-            Integer occurence, Decimal amount, String endDate, String nominal){
+                                                            Integer occurence, Decimal amount,
+                                                            String endDate, String nominal){
+
+        // check if there is already a supplier profile and delete if so
+        delete [SELECT Id FROM QBSupplierProfile__c WHERE SupplierId__c = :vendorRef];
 
         // create a new supplier profile which the cashflow can use to implement the direct debits
         QBSupplierProfile__c profile = new QBSupplierProfile__c(
@@ -486,8 +489,8 @@ public class InsightsController {
     }
 
     @RemoteAction
-    public static Map<String,Object> rerunFlow(Boolean resetValues){
-        CashflowGenerator.buildFlow(resetValues);
+    public static Map<String,Object> rerunFlow(Boolean resetValues,Boolean resetBudgets){
+        CashflowGenerator.buildFlow(resetValues, resetBudgets);
         return getCashflowData(true);
     }
 
@@ -503,6 +506,23 @@ public class InsightsController {
 
         return attachmentResponse.getStatusCode() == 200 ?
                 JSON.deserializeUntyped(attachmentResponse.getBody()) : (Object)'error';
+    }
+
+    public static void updateBudgets(Date recordDate, String budgetKey, Decimal amount){
+
+        Date budgetDate = recordDate.addMonths(1).toStartOfMonth().addDays(-1);
+
+        List<CashFlowEntry__c> budgetEntries = [SELECT Id, Amount__c
+                                        FROM CashFlowEntry__c
+                                        WHERE Source__c = 'Budget'
+                                        AND BudgetKey__c = :budgetKey
+                                        AND Date__c = :budgetDate
+                                        AND AmountAdjusted__c = FALSE];
+
+        if (budgetEntries.size() == 1){
+            budgetEntries[0].Amount__c += amount;
+            update budgetEntries;
+        }
     }
 
     public static void calculateBalances(){
@@ -569,10 +589,10 @@ public class InsightsController {
             figures.add(0);
         }
 
-        List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c, Number__c
-        FROM CashFlow__c
-        WHERE Date__c <= :dates[11].addDays(6)
-        ORDER BY Date__c ASC];
+        List<CashFlow__c> flows = [SELECT Date__c, BalancePlus__c, BalancePredict__c, Number__c
+                                    FROM CashFlow__c
+                                    WHERE Date__c <= :dates[11].addDays(6)
+                                    ORDER BY Date__c ASC];
 
         Map<Date,CashFlow__c> flowMap = new Map<Date,CashFlow__c>();
 
@@ -593,8 +613,8 @@ public class InsightsController {
                 endDate = startDate.addDays(6);
             }
 
-            openingBalances.add(flowMap.get(startDate.addDays(-1)).BalancePlus__c);
-            closingBalances.add(flowMap.get(endDate).BalancePlus__c);
+            openingBalances.add(flowMap.get(startDate.addDays(-1)).BalancePredict__c);
+            closingBalances.add(flowMap.get(endDate).BalancePredict__c);
 
             Decimal totalInflow     = 0;
             Decimal totalOutflow    = 0;
@@ -603,9 +623,11 @@ public class InsightsController {
                                             OutConfirmed__c, OutPipeline__c, OutBudget__c,
                                     (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
                                             CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
-                                            TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c
+                                            TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c,
+                                            AmountAdjusted__c
                                     FROM CashFlowEntries__r
                                     WHERE Paid__c = FALSE
+                                    AND HiddenBudget__c = FALSE
                                     ORDER BY Category__c ASC, Source__c )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
@@ -642,10 +664,9 @@ public class InsightsController {
         }
 
         Map<String,QBSupplierProfile__c> supplierProfiles = new Map<String,QBSupplierProfile__c>();
-        for (QBSupplierProfile__c profile : [SELECT Id,SupplierId__c,Category__c,Amount__c,Terms__c,Day__c, EndDate__c
+        for (QBSupplierProfile__c profile : [SELECT Id,SupplierId__c,Category__c,Amount__c,Terms__c,Day__c,
+                                                    EndDate__c,EndDateInput__c
                                              FROM QBSupplierProfile__c WHERE Type__c = 'DD']){
-//            if (profile.EndDate__c)
-
             supplierProfiles.put(profile.SupplierId__c, profile);
         }
 
@@ -659,11 +680,88 @@ public class InsightsController {
         cashflowDataMap.put('CLOSING BALANCE', closingBalances);
         cashflowDataMap.put('IN', figures.clone());
         cashflowDataMap.put('CASHFLOW', getBalances(String.valueOf(Date.today().addDays(-7)),String.valueOf(entryDate)));
+        cashflowDataMap.put('CASHFLOW FULL', getBalances(String.valueOf(Date.today().addDays(-7)),String.valueOf(entryDate)));
         cashflowDataMap.put('SUPPLIER PROFILES',supplierProfiles);
         if (includeRecords) cashflowDataMap.put('RECORDS', records);
 
         return cashflowDataMap;
 
+    }
+
+    @RemoteAction
+    public static Map<String,Object> getQBBudgets(String year){
+
+        String fiscalYear;
+
+        if (year.equalsIgnoreCase('PREVIOUS FY')){
+            fiscalYear = 'LAST_FISCAL_YEAR';
+        } else if (year.equalsIgnoreCase('CURRENT FY')){
+            fiscalYear = 'THIS_FISCAL_YEAR';
+        } else if (year.equalsIgnoreCase('NEXT FY')){
+            fiscalYear = 'NEXT_FISCAL_YEAR';
+        }
+
+        Map<String,Object> responseMap = new Map<String,Object>();
+
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
+                'EndDate%2c%20Id%20from%20budget&minorversion=4');
+        request.setHeader('Accept', 'application/json');
+        request.setMethod('GET');
+        request.setTimeout(120000);
+        HttpResponse response = http.send(request);
+
+        if (response.getStatusCode() == 200){
+            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
+        }
+
+        List<QBProfitAndLoss__c> budgetSourceList =
+                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
+                        'FROM QBProfitAndLoss__c ' +
+                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+                        'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!budgetSourceList.isEmpty()){
+            if (budgetSourceList[0].BudgetSource__c != null){
+                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+            } else {
+                responseMap.put('budgetSource', 'Unknown Budget');
+            }
+
+            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
+        }
+
+        List<QBProfitAndLoss__c> forecastSourceList =
+                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
+                        'FROM QBProfitAndLoss__c ' +
+                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+                        'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!forecastSourceList.isEmpty()){
+            if (forecastSourceList[0].ForecastSource__c != null){
+                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+            } else {
+                responseMap.put('forecastSource', 'Unknown Forecast');
+            }
+            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
+        }
+
+        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
+            if (month.Name == 'QBClosedMonth'){
+                responseMap.put('closedMonth', month.Month__c);
+            }
+        }
+
+        return responseMap;
+    }
+
+
+    @RemoteAction
+    public static Boolean updateBudgets(String budgetId, String forecastId, String year, String month){
+
+        Boolean result = QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, month);
+        return result;
     }
 
 

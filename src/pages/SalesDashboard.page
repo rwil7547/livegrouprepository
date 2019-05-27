@@ -1877,7 +1877,8 @@
                         console.log('opp report data: ');
                         console.log(result);
                     }
-                }
+                },
+                {escape : true}
             );
 
             Visualforce.remoting.Manager.invokeAction(

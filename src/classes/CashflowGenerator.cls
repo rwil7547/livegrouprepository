@@ -5,7 +5,7 @@
 public with sharing class CashflowGenerator {
 
 
-    public static void buildFlow(Boolean resetValues){
+    public static void buildFlow(Boolean resetValues, Boolean resetBudgets){
 
         // get the cash flow entries in a map ordered by date asc
         Map<Date, CashFlow__c> flowMap            = CashFlowUtils.getFlowMap();
@@ -217,7 +217,7 @@ public with sharing class CashflowGenerator {
                         String comment      = oldEntryMap.containsKey(bill.Id) ? oldEntryMap.get(bill.Id).Comment__c : null;
                         String category     = freelancerIds.contains(bill.VendorRef.value) ?
                                 'Freelancers' : bill.VendorRef.name == 'Barclaycard' ?
-                                        'Credit Card' : 'Payment run';
+                                        'Credit card' : 'Payment run';
 
                         Set<String> budgetKeys = new Set<String>();
                         String budgetKeyString = '';
@@ -244,7 +244,7 @@ public with sharing class CashflowGenerator {
                                     Stage__c            = 'Confirmed',
                                     BudgetKey__c        = budgetKeys.size() == 1 ? budgetKeyString : null,
                                     Category__c         = category,
-                                    Description__c      = bill.VendorRef.name,
+                                    Description__c      = bill.VendorRef.name + ' (' + budgetKeyString + ')',
                                     Amount__c           = bill.Balance.setScale(2),
                                     QuickbooksId__c     = bill.Id,
                                     VendorRef__c        = bill.VendorRef.value,
@@ -408,7 +408,7 @@ public with sharing class CashflowGenerator {
                                 CashFlow__c     = flowMap.containsKey(processingDate) ?
                                         flowMap.get(processingDate).Id : flowMap.get(Date.today()).Id,
                                 Source__c       = 'DirectDebit',
-                                Category__c     = 'Direct Debit',
+                                Category__c     = 'Direct debit',
                                 Description__c  = directDebit.SupplierName__c,
                                 Amount__c       = directDebit.Amount__c.setScale(2),
                                 QuickbooksId__c = entryKey,
@@ -445,7 +445,7 @@ public with sharing class CashflowGenerator {
                                 CashFlow__c     = flowMap.containsKey(processingDate) ?
                                         flowMap.get(processingDate).Id : flowMap.get(Date.today()).Id,
                                 Source__c       = 'DirectDebit',
-                                Category__c     = 'Direct Debit',
+                                Category__c     = 'Direct debit',
                                 Description__c  = directDebit.SupplierName__c,
                                 Amount__c       = directDebit.Amount__c.setScale(2),
                                 QuickbooksId__c = entryKey,
@@ -482,7 +482,7 @@ public with sharing class CashflowGenerator {
                                 CashFlow__c     = flowMap.containsKey(processingDate) ?
                                         flowMap.get(processingDate).Id : flowMap.get(Date.today()).Id,
                                 Source__c       = 'DirectDebit',
-                                Category__c     = 'Direct Debit',
+                                Category__c     = 'Direct debit',
                                 Description__c  = directDebit.SupplierName__c,
                                 Amount__c       = directDebit.Amount__c.setScale(2),
                                 QuickbooksId__c = entryKey,
@@ -519,7 +519,7 @@ public with sharing class CashflowGenerator {
             String vatKey   = String.valueOf((Integer) ar.get('quarter')) + String.valueOf((Integer) ar.get('year'));
             Integer year    = (Integer) ar.get('year');
             Integer quarter = (Integer) ar.get('quarter');
-            Date vatYear    = Date.newInstance(year, 01, 25);
+            Date vatYear    = Date.newInstance(year, 01, 5);
             Date vatDate    = vatYear.addMonths((quarter * 3) + 4);
             Decimal sum     = ar.get('actual') != null ? (Decimal) ar.get('actual') : 0;
             Decimal vatAmt  = (String) ar.get('Category__c') == 'Revenue' ? (sum * 0.2).setScale(2) : ((sum * -1) * 0.15).setScale(2);
@@ -529,7 +529,7 @@ public with sharing class CashflowGenerator {
                 if (oldEntryMap.get(vatKey).AmountAdjusted__c){
                     vatAmt = oldEntryMap.get(vatKey).Amount__c.setScale(2);
                 }
-                if (oldEntryMap.get(vatKey).AdjustedDate__c != null){
+                if (oldEntryMap.get(vatKey).AdjustedDate__c != null && !resetValues){
                     vatDate = oldEntryMap.get(vatKey).AdjustedDate__c;
                 }
                 comment = oldEntryMap.get(vatKey).Comment__c;
@@ -556,24 +556,26 @@ public with sharing class CashflowGenerator {
 
         newEntries.addAll(vatEntryMap.values());
 
+        List<String> monthText = new List<String>{
+            'January','February','March','April','May','June','July','August','September','October','November','December'
+        };
+
         // STEP 6: PLOT BUDGET ENTRIES
         for (QBProfitAndLoss__c budgetEntry : budgetMap.values()){
 
             if (budgetEntry.Actual__c > 0 ){
-                Date entryDate  = budgetEntry.Month__c.addMonths(1).addDays(-1);
-                String entryKey = budgetEntry.Parent__c + String.valueOf(entryDate);
-
-                Decimal amount  = budgetEntry.Actual__c.setScale(2);
-                Boolean amountAdjusted = false;
-                Boolean dateAdjusted = false;
-
+                Date entryDate          = budgetEntry.Month__c.addMonths(1).addDays(-1);
+                String entryKey         = budgetEntry.Parent__c + String.valueOf(entryDate);
+                Decimal amount          = budgetEntry.Actual__c.setScale(2);
+                Boolean amountAdjusted  = false;
+                Boolean dateAdjusted    = false;
 
                 // determine if the amount on the budget has been manually specified
-                if (oldEntryMap.containsKey(entryKey) && oldEntryMap.get(entryKey).AmountAdjusted__c){
+                if (!resetBudgets && oldEntryMap.containsKey(entryKey) && oldEntryMap.get(entryKey).AmountAdjusted__c){
                     amount = oldEntryMap.get(entryKey).Amount__c;
                     amountAdjusted = true;
 
-                    // offset the budget amount for the current month by determining how far through the month we are
+                // offset the budget amount for the current month by determining how far through the month we are
                 } else if (budgetEntry.Category__c != 'Payroll' && budgetEntry.Month__c.month() == Date.today().month()){
                     Integer daysInMonth = Date.daysInMonth(Date.today().year(),Date.today().month());
                     Integer today       = Date.today().day();
@@ -593,9 +595,8 @@ public with sharing class CashflowGenerator {
                 if (flowMap.containsKey(entryDate)){
                     CashFlowEntry__c flowEntry   = new CashFlowEntry__c();
                     flowEntry.CashFlow__c        = flowMap.get(entryDate).Id;
-                    flowEntry.Description__c     = 'Budgeted ' + budgetEntry.Nominal__c;
-                    flowEntry.Stage__c           = budgetEntry.Category__c != 'Revenue' &&
-                                                    budgetEntry.Category__c != 'Cost of sales' ?
+                    flowEntry.Description__c     = monthText[budgetEntry.Month__c.month() -1] + ' ' + budgetEntry.Nominal__c;
+                    flowEntry.Stage__c           = budgetEntry.Category__c != 'Revenue' && budgetEntry.Category__c != 'Cost of sales' ?
                                                     'Confirmed' : 'Budget';
                     flowEntry.BudgetKey__c       = budgetEntry.Parent__c;
                     flowEntry.Category__c        = budgetEntry.Category__c;
@@ -606,11 +607,8 @@ public with sharing class CashflowGenerator {
                     flowEntry.AdjustedDate__c    = (dateAdjusted) ? entryDate : null;
 
                     flowEntry.Comment__c         = comment;
-//                    flowEntry.QuickbooksId__c    = budgetEntry.Parent__c + String.valueOf(entryDate);
                     flowEntry.QuickbooksId__c    = budgetEntry.Parent__c +
                                                     String.valueOf(budgetEntry.Month__c.addMonths(1).addDays(-1));
-//                    flowEntry.QuickbooksId__c    = String.valueOf(budgetEntry.Month__c.month()) +
-//                                                    String.valueOf(budgetEntry.Month__c.year()) + budgetEntry.Parent__c;
                     flowEntry.Source__c          = 'Budget';
                     newEntries.add(flowEntry);
                 }

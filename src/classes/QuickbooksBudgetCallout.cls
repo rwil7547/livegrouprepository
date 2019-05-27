@@ -290,10 +290,7 @@ public class QuickbooksBudgetCallout {
                 name == 'Employers National Insurance' ||
                 name == 'Pension Costs'  ){
             return 'Payroll';
-        } else if (name == 'Freelancers'||
-                name == 'Management Fees'){
-            return name;
-        } else if (name == 'Revenue'){
+        } else if (name == 'Freelancers' || name == 'Revenue'){
             return name;
         } else {
             return 'Payment run';

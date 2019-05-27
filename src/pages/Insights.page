@@ -229,7 +229,8 @@
             font-size: 17px;
         }
         .recordRow{
-            min-height:120px;
+            /*min-height:120px;*/
+            min-height:132px;
             position: relative;
         }
         .column {
@@ -294,6 +295,7 @@
         .sortable {
             height: 100%;
             position: relative;
+            /*z-index: 1;*/
         }
         .largeCol {
             font-weight: bolder;
@@ -318,18 +320,25 @@
             height: 100%;
             width: 100%;
             top:0;
-            border: 0.5px solid #bcbcbc;
-            z-index: 500;
+            /*border: 0.5px solid #bcbcbc;*/
+            /*z-index: 500;*/
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            background-image: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));
+            /*background-image: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));*/
         }
+        .dropZoneActive {
+            border: 0.5px solid #bcbcbc;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,1));
+            /*z-index: 2;*/
+            z-index: 1;
+        }
+
         .dropText {
             width: 97%;
             font-weight: bolder;
             opacity: 0.3;
-            z-index: 1;
+            /*z-index: 1;*/
             color: #686868;
             margin-right: 40px;
         }
@@ -338,7 +347,8 @@
             margin-bottom: -10px;
         }
         .dropTextNumber {
-            font-size: 38px;
+            /*font-size: 38px;*/
+            font-size: 34px;
         }
         .selectOpt {
             height: 2px;
@@ -514,7 +524,7 @@
             grid-template-columns: 10% 90%;
         }
         .selectedRecord {
-            z-index: 10000000;
+            z-index: 100000000000 !important;
         }
         .recordOptionButton > input {
             border: none;
@@ -678,6 +688,7 @@
 
         #app {
             width: 100%;
+            max-width: 1500px;
             padding: 10px;
         }
 
@@ -763,7 +774,6 @@
             border-radius: 4px;
             border: 0.5px solid grey;
             box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
-            min-height: 260px;
             z-index: 1000001;
             position: relative;
             font-size: 16px;
@@ -818,10 +828,12 @@
             background-color: #60c5c1;
         }
         .flowTypeIndicator {
-            font-size: 83px;
+            /*font-size: 83px;*/
+            font-size: 75px;
             opacity: 0.2;
             position: absolute;
-            bottom: -18px;
+            /*bottom: -18px;*/
+            top: -18px;
             width: 100vw;
         }
         .warnText {
@@ -987,6 +999,7 @@
         }
     </style>
 
+    <!--<div style="position: absolute;width: 98%;display:flex;justify-content: center;">-->
     <div id="app">
 
         <div class="box controlHolder" >
@@ -1016,7 +1029,6 @@
                                 <option>PAST &amp; NEXT 6 MONTHS</option>
                                 <option>LAST 12 MONTHS</option>
                                 <option>NEXT 12 MONTHS</option>
-                                <!--<option>CUSTOM DATES</option>-->
                             </select>
                         </template>
                         <template v-if="!configurePreset">
@@ -1082,23 +1094,17 @@
                 </div>
             </template>
             <template v-if="setting === 'cashflow' && showManager && manageAllowed">
-                        <div class="flowManagerIcons">
-                            <template v-if="manageAllowed && showManager">
-                                <i class="fas flowManagerIcon" v-bind:class="managing ? 'fa-times-circle' : 'fa-edit'" v-on:click="toggleManaging()"></i>
-                            </template>
-                            <template v-if="managing">
-                                <i class="fas fa-redo-alt flowManagerIcon" v-on:click="rerunFlow(false)"></i>
-                                <i class="fas fa-plus-circle flowManagerIcon" v-on:click="addingEntry = true;"></i>
-
-                                <!--<div class="flowOptionButton" v-on:click="rerunFlow(false)">RF</div>-->
-                                <!--<div class="flowOptionButton" v-on:click="rerunFlow(true)">RA</div>-->
-                                <!--<div class="flowOptionButton" v-on:click="addingEntry = true;">ADD</div>-->
-                                <!--<div class="flowOptionButton" v-on:click="manageAll = !manageAll;">{{ manageAll ? 'COL' : 'EXP' }}</div>-->
-                            </template>
-                        </div>
+                <div class="flowManagerIcons">
+                    <template v-if="manageAllowed && showManager">
+                        <i class="fas flowManagerIcon" v-bind:class="managing ? 'fa-times-circle' : 'fa-edit'"
+                           v-on:click="toggleManaging()"></i>
+                    </template>
+                    <template v-if="managing">
+                        <i class="fas fa-redo-alt flowManagerIcon" v-on:click="rerunningFlow = true;"></i>
+                        <i class="fas fa-plus-circle flowManagerIcon" v-on:click="addingEntry = true;"></i>
+                    </template>
+                </div>
             </template>
-
-
         </div>
 
         <span v-bind:class="{hiddenTab : setting !== 'graph'}">
@@ -1442,19 +1448,13 @@
         </span>
 
         <!--<span v-bind:class="{setting !== 'changes' ? 'hiddenTab' : ''}">-->
-
             <!--<div class="box">-->
-
                 <!--<template v-for="entry in changeData">-->
                     <!--<div class="boxLite">-->
-
                         <!--{{ entry }}-->
                     <!--</div>-->
-
                 <!--</template>-->
-
             <!--</div>-->
-
         <!--</span>-->
 
 
@@ -1598,8 +1598,7 @@
                     <div id="cashFlowLine" class="graph"></div>
                 </div>
 
-
-                <div v-bind:class=" responsePending || dragId ? 'dragPrevent' : '' " v-on:click="abortEdit()"></div>
+                <div v-bind:class=" responsePending || expandId ? 'dragPrevent' : '' " v-on:click="abortEdit()"></div>
 
                 <template v-if="showManager">
                     <div class="boxLite" v-bind:class="managing ? 'scroll' : ''">
@@ -1651,21 +1650,25 @@
                                             <template v-for="record,recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'IN' + index">
                                                     <div class="record" v-bind:id="record.QuickbooksId__c"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c"
                                                          v-bind:data-type="'IN'" v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                         v-bind:class="(expandId === record.Id || draggingId === record.Id ?
+                                                                        'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' ? ' draggable' : '')">
 
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
-                                                        <div class="description">{{record.Description__c}}</div>
+                                                        <div class="description">
+                                                            <i v-bind:class="record.Source__c === 'Budget' && record.AmountAdjusted__c ? 'fas fa-wrench' : ''"></i>
+                                                            <span>{{ record.Description__c}}</span>
+                                                        </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount" >{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
 
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="(record.Source__c === 'Custom' || record.Source__c === 'Budget') && !commenting">
                                                                         <div class="recordOptionButton" >
@@ -1674,7 +1677,7 @@
                                                                                    type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
                                                                                    v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div v-if="!changingAmount" class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'" class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
@@ -1693,14 +1696,15 @@
                                             </template>
                                         </div>
                                     <div style="height:33px;"></div>
-                                    <template v-if="dragging === 'in'">
-                                        <div class="dropZone" v-bind:id="'in' + index" v-bind:data-type="'in'" v-bind:data-week="index">
+                                    <!--<template v-if="dragging === 'in'">-->
+                                        <div class="dropZone" v-bind:id="'in' + index" v-bind:data-type="'in'"
+                                             v-bind:data-week="index" v-bind:class="dragging === 'in' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
                                                 <div class="dropTextNumber" >{{'£' + Math.abs(parseFloat(cashflowData['TOTAL INFLOW'][index])).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                             </div>
                                         </div>
-                                    </template>
+                                    <!--</template>-->
                                     </div>
                                 </template>
                             </div>
@@ -1714,7 +1718,7 @@
                                          v-bind:style=" balance < 0 ? 'color: red;' : '', responsePending ? 'opacity : 0' : 'opacity: 1' ">
                                         {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                     </div>
-                                    <div class="gapConcealer"></div>
+                                    <!--<div class="gapConcealer"></div>-->
                                 </template>
                             </div>
                         </span>
@@ -1726,12 +1730,12 @@
                                      v-bind:style=" balance < 0 ? 'color: red;' : '', responsePending ? 'opacity : 0' : 'opacity: 1' ">
                                     {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
-                                <div class="gapConcealer"></div>
+                                <!--<div class="gapConcealer"></div>-->
                             </template>
                         </div>
 
                         <!-- PAYMENT RUN -->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'paymentRun' || manageAll) ? 'recordRow' : '']" >
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'paymentRun' || (manageAll && managing)) ? 'recordRow' : '']" >
                             <template v-if="!managing || activeCategory !== 'paymentRun' && !manageAll"><div class="column noSpill">Payment run</div></template>
                             <template v-if="managing && (activeCategory === 'paymentRun' || manageAll)">
                                 <div class="column largeCol" >
@@ -1743,7 +1747,7 @@
                             <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Payment run']">
                                 <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
                                      v-bind:style=" !balance ? 'color: white;' : '' ">
-                                    <template v-if="!managing || activeCategory !== 'paymentRun' && !manageAll">
+                                    <template v-if="!managing || activeCategory !== 'paymentRun' && !manageAll" >
                                         {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                     </template>
                                     <span v-bind:style="managing && (activeCategory === 'paymentRun' || manageAll) ? '' : 'display:none;'">
@@ -1752,31 +1756,32 @@
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Payment run' + index">
                                                     <div class="record" v-bind:id="record.QuickbooksId__c"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c"
                                                          v-bind:data-type="'paymentRun'" v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                         v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' && record.Source__c !== 'Salesforce' &&
                                                                         record.Source__c !== 'SalesforceP' ? ' draggable' : '')">
 
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
 
                                                         <div style="padding: 3px;">
                                                             <template v-if="record.Source__c !== 'Salesforce' && record.Source__c != 'SalesforceP'">
-                                                                <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                                <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                     <div style="width:100%;">
                                                                         <template v-if="(record.Source__c === 'Custom' || record.Source__c === 'Budget') && !freelancerConvert && !converting">
                                                                             <div class="recordOptionButton">
                                                                                 <i class="fas fa-pound-sign"></i>
                                                                                 <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                       type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                       type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                       v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                             </div>
-                                                                            <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                            <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                                 <i class="fas fa-trash"></i>
                                                                                 <div>DELETE ENTRY</div>
                                                                             </div>
@@ -1880,7 +1885,7 @@
                                                                                         <div class="ddSetup">
                                                                                             <div>Duration: </div>
                                                                                             <div>
-                                                                                                <input type="date" v-model="ddConfig.date" v-bind:min="newEntryConfig.min"/>
+                                                                                                <input type="date" v-model="ddConfig.date" v-bind:min="globalConfig.min"/>
                                                                                             </div>
                                                                                         </div>
                                                                                         <div class="ddSetup">
@@ -1911,7 +1916,7 @@
                                                                             </template>
 
                                                                         </template>
-                                                                        <div class="recordOptionButton">
+                                                                        <div class="recordOptionButton"  v-if="!changingAmount">
                                                                             <i class="far fa-comment"></i>
                                                                             <textarea v-model="record.Comment__c" placeholder="Add comments here"
                                                                                       v-on:blur="updateComment(record.Comment__c)"></textarea>
@@ -1939,7 +1944,7 @@
                         </div>
 
                         <!-- CREDIT CARD -->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'creditCard' || manageAll) ? 'recordRow' : '']" >
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'creditCard' || (manageAll && managing)) ? 'recordRow' : '']" >
                             <template v-if="!managing || activeCategory !== 'creditCard' && !manageAll"><div class="column noSpill">Credit card</div></template>
                             <template v-if="managing && (activeCategory === 'creditCard' || manageAll)">
                                 <div class="column largeCol" >
@@ -1947,35 +1952,36 @@
                                     <div class="gapConcealer"></div>
                                 </div>
                             </template>
-                            <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Credit Card']">
+                            <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Credit card']">
                                 <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
                                      v-bind:style=" !balance ? 'color: white;' : '' ">
                                     <template v-if="!managing || activeCategory !== 'creditCard' && !manageAll">{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</template>
                                     <span v-bind:style="managing  && (activeCategory === 'creditCard' || manageAll) ? '' : 'display:none;'">
                                         <div class="sortable creditCard" v-bind:data-week="index" v-bind:data-type="'creditCard'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
-                                                <template v-if="record.WeekId__c == 'Credit Card' + index">
+                                                <template v-if="record.WeekId__c == 'Credit card' + index">
                                                     <div class="record"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'creditCard'"
                                                          v-bind:data-description="record.Description__c" v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                         v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' ? ' draggable' : '')">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount" v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
@@ -1990,7 +1996,7 @@
                                                                             <div>UNALLOCATE FREELANCER</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c" placeholder="Add comments here"
                                                                                   v-on:blur="updateComment(record.Comment__c)"></textarea>
@@ -2002,12 +2008,12 @@
                                                 </template>
                                             </template>
                                         </div>
-                                        <div style="height:33px;"></div>
+                                        <div style="height:160px;"></div>
                                         <template v-if="dragging === 'creditCard'">
                                             <div class="dropZone" v-bind:id="'creditCard' + index"
                                                  v-bind:data-type="'creditCard'" v-bind:data-week="index">
                                                 <div class="dropText">
-                                                    <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
+                                                    <div class="dropTextDate" >{{ 'Revenue ' +  new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
                                                     <div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                 </div>
                                             </div>
@@ -2018,7 +2024,7 @@
                         </div>
 
                         <!-- DIRECT DEBIT -->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'directDebit' || manageAll) ? 'recordRow' : '']" >
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'directDebit' || (manageAll && managing)) ? 'recordRow' : '']" >
                             <template v-if="!managing || activeCategory !== 'directDebit' && !manageAll"><div class="column noSpill">Direct debit</div></template>
                             <template v-if="managing  && (activeCategory === 'directDebit' || manageAll)">
                                 <div class="column largeCol" >
@@ -2027,7 +2033,7 @@
                                 </div>
                             </template>
 
-                            <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Direct Debit']">
+                            <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Direct debit']">
                                 <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
                                      v-bind:style=" !balance ? 'color: white;' : '' ">
                                     <template v-if="!managing || activeCategory !== 'directDebit' && !manageAll">
@@ -2037,31 +2043,32 @@
 
                                         <div class="sortable directDebit" v-bind:data-week="index" v-bind:data-type="'directDebit'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
-                                                <template v-if="record.WeekId__c == 'Direct Debit' + index">
+                                                <template v-if="record.WeekId__c == 'Direct debit' + index">
                                                     <div class="record"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'directDebit'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                         v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' ? ' draggable' : '')">
 
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
 
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
@@ -2081,9 +2088,6 @@
                                                                                     <div>Frequency:</div>
                                                                                     <div>
                                                                                         <select v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c">
-                                                                                                <!--v-on:change="ddConfig.day = '';ddConfig.month = '';ddConfig.weekDay = '';">-->
-                                                                                            <!--<option selected="true" ></option>-->
-                                                                                            <!--<option value="weekly" v-bind:selected="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].Terms__c">Weekly</option>-->
                                                                                             <option value="Weekly" >Weekly</option>
                                                                                             <option value="Monthly">Monthly</option>
                                                                                             <option value="Quarterly">Quarterly</option>
@@ -2136,9 +2140,10 @@
                                                                                     </div>
                                                                                 </div>
                                                                                 <div class="ddSetup">
-                                                                                    <div>Duration: {{cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].EndDate__c}}</div>
+                                                                                    <div>Duration: </div>
                                                                                     <div>
-                                                                                        <input type="date" v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].EndDate__c" v-bind:min="newEntryConfig.min"/>
+                                                                                        <input type="date" v-model="cashflowData['SUPPLIER PROFILES'][record.VendorRef__c].EndDateInput__c"
+                                                                                               v-bind:min="globalConfig.min"/>
                                                                                     </div>
                                                                                 </div>
                                                                                 <div class="ddSetup">
@@ -2195,7 +2200,7 @@
                                                                         <div>MARK AS PAID</div>
                                                                     </div>
 
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c" placeholder="Add comments here"
                                                                                   v-on:blur="updateComment(record.Comment__c)"></textarea>
@@ -2224,7 +2229,7 @@
                         </div>
 
                         <!--PAYROLL-->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'payroll' || manageAll) ? 'recordRow' : '']">
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'payroll' || (manageAll && managing)) ? 'recordRow' : '']">
                             <template v-if="!managing || activeCategory !== 'payroll' && !manageAll"><div class="column noSpill">Payroll</div></template>
                             <template v-if="managing  && (activeCategory === 'payroll' || manageAll)">
                                 <div class="column largeCol" >
@@ -2235,37 +2240,40 @@
                             <template v-for="(balance, index) in cashflowData['OUT ENTRIES']['Payroll']">
                                 <div class="week" v-bind:class="managing ? 'weekLarge' : 'weekSmall'"
                                      v-bind:style=" !balance ? 'color: white;' : '' ">
-                                    <template v-if="!managing || activeCategory !== 'payroll' && !manageAll">{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</template>
+                                    <template v-if="!managing || activeCategory !== 'payroll' && !manageAll">
+                                        {{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                    </template>
                                     <span v-bind:style="managing  && (activeCategory === 'payroll' || manageAll) ? '' : 'display:none;'">
                                         <div class="sortable payroll" v-bind:data-week="index" v-bind:data-type="'payroll'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Payroll' + index">
                                                     <div class="record"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'payroll'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' draggable'">
+                                                         v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' draggable'">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c"
                                                                                   placeholder="Add comments here"
@@ -2294,7 +2302,7 @@
                         </div>
 
                         <!--FREELANCERS-->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'freelancer' || manageAll) ? 'recordRow' : '']">
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'freelancer' || (manageAll && managing)) ? 'recordRow' : '']">
                             <template v-if="!managing || activeCategory !== 'freelancer' && !manageAll"><div class="column noSpill">Freelancers</div></template>
                             <template v-if="managing  && (activeCategory === 'freelancer' || manageAll)">
                                 <div class="column largeCol" >
@@ -2311,29 +2319,30 @@
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Freelancers' + index">
                                                     <div class="record"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'freelancer'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? dragProhibited ? 'selectedRecord forbidden ' : 'selectedRecord ' : ' ') + record.Source__c + ' ' +
+                                                         v-bind:class="(expandId === record.Id ? dragProhibited ? 'selectedRecord forbidden ' : 'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' ? ' draggable ' : '')
                                                                          +
-                                                                        ' ' + (dragId === record.Id && dragProhibited ? ' forbidden ' : '')">
+                                                                        ' ' + (expandId === record.Id && dragProhibited ? ' forbidden ' : '')">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id  && !dragging ? 'recordDetails' : 'recordDetailsHidden'">
+                                                            <div v-bind:class="expandId === record.Id  && !dragging ? 'recordDetails' : 'recordDetailsHidden'">
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
-                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"/>
+                                                                                   type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
@@ -2348,7 +2357,7 @@
                                                                             <div>UNALLOCATE FREELANCER</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c"
                                                                                   placeholder="Add comments here"
@@ -2377,7 +2386,7 @@
                         </div>
 
                         <!--VAT-->
-                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'vat' || manageAll) ? 'recordRow' : '']">
+                        <div class="row" v-bind:class="[managing ? 'rowGrow' : 'rowTight', (activeCategory === 'vat' || (manageAll && managing)) ? 'recordRow' : '']">
                             <template v-if="!managing || activeCategory !== 'vat' && !manageAll"><div class="column noSpill">VAT {{dragging}}</div></template>
                             <template v-if="managing  && (activeCategory === 'vat' || manageAll)">
                                 <div class="column largeCol" >
@@ -2396,32 +2405,32 @@
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'VAT' + index">
                                                     <div class="record"
-                                                         v-on:dblclick="dragId = dragId === '' ? record.Id : ''"
+                                                         v-on:dblclick="expandId = expandId === '' ? record.Id : ''"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'vat'"
                                                          v-bind:data-description="record.Description__c"
                                                          v-bind:data-index="recordIndex"
-                                                         v-bind:class="(dragId === record.Id ? 'selectedRecord draggable ' : 'draggable ') + record.Source__c">
+                                                         v-bind:class="(expandId === record.Id ? 'selectedRecord draggable ' : 'draggable ') + record.Source__c">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">{{record.Description__c}}</div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
-                                                        <div class="amount">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                                        <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
-                                                            <div v-bind:class="dragId === record.Id ? 'recordDetails' : 'recordDetailsHidden'" style="margin-top:-185px;"   >
+                                                            <div v-bind:class="expandId === record.Id ? 'recordDetails' : 'recordDetailsHidden'" style="margin-top:-185px;"   >
                                                                 <div style="width:100%;">
                                                                     <template v-if="record.Source__c === 'Custom' || record.Source__c === 'Budget'">
                                                                         <div class="recordOptionButton">
                                                                             <i class="fas fa-pound-sign"></i>
                                                                             <input v-model.number="record.Amount__c" v-bind:precision="2"
                                                                                    type="number" v-on:keyup.enter="updateAmount(record.Amount__c)"
-                                                                                   />
+                                                                                   v-on:keyup="changingAmount = true;" v-on:blur="if (changingAmount) updateAmount(record.Amount__c)"/>
                                                                         </div>
-                                                                        <div class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
+                                                                        <div v-if="!changingAmount && record.Source__c === 'Custom'"  class="recordOptionButton" v-on:click="deleteEntry(recordIndex)">
                                                                             <i class="fas fa-trash"></i>
                                                                             <div>DELETE ENTRY</div>
                                                                         </div>
                                                                     </template>
-                                                                    <div class="recordOptionButton">
+                                                                    <div class="recordOptionButton"  v-if="!changingAmount">
                                                                         <i class="far fa-comment"></i>
                                                                         <textarea v-model="record.Comment__c"
                                                                                   placeholder="Add comments here"
@@ -2496,16 +2505,45 @@
                     </div>
                     <div class="entryGrid">
                         <div>Date:</div>
-                        <input type="date" v-model="newEntryConfig.date" v-bind:min="newEntryConfig.min"
-                               v-bind:max="newEntryConfig.max"/>
+                        <input type="date" v-model="newEntryConfig.date" v-bind:min="globalConfig.min"
+                               v-bind:max="globalConfig.max"/>
                     </div>
                     <div class="entryGrid" v-if="newEntryConfig.type">
                         <div>Budget category: </div>
-                        <div>
+                        <div v-if="newEntryConfig.type === 'Payment run' || newEntryConfig.type === 'Credit card' ||
+                                   newEntryConfig.type === 'Direct debit'">
                             <select v-model="newEntryConfig.category">
                                 <template v-for="category in graphData['nominalStrings']">
-                                    <option >{{ category }}</option>
+                                    <template v-if="category !== 'Revenue' && category !== 'Freelancers'
+                                                   && category !== 'Pension Costs' && category !== 'Gross Salaries'
+                                                   && category !== 'Employers National Insurance'
+                                                   && category !== 'Depreciation / Amortisation' ">
+                                        <option>{{ category }}</option>
+                                    </template>
                                 </template>
+                            </select>
+                        </div>
+                        <div v-if="newEntryConfig.type === 'VAT'">
+                            <select v-model="newEntryConfig.category">
+                                <option selected="true">Not applicable</option>
+                            </select>
+                        </div>
+                        <div v-if="newEntryConfig.type === 'Revenue'">
+                            <select v-model="newEntryConfig.category">
+                                <option selected="true">Revenue</option>
+                            </select>
+                        </div>
+                        <div v-if="newEntryConfig.type === 'Freelancers'">
+                            <select v-model="newEntryConfig.category">
+                                <option >Freelancers</option>
+                                <option >Cost of sales</option>
+                            </select>
+                        </div>
+                        <div v-if="newEntryConfig.type === 'Payroll'">
+                            <select v-model="newEntryConfig.category">
+                                <option >Pension Costs</option>
+                                <option >Gross Salaries</option>
+                                <option >Employers National Insurance</option>
                             </select>
                         </div>
                     </div>
@@ -2525,6 +2563,39 @@
             </div>
         </template>
 
+        <template v-if="rerunningFlow">
+            <div class="modalBackdrop" v-on:click="rerunningFlow = false;"></div>
+
+            <div class="newEntryFormHolder">
+                <div class="newEntryForm">
+                    <div class="entryFormTitle">FLOW RECALCULATION</div>
+                    <br/>
+                    <div>
+                        <input type="checkbox" v-model="rerunConfig.resetDates"/>
+                        <span v-on:click="rerunConfig.resetDates = !rerunConfig.resetDates">Override date adjustments</span>
+                    </div>
+                    <div>
+                        <input type="checkbox" v-model="rerunConfig.resetBudget"/>
+                        <span v-on:click="rerunConfig.resetBudget = !rerunConfig.resetBudget">Override budget adjustments</span>
+                    </div>
+                    <div>
+                        <input type="checkbox" v-model="rerunConfig.clearCustom"/>
+                        <span v-on:click="rerunConfig.clearCustom = !rerunConfig.clearCustom">Remove custom entries</span>
+                    </div>
+                    <br/>
+                    <div class="recordButtons">
+                        <div v-on:click="rerunningFlow = false;" class="recordButton cancel">
+                            <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                        </div>
+                        <div v-on:click="rerunFlow()" class="recordButton save">
+                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; EXECUTE
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </template>
+
         <div v-bind:class="attachmentLink ? 'billframe' : 'billframeHidden'" v-on:click="attachmentLink = '';">
             <div class="box" style="height:422px;" v-on:click="event.stopPropagation();">
                 <iframe width="700" height="400" v-bind:src="attachmentLink" frameborder="0" ></iframe>
@@ -2537,6 +2608,7 @@
         </template>
 
     </div>
+    <!--</div>-->
     <script>
 
 
@@ -2567,29 +2639,31 @@
                 manageAll : true,
                 manageOut : false,
                 sortable : false,
+
                 dragging : '',
                 draggingId : '',
                 dragId : '',
+                expandId : '',
                 dragProhibited: false,
                 confirmed : true,
                 weighted : true,
                 pipeline : true,
                 splitOpex : false,
                 responsePending : false,
+                rerunningFlow : '',
                 commenting : false,
                 changingAmount : false,
                 freelancerConvert : false,
                 converting : false,
                 addingEntry : false,
                 managingProfile : false,
+                entryEditConfig : '',
                 newEntryConfig : {
                     description: '',
                     amount : 0,
                     date : '',
                     type : '',
-                    category : '',
-                    min : '',
-                    max : ''
+                    category : ''
                 },
                 ddConfig : {
                     frequency : '',
@@ -2599,10 +2673,19 @@
                     date : '',
                     category : ''
                 },
+                rerunConfig : {
+                    resetDates : false,
+                    resetBudget : false,
+                    clearCustom : false
+                },
+                globalConfig : {
+                    min : '',
+                    max : ''
+                },
                 weekDays : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
                 months : ['January','February','March','April','May','June','July','August',
                             'September','October','November','December'],
-                types : ['Revenue','Payment run','Credit card','Direct debit','Freelancer','Payroll','VAT'],
+                types : ['Revenue','Payment run','Credit card','Direct debit','Freelancers','Payroll','VAT'],
                 attachmentLink : '',
                 activeReportRow : '',
                 reportFilter : {
@@ -2723,7 +2806,7 @@
                         function (result) {
                             app.cashGraphData = result;
                             console.log(result);
-                            app.drawLine('cashFlow', app.cashGraphData);
+                            app.drawLine('cashFlow', app.cashGraphData,true);
                         },
                         {escape: false});
 
@@ -2900,7 +2983,7 @@
                         }
                     });
                 },
-                drawLine : function(type, graphData){
+                drawLine : function(type, graphData, viewMin){
                     google.charts.load('current', {
                         packages: ['corechart', 'line'],'callback': function () {
 
@@ -2970,7 +3053,7 @@
                                 vAxis: {
                                     format: 'short',
                                     viewWindow: {
-                                        // min: type === 'cashFlow' ? -200000 : null
+                                        min: viewMin ? -200000 : null
                                     }
                                 },
                                 series: {
@@ -3017,7 +3100,7 @@
                 },
                 getOptions : function(type){
                     return {
-                        width: (type === 'cashFlow') ? '93%' : '90%',
+                        // width: (type === 'cashFlow') ? '93%' : '90%',
                         fontName: 'Salesforce Sans',
                         fontSize: 13,
                         height: '370px',
@@ -3045,7 +3128,7 @@
                             format: 'short'
                         },
                         chartArea: {
-                            width: (type === 'cashFlow') ? '93%' : '90%',
+                            width: (type === 'cashFlow') ? '91%' : '90%',
                             height: '80%',
                             right: 5,
                             top: 5
@@ -3080,16 +3163,20 @@
                             },
                             start: function(event, ui) {
                                 if(!ui.item[0].classList.contains('draggable')){
-                                    console.log(ui.item[0]);
+                                    // console.log(ui.item[0]);
                                     app.dragProhibited = true;
                                 }
                                 item            = ui.item;
                                 newList         = oldList = ui.item.parent().parent();
                                 app.dragging    = category;
+                                app.draggingId  = ui.item[0].dataset.id;
+                                // console.log(ui.item[0].dataset.id);
+                                // draggingId : ''
                             },
                             stop: function(event, ui) {
-                                app.dragging    = '';
-                                app.dragProhibited = false;
+                                app.dragging        = '';
+                                app.draggingId      = '';
+                                app.dragProhibited  = false;
                             },
                             change: function(event, ui) {
                                 if (ui.sender) newList = ui.placeholder.parent().parent();
@@ -3143,12 +3230,14 @@
                         });
                     });
                 },
-                rerunFlow : function(resetAgeing) {
+                rerunFlow : function() {
                     app.responsePending = true;
                     app.message         = 'Recalculating the cash flow...';
 
                     Visualforce.remoting.Manager.invokeAction(
-                        '{!$RemoteAction.InsightsController.rerunFlow}', resetAgeing,
+                        '{!$RemoteAction.InsightsController.rerunFlow}',
+                        app.rerunConfig.resetDates,
+                        false, // here needs to be whether to reset budgets
                         function (result, event) {
                             app.responsePending = false;
                             app.message         = '';
@@ -3160,8 +3249,8 @@
                 deleteEntry : function(index){
                     app.responsePending = true;
                     app.message         = 'Deleting the entry and recaculating the cash flow...';
-                    var recordId        = app.dragId;
-                    app.dragId          = '';
+                    var recordId        = app.expandId;
+                    app.expandId        = '';
 
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.deleteEntry}',
@@ -3182,8 +3271,8 @@
                     app.responsePending = true;
                     app.message         = 'Updating the record amount and recalculating the cash flow...';
 
-                    var recordId = app.dragId;
-                    app.dragId = '';
+                    var recordId = app.expandId;
+                    app.expandId = '';
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.updateAmount}',
                         recordId,
@@ -3202,8 +3291,8 @@
                     app.responsePending = true;
                     app.message         = 'Adjusting the supplier profile...';
 
-                    var recordId = app.dragId;
-                    app.dragId = '';
+                    var recordId = app.expandId;
+                    app.expandId = '';
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.toggleFreelancer}',
                         recordId,
@@ -3222,8 +3311,8 @@
                     // app.responsePending = true;
                     // app.message         = 'Updating your comment...';
 
-                    var recordId        = app.dragId;
-                    app.dragId          = '';
+                    var recordId        = app.expandId;
+                    app.expandId          = '';
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.updateComment}',
                         recordId,
@@ -3250,7 +3339,7 @@
                 convertToDirectDebit : function(vendorRef, vendorName) {
                     app.responsePending = true;
                     app.message         = 'Setting up a direct debit profile ...';
-                    app.dragId          = '';
+                    app.expandId          = '';
 
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.convertToDirectDebit}',
@@ -3275,7 +3364,7 @@
                 disableDirectDebit : function(supplierId){
                     app.responsePending = true;
                     app.message         = 'Removing direct debit profile for this supplier...';
-                    app.dragId          = '';
+                    app.expandId          = '';
 
                     console.log(supplierId);
 
@@ -3297,7 +3386,7 @@
                     app.commenting          = false;
                     app.converting          = false;
                     app.addingEntry         = false;
-                    app.dragId              = '';
+                    app.expandId            = '';
 
                     Object.keys(app.ddConfig).forEach(function(key){
                         app.ddConfig[key] = '';
@@ -3337,7 +3426,7 @@
 
                     app.responsePending = true;
                     app.message         = 'Flagging the entry as paid and recalculating the flow...';
-                    app.dragId          = '';
+                    app.expandId        = '';
 
                     // send new entry configuration data to controller
                     Visualforce.remoting.Manager.invokeAction(
@@ -3364,13 +3453,13 @@
                 var ddOpen      = (today.getDate() < 10) ? '0' + (today.getDate() + 1) : today.getDate();
                 var mmOpen      = ((today.getMonth()+1) < 10) ? '0' + (today.getMonth() + 1) : today.getMonth()+1; //January is 0!
                 var yyyyOpen    = today.getFullYear();
-                this.newEntryConfig.min = yyyyOpen+'-'+mmOpen+'-'+ddOpen;
+                this.globalConfig.min = yyyyOpen+'-'+mmOpen+'-'+ddOpen;
 
                 var close       = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
                 var ddClose      = (close.getDate() < 10) ? '0' + (close.getDate() + 1) : close.getDate();
                 var mmClose      = ((close.getMonth()+1) < 10) ? '0' + (close.getMonth() + 1) : close.getMonth()+1; //January is 0!
                 var yyyyClose    = close.getFullYear();
-                this.newEntryConfig.max = yyyyClose+'-'+mmClose+'-'+ddClose;
+                this.globalConfig.max = yyyyClose+'-'+mmClose+'-'+ddClose;
 
                 this.loadData();
             }
