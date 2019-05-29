@@ -329,7 +329,9 @@ public class InsightsController {
                                     FROM CashFlowEntry__c WHERE Id = :entryId];
 
         // if the record has been moved across months, detect if budget entries need to be updated.
-        if (entry.Date__c.month() != flowDate.month()){
+        Boolean monthChanged = entry.Date__c.month() != flowDate.month();
+
+        if (monthChanged){
             // add the value of the record to the budget in the month it is being removed from
             updateBudgets(entry.Date__c,entry.BudgetKey__c,entry.Amount__c);
             // subtract the value of the record to the budget in the the month it is being removed from
@@ -344,18 +346,17 @@ public class InsightsController {
 
         calculateBalances();
 
-//        Map<String,Object> responseData = getCashflowData(true);
         Map<String,Object> responseData = getCashflowData(false);
-//        responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
-//                                            CashFlow__r.DayMonthYear__c
-//                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
 
-        responseData.put('VALUES', new Map<Id,CashFlowEntry__c>(
-                                            [SELECT Id,Amount__c
-                                             FROM CashFlowEntry__c
-                                             WHERE Id = :entryId
-                                             OR (Source__c = 'Budget'
-                                             AND BudgetKey__c = :entry.BudgetKey__c)]));
+        // return the new values for the budget entries if the month has changed
+        if (monthChanged){
+            responseData.put('VALUES', new Map<Id,CashFlowEntry__c>(
+            [SELECT Id,Amount__c
+            FROM CashFlowEntry__c
+            WHERE Id = :entryId
+            OR (Source__c = 'Budget'
+            AND BudgetKey__c = :entry.BudgetKey__c)]));
+        }
 
         return responseData;
 
@@ -507,7 +508,7 @@ public class InsightsController {
 
     @RemoteAction
     public static Map<String,Object> rerunFlow(Boolean resetValues,Boolean resetBudgets){
-        CashflowGenerator.buildFlow(resetValues, resetBudgets);
+        CashflowGenerator.buildFlow(resetValues, resetBudgets, null);
         return getCashflowData(true);
     }
 
@@ -641,11 +642,9 @@ public class InsightsController {
                                     (SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
                                             CashFlow__r.DayMonthYear__c, QuickbooksId__c, Comment__c,
                                             TempDownloadUri__c, Details__c, VendorRef__c, BudgetKey__c,
-                                            AmountAdjusted__c
+                                            AmountAdjusted__c, HiddenBudget__c, AdjustedDate__c
                                     FROM CashFlowEntries__r
                                     WHERE Paid__c = FALSE
-                                    AND HiddenBudget__c = FALSE
-//                                    ORDER BY Category__c ASC, Source__c )
                                     ORDER BY CreatedDate )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
@@ -659,7 +658,9 @@ public class InsightsController {
                         if (!outEntries.containsKey(entry.Category__c)){
                             outEntries.put(entry.Category__c, figures.clone());
                         }
-                        outEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        if (!entry.HiddenBudget__c){
+                            outEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        }
                         if (includeRecords){
                             entry.WeekId__c = entry.Category__c + String.valueOf(x);
                             records.add(entry);
@@ -668,7 +669,9 @@ public class InsightsController {
                         if (!inEntries.containsKey(entry.Category__c)){
                             inEntries.put(entry.Category__c, figures.clone());
                         }
-                        inEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        if (!entry.HiddenBudget__c) {
+                            inEntries.get(entry.Category__c)[x] += entry.Amount__c;
+                        }
                         if (includeRecords){
                             entry.WeekId__c = 'IN' + String.valueOf(x);
                             records.add(entry);
@@ -706,73 +709,73 @@ public class InsightsController {
 
     }
 
-    @RemoteAction
-    public static Map<String,Object> getQBBudgets(String year){
-
-        String fiscalYear;
-
-        if (year.equalsIgnoreCase('PREVIOUS FY')){
-            fiscalYear = 'LAST_FISCAL_YEAR';
-        } else if (year.equalsIgnoreCase('CURRENT FY')){
-            fiscalYear = 'THIS_FISCAL_YEAR';
-        } else if (year.equalsIgnoreCase('NEXT FY')){
-            fiscalYear = 'NEXT_FISCAL_YEAR';
-        }
-
-        Map<String,Object> responseMap = new Map<String,Object>();
-
-        Http http = new Http();
-        HttpRequest request = new HttpRequest();
-        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
-                'EndDate%2c%20Id%20from%20budget&minorversion=4');
-        request.setHeader('Accept', 'application/json');
-        request.setMethod('GET');
-        request.setTimeout(120000);
-        HttpResponse response = http.send(request);
-
-        if (response.getStatusCode() == 200){
-            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
-        }
-
-        List<QBProfitAndLoss__c> budgetSourceList =
-                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
-                        'FROM QBProfitAndLoss__c ' +
-                        'WHERE Month__c = ' + fiscalYear  + ' ' +
-                        'ORDER BY Month__c DESC LIMIT 1');
-
-        if (!budgetSourceList.isEmpty()){
-            if (budgetSourceList[0].BudgetSource__c != null){
-                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
-            } else {
-                responseMap.put('budgetSource', 'Unknown Budget');
-            }
-
-            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
-        }
-
-        List<QBProfitAndLoss__c> forecastSourceList =
-                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
-                        'FROM QBProfitAndLoss__c ' +
-                        'WHERE Month__c = ' + fiscalYear  + ' ' +
-                        'ORDER BY Month__c DESC LIMIT 1');
-
-        if (!forecastSourceList.isEmpty()){
-            if (forecastSourceList[0].ForecastSource__c != null){
-                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
-            } else {
-                responseMap.put('forecastSource', 'Unknown Forecast');
-            }
-            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
-        }
-
-        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
-            if (month.Name == 'QBClosedMonth'){
-                responseMap.put('closedMonth', month.Month__c);
-            }
-        }
-
-        return responseMap;
-    }
+//    @RemoteAction
+//    public static Map<String,Object> getQBBudgets(String year){
+//
+//        String fiscalYear;
+//
+//        if (year.equalsIgnoreCase('PREVIOUS FY')){
+//            fiscalYear = 'LAST_FISCAL_YEAR';
+//        } else if (year.equalsIgnoreCase('CURRENT FY')){
+//            fiscalYear = 'THIS_FISCAL_YEAR';
+//        } else if (year.equalsIgnoreCase('NEXT FY')){
+//            fiscalYear = 'NEXT_FISCAL_YEAR';
+//        }
+//
+//        Map<String,Object> responseMap = new Map<String,Object>();
+//
+//        Http http = new Http();
+//        HttpRequest request = new HttpRequest();
+//        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
+//                'EndDate%2c%20Id%20from%20budget&minorversion=4');
+//        request.setHeader('Accept', 'application/json');
+//        request.setMethod('GET');
+//        request.setTimeout(120000);
+//        HttpResponse response = http.send(request);
+//
+//        if (response.getStatusCode() == 200){
+//            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
+//        }
+//
+//        List<QBProfitAndLoss__c> budgetSourceList =
+//                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
+//                        'FROM QBProfitAndLoss__c ' +
+//                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+//                        'ORDER BY Month__c DESC LIMIT 1');
+//
+//        if (!budgetSourceList.isEmpty()){
+//            if (budgetSourceList[0].BudgetSource__c != null){
+//                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+//            } else {
+//                responseMap.put('budgetSource', 'Unknown Budget');
+//            }
+//
+//            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
+//        }
+//
+//        List<QBProfitAndLoss__c> forecastSourceList =
+//                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
+//                        'FROM QBProfitAndLoss__c ' +
+//                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+//                        'ORDER BY Month__c DESC LIMIT 1');
+//
+//        if (!forecastSourceList.isEmpty()){
+//            if (forecastSourceList[0].ForecastSource__c != null){
+//                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+//            } else {
+//                responseMap.put('forecastSource', 'Unknown Forecast');
+//            }
+//            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
+//        }
+//
+//        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
+//            if (month.Name == 'QBClosedMonth'){
+//                responseMap.put('closedMonth', month.Month__c);
+//            }
+//        }
+//
+//        return responseMap;
+//    }
 
 
     @RemoteAction
@@ -927,95 +930,95 @@ public class InsightsController {
             revenueHistoryMap.put(key, ofs);
         }
 
+//
+//        // detect duplicate entries caused by quote change
+//        Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
+//
+//        for (OpportunityFieldHistory ofs : revenueChanges) {
+//            if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
+//
+//                Boolean isDuplicate = false;
+//                List<Object> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
+//
+//                for (Integer x = 0; x < siblings.size(); x++){
+//
+//                    Map<String,Object> fieldMap = (Map<String, Object>)siblings[x];
+//                    String dateString           = (String)fieldMap.get('CreatedDate');
+//                    dateString                  = dateString.replace('T',' ');
+//                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.substring(0,19));
+//
+//                    if (siblingCreatedTime <= ofs.CreatedDate.addMinutes(2) && siblingCreatedTime >= ofs.CreatedDate.addMinutes(-2)) {
+//
+//                        isDuplicate = true;
+//                        fieldMap.put('OldValue', ofs.OldValue);
+//                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
+//                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
+//                    }
+//                }
+//
+//                if (!isDuplicate){
+//
+//                    String ofsString = JSON.serialize(ofs);
+//                    Object ofsObject = JSON.deserializeUntyped(ofsString);
+//                    changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
+//                }
+//            } else {
+//
+//                String ofsString = JSON.serialize(ofs);
+//                Object ofsObject = JSON.deserializeUntyped(ofsString);
+//                changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<Object>{ofsObject});
+//            }
+//        }
 
-        // detect duplicate entries caused by quote change
-        Map<String,List<Object>> changeTimeMap = new Map<String,List<Object>>();
-
-        for (OpportunityFieldHistory ofs : revenueChanges) {
-            if (changeTimeMap.containsKey(ofs.Opportunity.Filtered_Job_Number__c)) {
-
-                Boolean isDuplicate = false;
-                List<Object> siblings = changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c);
-
-                for (Integer x = 0; x < siblings.size(); x++){
-
-                    Map<String,Object> fieldMap = (Map<String, Object>)siblings[x];
-                    String dateString           = (String)fieldMap.get('CreatedDate');
-                    dateString                  = dateString.replace('T',' ');
-                    Datetime siblingCreatedTime = Datetime.valueOf(dateString.substring(0,19));
-
-                    if (siblingCreatedTime <= ofs.CreatedDate.addMinutes(2) && siblingCreatedTime >= ofs.CreatedDate.addMinutes(-2)) {
-
-                        isDuplicate = true;
-                        fieldMap.put('OldValue', ofs.OldValue);
-                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).remove(x);
-                        changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add((Object)fieldMap);
-                    }
-                }
-
-                if (!isDuplicate){
-
-                    String ofsString = JSON.serialize(ofs);
-                    Object ofsObject = JSON.deserializeUntyped(ofsString);
-                    changeTimeMap.get(ofs.Opportunity.Filtered_Job_Number__c).add(ofsObject);
-                }
-            } else {
-
-                String ofsString = JSON.serialize(ofs);
-                Object ofsObject = JSON.deserializeUntyped(ofsString);
-                changeTimeMap.put(ofs.Opportunity.Filtered_Job_Number__c, new List<Object>{ofsObject});
-            }
-        }
-
-        for (String jobNo : changeTimeMap.keySet()) {
-
-            for (Object ofsObject : changeTimeMap.get(jobNo)) {
-
-                Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
-                Map<String,Object> oppMap = (Map<String,Object>)fieldMap.get('Opportunity');
-
-                String createdString    = (String)fieldMap.get('CreatedDate');
-                createdString           = createdString.replace('T',' ');
-                Date createdDate        = Date.valueOf(createdString);
-                createdDate             = Date.newInstance(createdDate.year(), createdDate.month(), createdDate.day());
-                Datetime createdTime    = Datetime.valueOf(createdString);
-
-                if (stageHistoriesByIds.containsKey((String)fieldMap.get('OpportunityId'))){
-
-                    for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get((String)fieldMap.get('OpportunityId'))){
-                        if (stageHistory.CreatedDate.getTime() <= createdTime.getTime()){
-                            oppMap.put('StageName', stageHistory.NewValue );
-                        }
-                    }
-                }
-
-                if (oppMap.get('StageName') == (String)'Closed Won'){
-
-                    // get key
-                    String key  = (String)fieldMap.get('OpportunityId') +
-                            String.valueOf(createdTime.getTime()).substring(0,8);
-
-                    // check both maps
-                    if (expenseMap.containsKey(key)){
-
-                        system.debug('found matching expenses');
-                        fieldMap.put('Expenses', expenseMap.get(key));
-                    }
-
-                    if (revenueHistoryMap.containsKey(key)){
-                        system.debug('found revenue changes');
-                        fieldMap.put('Revenue', revenueHistoryMap.get(key));
-                    }
-                    // add values to obj if found in maps
-
-                    fieldMap.put('Opportunity', oppMap);
-                    String newOfsString = JSON.serialize(fieldMap);
-                    Object newOfsObject = JSON.deserializeUntyped(newOfsString);
-                    String dayString    = String.valueOf(createdDate.daysBetween(Date.today()));
-                    changeMap.get(dayString).get('RECORDS').add(newOfsObject);
-                }
-            }
-        }
+//        for (String jobNo : changeTimeMap.keySet()) {
+//
+//            for (Object ofsObject : changeTimeMap.get(jobNo)) {
+//
+//                Map<String,Object> fieldMap = (Map<String, Object>)ofsObject;
+//                Map<String,Object> oppMap = (Map<String,Object>)fieldMap.get('Opportunity');
+//
+//                String createdString    = (String)fieldMap.get('CreatedDate');
+//                createdString           = createdString.replace('T',' ');
+//                Date createdDate        = Date.valueOf(createdString);
+//                createdDate             = Date.newInstance(createdDate.year(), createdDate.month(), createdDate.day());
+//                Datetime createdTime    = Datetime.valueOf(createdString);
+//
+//                if (stageHistoriesByIds.containsKey((String)fieldMap.get('OpportunityId'))){
+//
+//                    for (OpportunityFieldHistory stageHistory : stageHistoriesByIds.get((String)fieldMap.get('OpportunityId'))){
+//                        if (stageHistory.CreatedDate.getTime() <= createdTime.getTime()){
+//                            oppMap.put('StageName', stageHistory.NewValue );
+//                        }
+//                    }
+//                }
+//
+//                if (oppMap.get('StageName') == (String)'Closed Won'){
+//
+//                    // get key
+//                    String key  = (String)fieldMap.get('OpportunityId') +
+//                            String.valueOf(createdTime.getTime()).substring(0,8);
+//
+//                    // check both maps
+//                    if (expenseMap.containsKey(key)){
+//
+//                        system.debug('found matching expenses');
+//                        fieldMap.put('Expenses', expenseMap.get(key));
+//                    }
+//
+//                    if (revenueHistoryMap.containsKey(key)){
+//                        system.debug('found revenue changes');
+//                        fieldMap.put('Revenue', revenueHistoryMap.get(key));
+//                    }
+//                    // add values to obj if found in maps
+//
+//                    fieldMap.put('Opportunity', oppMap);
+//                    String newOfsString = JSON.serialize(fieldMap);
+//                    Object newOfsObject = JSON.deserializeUntyped(newOfsString);
+//                    String dayString    = String.valueOf(createdDate.daysBetween(Date.today()));
+//                    changeMap.get(dayString).get('RECORDS').add(newOfsObject);
+//                }
+//            }
+//        }
 
         // capture stage changes and relevant amounts at time of change
         List<OpportunityFieldHistory> stageChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
@@ -1050,30 +1053,30 @@ public class InsightsController {
             revenueHistoriesByIds.get(ofs.OpportunityId).add(ofs);
         }
 
-        for (OpportunityFieldHistory ofs : stageChanges){
-
-            if (revenueHistoriesByIds.containsKey(ofs.OpportunityId)){
-                for (OpportunityFieldHistory revenueHistory : revenueHistoriesByIds.get(ofs.OpportunityId)){
-                    if (revenueHistory.CreatedDate.getTime() <= ofs.CreatedDate.getTime()){
-                        ofs.Opportunity.Gross_Profit_Field_History__c = Decimal.valueOf((String)revenueHistory.NewValue);
-                    }
-                }
-            }
-
-            if (ofs.Opportunity.Gross_Profit_Field_History__c == null){
-                ofs.Opportunity.Gross_Profit_Field_History__c = ofs.Opportunity.Gross_profit_2__c;
-            }
-
-            Date createdDate = Date.newInstance(ofs.CreatedDate.year(), ofs.CreatedDate.month(), ofs.CreatedDate.day());
-            String dayString = String.valueOf(createdDate.daysBetween(Date.today().addDays(0)));
-
-            // Revenue which has gone out of the current financial year
-            if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
-                String ofsString = JSON.serialize(ofs);
-                Object ofsObject = JSON.deserializeUntyped(ofsString);
-                changeMap.get(dayString).get('RECORDS').add(ofsObject);
-            }
-        }
+//        for (OpportunityFieldHistory ofs : stageChanges){
+//
+//            if (revenueHistoriesByIds.containsKey(ofs.OpportunityId)){
+//                for (OpportunityFieldHistory revenueHistory : revenueHistoriesByIds.get(ofs.OpportunityId)){
+//                    if (revenueHistory.CreatedDate.getTime() <= ofs.CreatedDate.getTime()){
+//                        ofs.Opportunity.Gross_Profit_Field_History__c = Decimal.valueOf((String)revenueHistory.NewValue);
+//                    }
+//                }
+//            }
+//
+//            if (ofs.Opportunity.Gross_Profit_Field_History__c == null){
+//                ofs.Opportunity.Gross_Profit_Field_History__c = ofs.Opportunity.Gross_profit_2__c;
+//            }
+//
+//            Date createdDate = Date.newInstance(ofs.CreatedDate.year(), ofs.CreatedDate.month(), ofs.CreatedDate.day());
+//            String dayString = String.valueOf(createdDate.daysBetween(Date.today().addDays(0)));
+//
+//            // Revenue which has gone out of the current financial year
+//            if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
+//                String ofsString = JSON.serialize(ofs);
+//                Object ofsObject = JSON.deserializeUntyped(ofsString);
+//                changeMap.get(dayString).get('RECORDS').add(ofsObject);
+//            }
+//        }
 
 
         List<Adjustment__c> newCommissions =

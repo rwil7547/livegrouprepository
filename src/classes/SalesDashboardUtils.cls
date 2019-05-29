@@ -282,7 +282,10 @@ public class SalesDashboardUtils {
                                             FROM Opportunity
                                             WHERE StageName = 'Closed Won'
                                             AND Calder_Opportunity__c = TRUE
-                                            AND Event_end__c = THIS_FISCAL_YEAR
+                                            AND ((Event_end__c = THIS_FISCAL_YEAR
+                                                AND Event_month__c != 4) OR
+                                                (Event_end__c = NEXT_FISCAL_YEAR
+                                                AND Event_month__c = 4))
                                             GROUP BY FISCAL_MONTH(Event_end__c)
                                             ORDER BY FISCAL_MONTH(Event_end__c) ASC];
 

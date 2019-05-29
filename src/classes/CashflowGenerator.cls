@@ -2,10 +2,48 @@
  * Created by Ronan Williams on 25/03/2019.
  */
 
-public with sharing class CashflowGenerator {
+public class CashflowGenerator {
 
+    // future callout definition to allow for schedulable class
+    @Future(Callout=true)
+    public static void buildFlowFuture(Boolean resetValues, Boolean resetBudgets){
 
-    public static void buildFlow(Boolean resetValues, Boolean resetBudgets){
+        Map<String,HttpResponse> responseMap = new Map<String,HttpResponse>();
+
+        // CALLOUT 1: Current balance from Quickbooks Online
+        String balanceQuery = 'query?query=select%20%2a%20from%20account%20where%20name%20' +
+                '%3d%20%27Bank%20Current%20Account%27&minorversion=4';
+
+        // do callout
+        Http balanceHttp                = new Http();
+        HttpRequest balanceRequest      = CashFlowUtils.doCallout(balanceQuery);
+        HttpResponse balanceResponse    = balanceHttp.send(balanceRequest);
+        responseMap.put('balance',balanceResponse);
+
+        // CALLOUT 2: Get invoices from Quickbooks Online
+        String invoiceQuery = 'query?query=select%20%2a%20from%20invoice%20where%20Balance%20' +
+                '%3e%20%270%27&minorversion=4';
+
+        // do callout
+        Http invoiceHttp                = new Http();
+        HttpRequest invoiceRequest      = CashFlowUtils.doCallout(invoiceQuery);
+        HttpResponse invoiceResponse    = invoiceHttp.send(invoiceRequest);
+        responseMap.put('invoices',invoiceResponse);
+
+        //  CALLOUT 3: Get bills from Quickbooks Online
+        String billQuery = 'query?query=select%20%2a%20from%20bill%20where%20Balance%20' +
+                '%21%3d%20%270%27&minorversion=4';
+
+        // do callout
+        Http billHttp                   = new Http();
+        HttpRequest billRequest         = CashFlowUtils.doCallout(billQuery);
+        HttpResponse billResponse       = billHttp.send(billRequest);
+        responseMap.put('bills',billResponse);
+
+        buildFlow(resetValues, resetBudgets, responseMap);
+    }
+
+    public static void buildFlow(Boolean resetValues, Boolean resetBudgets, Map<String,HttpResponse> calloutsMap){
 
         // get the cash flow entries in a map ordered by date asc
         Map<Date, CashFlow__c> flowMap = CashFlowUtils.getFlowMap();
@@ -57,30 +95,44 @@ public with sharing class CashflowGenerator {
         // INIT: GET CURRENT BALANCE
         Decimal startingBalance = 0;
 
-        String query1 = 'query?query=select%20%2a%20from%20account%20where%20name%20' +
-                '%3d%20%27Bank%20Current%20Account%27&minorversion=4';
+        HttpResponse balanceResponse = new HttpResponse();
 
-        // do callout
-        Http http1              = new Http();
-        HttpRequest request1    = CashFlowUtils.doCallout(query1);
-        HttpResponse response1  = http1.send(request1);
+        if (calloutsMap == null || !calloutsMap.containsKey('balance')){
+            String balanceQuery = 'query?query=select%20%2a%20from%20account%20where%20name%20' +
+                    '%3d%20%27Bank%20Current%20Account%27&minorversion=4';
 
-        if (response1.getStatusCode() == 200) {
-            JSONParserQBOCurrentAccount parsedResults = JSONParserQBOCurrentAccount.parse(response1.getBody());
+            // do callout
+            Http balanceHttp              = new Http();
+            HttpRequest balanceRequest    = CashFlowUtils.doCallout(balanceQuery);
+            balanceResponse  = balanceHttp.send(balanceRequest);
+        } else {
+            balanceResponse = calloutsMap.get('balance');
+        }
+
+        if (balanceResponse.getStatusCode() == 200) {
+            JSONParserQBOCurrentAccount parsedResults = JSONParserQBOCurrentAccount.parse(balanceResponse.getBody());
             startingBalance = parsedResults.QueryResponse.Account[0].CurrentBalance;
         }
 
         // STEP 1: GET QUICKBOOKS INVOICES
-        String invoiceQuery = 'query?query=select%20%2a%20from%20invoice%20where%20Balance%20' +
-                '%3e%20%270%27&minorversion=4';
 
-        // do callout
-        Http http2 = new Http();
-        HttpRequest request2 = CashFlowUtils.doCallout(invoiceQuery);
-        HttpResponse response2 = http2.send(request2);
+        HttpResponse invoiceResponse = new HttpResponse();
 
-        if (response2.getStatusCode() == 200) {
-            JSONParserQBOInvoiceFlow parsedResults = JSONParserQBOInvoiceFlow.parse(response2.getBody());
+        if (calloutsMap == null || !calloutsMap.containsKey('invoices')) {
+
+            String invoiceQuery = 'query?query=select%20%2a%20from%20invoice%20where%20Balance%20' +
+                    '%3e%20%270%27&minorversion=4';
+
+            // do callout
+            Http invoiceHttp = new Http();
+            HttpRequest invoiceRequest = CashFlowUtils.doCallout(invoiceQuery);
+            invoiceResponse = invoiceHttp.send(invoiceRequest);
+        } else {
+            invoiceResponse = calloutsMap.get('invoices');
+        }
+
+        if (invoiceResponse.getStatusCode() == 200) {
+            JSONParserQBOInvoiceFlow parsedResults = JSONParserQBOInvoiceFlow.parse(invoiceResponse.getBody());
 
             Set<String> invoiceIds      = new Set<String>();
             Set<String> scheduleNumbers = new Set<String>();
@@ -193,13 +245,19 @@ public with sharing class CashflowGenerator {
         }
 
         // STEP 3: GET QUICKBOOKS BILLS
-        String billQuery = 'query?query=select%20%2a%20from%20bill%20where%20Balance%20' +
-                '%21%3d%20%270%27&minorversion=4';
+        HttpResponse billResponse = new HttpResponse();
 
-        // do callout
-        Http billHttp               = new Http();
-        HttpRequest billRequest     = CashFlowUtils.doCallout(billQuery);
-        HttpResponse billResponse   = billHttp.send(billRequest);
+        if (calloutsMap == null || !calloutsMap.containsKey('bills')) {
+            String billQuery = 'query?query=select%20%2a%20from%20bill%20where%20Balance%20' +
+                    '%21%3d%20%270%27&minorversion=4';
+
+            // do callout
+            Http billHttp = new Http();
+            HttpRequest billRequest = CashFlowUtils.doCallout(billQuery);
+            billResponse = billHttp.send(billRequest);
+        } else {
+            balanceResponse = calloutsMap.get('balance');
+        }
 
         if (billResponse.getStatusCode() == 200) {
             JSONParserQBOBillFlow parsedResults = JSONParserQBOBillFlow.parse(billResponse.getBody());
@@ -229,9 +287,6 @@ public with sharing class CashflowGenerator {
                             budgetKeys.add(line.AccountBasedExpenseLineDetail.AccountRef.name.split(' ',2)[1].split(':',2)[0]);
                             budgetKeyString     = line.AccountBasedExpenseLineDetail.AccountRef.name.split(' ',2)[1].split(':',2)[0];
                             if (budgetMap.containsKey(budgetKey)){
-
-                                System.debug('bill reducing budget ' + account + ' by ' + line.Amount);
-
                                 budgetMap.get(budgetKey).Actual__c -= line.Amount;
                             }
                         }

@@ -468,7 +468,8 @@
             width: 100vw;
             height: 100vh;
             z-index: 1000000;
-            background-color: grey;
+            /*background-color: grey;*/
+            background-color: white;
             opacity: 0.8;
         }
         .record {
@@ -852,7 +853,7 @@
             height: 26px;
         }
         .loader {
-            color: #2d7175;
+            color: black;
             font-size: 90px;
             text-indent: -9999em;
             overflow: hidden;
@@ -916,7 +917,7 @@
             left: 0;
             color: black;
             z-index: 10000000000;
-            font-size: 19px;
+            font-size: 24px;
             width: 100%;
             display: flex;
             justify-content: center;
@@ -1677,7 +1678,7 @@
                                         <div class="sortable in" v-bind:data-week="balance" v-bind:data-type="'IN'">
                                             <template v-for="record,recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'IN' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c"
@@ -1801,7 +1802,7 @@
                                         <div class="sortable paymentRun" v-bind:data-week="index" v-bind:data-type="'paymentRun'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Payment run' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c"
@@ -2034,7 +2035,7 @@
                                         <div class="sortable creditCard" v-bind:data-week="index" v-bind:data-type="'creditCard'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Credit card' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'creditCard'"
@@ -2139,7 +2140,7 @@
                                         <div class="sortable directDebit" v-bind:data-week="index" v-bind:data-type="'directDebit'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Direct debit' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'directDebit'"
@@ -2372,7 +2373,7 @@
                                         <div class="sortable payroll" v-bind:data-week="index" v-bind:data-type="'payroll'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Payroll' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'payroll'"
@@ -2468,7 +2469,7 @@
                                         <div class="sortable freelancers" v-bind:data-week="index" v-bind:data-type="'freelancers'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'Freelancers' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'freelancer'"
@@ -2581,7 +2582,7 @@
                                         <div class="sortable vat" v-bind:data-week="index" v-bind:data-type="'vat'">
                                             <template v-for="record, recordIndex in cashflowData['RECORDS']">
                                                 <template v-if="record.WeekId__c == 'VAT' + index">
-                                                    <div class="record"
+                                                    <div class="record" v-if="!(record.Source__c === 'Budget' && record.Amount__c < 0)"
                                                          v-on:dblclick="openRecord(record.Id,record.Amount__c,record.Comment__c)"
                                                          v-bind:data-id="record.Id" v-bind:data-week="index"
                                                          v-bind:data-amount="record.Amount__c" v-bind:data-type="'vat'"
