@@ -52,7 +52,7 @@
     </style>
 
     <div>
-        <div class="block" id="reportBlocks">
+        <div class="block">
             <div class="blockEntry">
                 <h1>Credit Card Importer</h1>
                 <div class="importer">Please go to &nbsp;<a href="https://commercial.barclaycard.co.uk">
@@ -66,6 +66,7 @@
                     <input id="uploadButton" style="display:none;" type="button" onclick="uploadCSV()" value="Process CSV"/>
                 </div>
             </div>
+            <div id="reportBlocks"></div>
         </div>
     </div>
 
@@ -120,26 +121,39 @@
 
         function loadResponse(result, event){
 
-            document.getElementById('uploadButton').style.display = 'none';
+            document.getElementById('uploadButton').style.display   = 'none';
+            document.getElementById('reportBlocks').innerHTML       = '';
 
             reports = result;
+            console.log(reports);
 
             for (var x = 0; x < reports.length; x++){
 
+                var valid           = (reports[x].Employee.ExpensifyUserID__c && reports[x].Employee.ExpensifyUserSecret__c);
                 var exported        = !!(reports[x].ExpensifyId);
                 var expensifyId     = (exported) ? reports[x].ExpensifyId : '';
                 var checkedStatus   = (exported) ? 'checked' : '';
 
-                var submitButton = (exported) ? '' : '<input class="exportButton" id="' + x + 'button" ' +
+                var submitButton = (exported || !valid) ? '' : '<input class="exportButton" id="' + x + 'button" ' +
                     'type="button" value="Export" onclick="exportReport(' + x + ')" />';
                 var headerInfo = '<div class="header">' +
-                    '<h2>' + reports[x].Employee.FirstName__c + ' ' + reports[x].Employee.LastName__c + '</h2>' +
+                    '<h2>' + reports[x].Employee.FirstName__c + ' ' + reports[x].Employee.LastName__c + '</a></h2>' +
                     '<h2 style="margin-left:30px;">' + 'Card statement for ' + new Date(reports[x].ReportDate).toString().substr(0, 10) + '</h2>' +
-                    '<h2 style="margin-left:30px;">' + '£' + reports[x].TotalAmount.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</h2>' +
-                    '<h2 style="margin-left:30px;">Imported: <input type="checkbox" id="' + x + 'checkbox" ' +
-                    ' disabled="true" ' +  checkedStatus + '/></h2>' +
-                    '<h2 style="margin-left:30px;" id="' + x + 'expensify">Expensify Id: ' + expensifyId +  '</h2>' +
-                    '</div>';
+                    '<h2 style="margin-left:30px;">' + '£' + reports[x].TotalAmount.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") + '</h2>';
+
+                if (valid){
+                    headerInfo +=
+                        '<h2 style="margin-left:30px;">Imported: <input type="checkbox" id="' + x + 'checkbox" ' +
+                        ' disabled="true" ' +  checkedStatus + '/></h2>' +
+                        '<h2 style="margin-left:30px;" id="' + x + 'expensify">Expensify Id: ' + expensifyId +  '</h2>';
+                } else {
+                    headerInfo +=
+                        '<p style="margin-left:30px;width:500px;">This user is missing Expensify API information. Please obtain the ' +
+                        'user\'s Expensify User Id and User Secret by requesting them to go https://www.expensify.com/tools/integrations/. ' +
+                        'Once the user has shared this information please update the user record ' +
+                        '<a href=/' + reports[x].Employee.Id + ' target="_blank"> here</a>, and reload the export report.</p>';
+                }
+                headerInfo += '</div>';
                 var lineInfo = '<div class="line strong">' +
                     '<div>TRANSACTION DATE</div>' +
                     '<div>MERCHANT</div>' +
@@ -154,8 +168,7 @@
                         '<div class="line">' +
                         '<div>' + (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + '/' +
                         (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '/' + date.getFullYear() + '</div>' +
-                        // '<div>' + lines[y].Merchant + '</div>' +
-                        '<div><input id="' + x + y + '" type="text" style="width:100%;border:none;" value="' + lines[y].Merchant + '"></input></div>' +
+                        '<div><input id="line' + x + y + '" type="text" style="width:100%;border:none;" value="' + lines[y].Merchant + '"></input></div>' +
                         '<div style="text-align:right;padding-right: 10px;">' +
                         '£' + lines[y].Amount.toFixed(2).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") +
                         '</div>' +
@@ -175,7 +188,8 @@
             var report = reports[index];
 
             for (var x = 0; x < report.CreditCardLines.length; x++){
-                report.CreditCardLines[x].Merchant = document.getElementById('\'' + index + x + '\'').value;
+                var id = 'line' + index + x;
+                report.CreditCardLines[x].Merchant = document.getElementById(id).value;
             }
 
             Visualforce.remoting.timeout = 120000;

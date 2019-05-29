@@ -10,11 +10,12 @@ public class CreditCardExportTest {
 
         // insert employee record
         insert new Employee1__c(
-            FirstName__c        = 'Test',
-            LastName__c         = 'Test',
-            Email__c            = 'test@test.com',
-            ExpensifyUserID__c  = 'testId',
-            ExpensifyUserSecret__c = 'testSecret'
+            FirstName__c            = 'Test',
+            LastName__c             = 'Test',
+            Email__c                = 'test@test.com',
+            ExpensifyUserID__c      = 'testId',
+            ExpensifyUserSecret__c  = 'testSecret',
+            PeopleHRId__c           = 'test'
         );
 
         // sample csv data passed from visualforce page

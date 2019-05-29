@@ -125,7 +125,9 @@ public class InsightsController {
                     'Closed Won Revenue'        => 0, 'Closed Won COS'         => 0,
                     'Costed prospect Revenue'   => 0, 'Costed prospect COS'    => 0,
                     'Pipeline prospect Revenue' => 0, 'Pipeline prospect COS'  => 0,
-                    'Repeat Prospect Revenue'   => 0, 'Repeat Prospect COS'    => 0
+                    'Repeat Prospect Revenue'   => 0, 'Repeat Prospect COS'    => 0,
+                    'Adjustment Revenue'        => 0, 'Adjustment Profit'      => 0,
+                    'Adjustment COS'            => 0
             };
             reportValues.put(month, stageValueMap);
         }
@@ -182,17 +184,25 @@ public class InsightsController {
             }
         }
 
-        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, EventMonthYear__c, Opportunity__r.Name
+        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, CostOfSale__c,
+                                         EventMonthYear__c, Opportunity__r.Name
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate]) {
 
             reportData.get(adj.EventMonthYear__c).get('Closed Won').add(adj);
 
-            totalRevenue += adj.Revenue__c;
-            totalProfit += adj.Profit__c;
+            totalRevenue    += adj.Revenue__c;
+            totalProfit     += adj.Profit__c;
             revenueAggregates.get(adj.EventMonthYear__c)[0] += adj.Revenue__c;
             profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
+
+            reportValues.get(adj.EventMonthYear__c).put('Adjustment Revenue',
+                    reportValues.get(adj.EventMonthYear__c).get('Adjustment Profit') + adj.Revenue__c);
+            reportValues.get(adj.EventMonthYear__c).put('Adjustment Profit',
+                    reportValues.get(adj.EventMonthYear__c).get('Adjustment Profit') + adj.Profit__c);
+            reportValues.get(adj.EventMonthYear__c).put('Adjustment COS',
+                    reportValues.get(adj.EventMonthYear__c).get('Adjustment COS') + adj.CostOfSale__c);
         }
 
         for (QBProfitAndLoss__c target : [SELECT Actual__c, Budget__c, EventMonthYear__c
@@ -334,11 +344,18 @@ public class InsightsController {
 
         calculateBalances();
 
-        Map<String,Object> responseData = getCashflowData(true);
-//        Map<String,Object> responseData = getCashflowData(false);
+//        Map<String,Object> responseData = getCashflowData(true);
+        Map<String,Object> responseData = getCashflowData(false);
 //        responseData.put('RECORD',[SELECT Category__c, Amount__c, Out__c, Description__c, Source__c,
 //                                            CashFlow__r.DayMonthYear__c
 //                                    FROM CashFlowEntry__c WHERE Id = :entryId]);
+
+        responseData.put('VALUES', new Map<Id,CashFlowEntry__c>(
+                                            [SELECT Id,Amount__c
+                                             FROM CashFlowEntry__c
+                                             WHERE Id = :entryId
+                                             OR (Source__c = 'Budget'
+                                             AND BudgetKey__c = :entry.BudgetKey__c)]));
 
         return responseData;
 
@@ -628,7 +645,8 @@ public class InsightsController {
                                     FROM CashFlowEntries__r
                                     WHERE Paid__c = FALSE
                                     AND HiddenBudget__c = FALSE
-                                    ORDER BY Category__c ASC, Source__c )
+//                                    ORDER BY Category__c ASC, Source__c )
+                                    ORDER BY CreatedDate )
                                     FROM CashFlow__c
                                     WHERE Date__c >= : startDate
                                     AND Date__c <= : endDate]){
@@ -766,12 +784,13 @@ public class InsightsController {
 
 
     @RemoteAction
-    public static Map<String,List<Object>> getOppProfitChanges(String start, String endD, Integer days, Decimal currentTotal){
+    public static Map<String,Map<String,List<Object>>> getRecordChanges(String start,
+                                        String endD, Integer days, Decimal currentTotal){
 
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
 
-        Map<String,List<Object>> changeMap = new Map<String,List<Object>>();
+        Map<String,Map<String,List<Object>>> changeMap = new Map<String,Map<String,List<Object>>>();
 
         Map<String,String> imageMap = new Map<String,String>();
 
@@ -779,18 +798,19 @@ public class InsightsController {
             imageMap.put(emp.FirstName__c + emp.LastName__c, emp.ImageLink__c);
         }
 
-        if (!imageMap.isEmpty()){
-            changeMap.put('Images', new List<Object>{imageMap});
-        }
-
         for (Integer x = 0; x < days; x++){
-            changeMap.put(String.valueOf(x), new List<Object>());
+            List<Object> values   = new List<Object>();
+            List<Object> records  = new List<Object>();
+            changeMap.put(String.valueOf(x), new Map<String,List<Object>>());
+            changeMap.get(String.valueOf(x)).put('VALUES',values);
+            changeMap.get(String.valueOf(x)).put('RECORDS',records);
         }
 
         Date fallBack = Date.valueOf(Date.today().addDays(-(days-1)));
 
         List<SalesDashboardSnapshot__c> snapshots =
-                            [SELECT TotalGrossProfit__c, DateCreated__c, CreatedDate,
+                            [SELECT TotalGrossProfit__c, TotalRevenue__c,
+                                    DateCreated__c, CreatedDate,
                                     CreatedBy.FirstName, CreatedBy.LastName
                             FROM SalesDashboardSnapshot__c
                             WHERE DateCreated__c >= :fallBack.addDays(-1)
@@ -806,12 +826,12 @@ public class InsightsController {
             } else {
                 snapshots[x].TotalGrossProfit__c = snapshotsClone[x + 1].TotalGrossProfit__c - snapshots[x].TotalGrossProfit__c;
             }
-            changeMap.get(String.valueOf(x)).add(snapshots[x]);
+            changeMap.get(String.valueOf(x)).get('VALUES').add(snapshots[x]);
         }
 
         // track date changes
         List<OpportunityFieldHistory> dateChanges = [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
-                                                        Opportunity.Gross_Profit_Field_History__c,
+                                                        Opportunity.Gross_Profit_Field_History__c, Opportunity.Amount_Calder__c,
                                                         Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
                                                         CreatedBy.FirstName, CreatedBy.LastName
                                                 FROM OpportunityFieldHistory
@@ -829,13 +849,18 @@ public class InsightsController {
             if (((Date)ofs.OldValue >= startDate && (Date)ofs.OldValue <= endDate)
                     && ((Date)ofs.NewValue < startDate || (Date)ofs.NewValue > endDate)) {
 
-                changeMap.get(dayString).add(ofs);
+//                RecordChange change = new RecordChange(
+//                        ChangeDate  = createdDate,
+//                        Value       =
+//                );
+
+                changeMap.get(dayString).get('RECORDS').add(ofs);
 
                 // Revenue which has entered the current financial year
             } else if (((Date)ofs.OldValue < startDate || (Date)ofs.OldValue > endDate)
                     && ((Date)ofs.NewValue >= startDate && (Date)ofs.NewValue <= endDate)) {
 
-                changeMap.get(dayString).add(ofs);
+                changeMap.get(dayString).get('RECORDS').add(ofs);
             }
         }
 
@@ -987,7 +1012,7 @@ public class InsightsController {
                     String newOfsString = JSON.serialize(fieldMap);
                     Object newOfsObject = JSON.deserializeUntyped(newOfsString);
                     String dayString    = String.valueOf(createdDate.daysBetween(Date.today()));
-                    changeMap.get(dayString).add(newOfsObject);
+                    changeMap.get(dayString).get('RECORDS').add(newOfsObject);
                 }
             }
         }
@@ -1046,7 +1071,7 @@ public class InsightsController {
             if (ofs.OldValue == 'Closed Won' || ofs.NewValue == 'Closed Won') {
                 String ofsString = JSON.serialize(ofs);
                 Object ofsObject = JSON.deserializeUntyped(ofsString);
-                changeMap.get(dayString).add(ofsObject);
+                changeMap.get(dayString).get('RECORDS').add(ofsObject);
             }
         }
 
@@ -1062,7 +1087,7 @@ public class InsightsController {
         for (Adjustment__c adj : newCommissions){
             Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
             String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
-            changeMap.get(dayString).add(adj);
+            changeMap.get(dayString).get('RECORDS').add(adj);
         }
 
         List<Adjustment__History> changedCommissions =
@@ -1078,12 +1103,24 @@ public class InsightsController {
         for (Adjustment__History adj : changedCommissions){
             Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
             String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
-            changeMap.get(dayString).add(adj);
+            changeMap.get(dayString).get('RECORDS').add(adj);
         }
 
 
         return changeMap;
     }
 
+    public class RecordChange {
+        Date ChangeDate;
+        String Description;
+        Decimal Value;
+        String ImageLink;
+
+        public RecordChange(Date ChangeDate, String Description, Decimal Value){
+            this.ChangeDate     = ChangeDate;
+            this.Description    = Description;
+            this.Value          = Value;
+        }
+    }
 
 }

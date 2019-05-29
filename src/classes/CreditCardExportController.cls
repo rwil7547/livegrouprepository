@@ -106,7 +106,8 @@ public class CreditCardExportController {
 
         Map<String,String> employeeEmailMap = new Map<String,String>();
         for (Employee1__c employee : [SELECT FirstName__c, LastName__c, Id
-                                      FROM Employee1__c]){
+                                      FROM Employee1__c
+                                      WHERE PeopleHRId__c != NULL ]){
             employeeEmailMap.put(employee.FirstName__c.substring(0,1).toUpperCase() +
                                  employee.LastName__c.toUpperCase(), employee.Id);
             employeeEmailMap.put(employee.LastName__c.toUpperCase(), employee.Id);
@@ -120,7 +121,8 @@ public class CreditCardExportController {
         Map<String,Employee1__c> employeeMap = new Map<String,Employee1__c>();
         for (Employee1__c employee : [SELECT FirstName__c, LastName__c, Id, Email__c,
                                             ExpensifyUserSecret__c, ExpensifyUserID__c
-                                        FROM Employee1__c]){
+                                        FROM Employee1__c
+                                        WHERE PeopleHRId__c != NULL]){
             employeeMap.put(employee.Id, employee);
         }
 
@@ -194,7 +196,6 @@ public class CreditCardExportController {
         Decimal Amount;
         String Merchant;
         String TransactionDate;
-        String Comment;
     }
 
     public class CreditCardReport {
@@ -202,6 +203,8 @@ public class CreditCardExportController {
         Employee1__c Employee;
         String ReportDate;
         List<CreditCardLine> CreditCardLines;
+        Boolean Valid;
+        String ErrorMessage;
     }
 
 }
