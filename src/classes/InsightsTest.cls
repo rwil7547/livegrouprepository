@@ -218,7 +218,7 @@ public class InsightsTest {
                         Amount__c = 1,
                         Terms__c = 'weekly',
                         Day__c = 1,
-                        EndDate__c = null
+                        EndDate__c = Date.today().addMonths(12)
                 ));
 
         directDebitProfiles.add(
@@ -230,7 +230,7 @@ public class InsightsTest {
                         Amount__c = 1,
                         Terms__c = 'monthly',
                         Day__c = 1,
-                        EndDate__c = null
+                        EndDate__c = Date.today().addMonths(12)
                 ));
 
         directDebitProfiles.add(
@@ -242,7 +242,7 @@ public class InsightsTest {
                         Amount__c = 1,
                         Terms__c = 'quarterly',
                         Day__c = 1,
-                        EndDate__c = null
+                        EndDate__c = Date.today().addMonths(12)
                 ));
 
         insert directDebitProfiles;
@@ -357,15 +357,29 @@ public class InsightsTest {
     }
 
     @IsTest
-    public static void testCashflowEditActions() {
+    public static void testCashflowDateChange() {
 
         CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c LIMIT 1];
         InsightsController.changeEntryDate(entry.Id, String.valueOf(Date.today()));
+    }
+
+
+    @IsTest
+    public static void testCashflowAmountChange() {
+
+        CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c LIMIT 1];
         InsightsController.updateAmount(entry.Id, 500);
+    }
+
+    @IsTest
+    public static void testCashflowCommentPaid() {
+
+        CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c LIMIT 1];
         InsightsController.markAsPaid(entry.Id);
         InsightsController.updateComment(entry.Id, 'Test comment');
 
     }
+
 
     @IsTest
     public static void testCashflowDelete() {
@@ -577,15 +591,21 @@ public class InsightsTest {
                 'bill%20where%20Balance%20%21%3d%20%270%27&minorversion=4', billMock1);
         endpoint2TestResp.put('callout:QuickBooksOnline/query?query=select%20%2a%20from%20account' +
                 '%20where%20name%20%3d%20%27Bank%20Current%20Account%27&minorversion=4', accMock);
-
+//
         CashFlowMultiRequestMock cashMultiMock = new CashFlowMultiRequestMock(endpoint2TestResp);
         Test.setMock(HttpCalloutMock.class, cashMultiMock);
         CashFlowScheduler scheduler = new CashFlowScheduler();
         String sch = '0 0 0 * * ?';
-
+//
+//        Test.startTest();
+//        System.schedule('Cashflow Hourly', sch, scheduler);
+//        Test.stopTest();
         Test.startTest();
+
+        CashflowGenerator.buildFlowFuture(false,false);
         System.schedule('Cashflow Hourly', sch, scheduler);
         Test.stopTest();
+
     }
 
 }

@@ -83,7 +83,10 @@ public class InsightsController {
         Date startDate      = Date.valueOf(start);
         Date endDate        = Date.valueOf(endD);
 
+        // declare map to host response data
         Map<String,Object> figuresMap                   = new Map<String,Object>();
+
+        // declare variables to host response map data keys and values
         Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
         Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
         Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
@@ -98,6 +101,12 @@ public class InsightsController {
         Decimal totalRevenue    = 0;
         Decimal totalProfit     = 0;
         Decimal totalOpex       = 0;
+
+        Map<String,List<Decimal>> totalsMap             = new Map<String,List<Decimal>>();
+        List<Decimal> revenueTotals                     = new List<Decimal>{0,0,0,0};
+        List<Decimal> cosTotals                         = new List<Decimal>{0,0,0,0};
+        List<Decimal> profitTotals                      = new List<Decimal>{0,0,0,0};
+        List<Decimal> opexTotals                        = new List<Decimal>{0,0,0,0};
 
         // work out if start date and end date are not clean start and end dates
         Decimal numberOfDaysStart   = Date.daysInMonth(startDate.year(), startDate.month());
@@ -137,9 +146,10 @@ public class InsightsController {
                                         Event_start__c, Event_end__c, Filtered_Cost_of_Sale__c,
                                         Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
                                         EventMonthYear__c, Committed__c, CommittedRevenue__c,
-                                        CommittedProfit__c, CommittedCOS__c, IsClosed,
+                                        CommittedProfit__c, CommittedCOS__c, IsClosed, Amount_Paid__c, Amount_Invoiced2__c,
                                         Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c,
-                                        EventMonthString__c, Owner.FirstName, Owner.LastName, Project_Manager__c,
+                                        EventMonthString__c, Owner.FirstName, Owner.LastName, Owner.ImageLink__c,
+                                        Project_Manager__c, Project_Manager__r.ImageLink__c,
                                         Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
                                 (SELECT Revenue__c, Profit__c, CostOfSale__c, EventMonthYear__c, Month__c
                                 FROM Adjustments__r)
@@ -155,6 +165,11 @@ public class InsightsController {
             if (opp.Committed__c){
                 totalRevenue += opp.CommittedRevenue__c;
                 totalProfit += opp.CommittedProfit__c;
+
+                revenueTotals[0]    += opp.CommittedRevenue__c;
+                cosTotals[0]        += opp.CommittedCOS__c;
+                profitTotals[0]     += opp.CommittedProfit__c;
+
                 revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedRevenue__c;
                 profitAggregates.get(opp.EventMonthYear__c)[0] += opp.CommittedProfit__c;
                 reportValues.get(opp.EventMonthYear__c).put(opp.StageName + ' Revenue',
@@ -165,9 +180,27 @@ public class InsightsController {
                 if (opp.StageName == 'Closed Won') {
                     totalRevenue += opp.Amount_Calder__c;
                     totalProfit += (opp.Gross_profit_2__c == null) ? 0 : opp.Gross_profit_2__c;
+
+                    revenueTotals[0]    += opp.Amount_Calder__c;
+                    cosTotals[0]        += opp.Filtered_Cost_of_Sale__c;
+                    profitTotals[0]     += opp.Gross_profit_2__c;
+
                     revenueAggregates.get(opp.EventMonthYear__c)[0] += opp.Amount_Calder__c;
                     profitAggregates.get(opp.EventMonthYear__c)[0] += (opp.Gross_profit_2__c == null) ? 0 : opp.Gross_profit_2__c;
                 } else {
+                    if (opp.StageName == 'Costed prospect'){
+                        revenueTotals[1]    += opp.Amount_Calder__c;
+                        cosTotals[1]        += opp.Filtered_Cost_of_Sale__c;
+                        profitTotals[1]     += opp.Gross_profit_2__c;
+                    } else if (opp.StageName == 'Pipeline prospect'){
+                        revenueTotals[2]    += opp.Amount_Calder__c;
+                        cosTotals[2]        += opp.Filtered_Cost_of_Sale__c;
+                        profitTotals[2]     += opp.Gross_profit_2__c;
+                    } else if (opp.StageName == 'Repeat Prospect'){
+                        revenueTotals[3]    += opp.Amount_Calder__c;
+                        cosTotals[3]        += opp.Filtered_Cost_of_Sale__c;
+                        profitTotals[3]     += opp.Gross_profit_2__c;
+                    }
                     revenueAggregates.get(opp.EventMonthYear__c)[1] += (opp.Amount_Calder__c * opp.Probability) / 100;
                     profitAggregates.get(opp.EventMonthYear__c)[1] += (opp.Gross_profit_2__c * opp.Probability) / 100;
                     revenueAggregates.get(opp.EventMonthYear__c)[2] += opp.Amount_Calder__c - (opp.Amount_Calder__c * opp.Probability) / 100;
@@ -185,10 +218,12 @@ public class InsightsController {
         }
 
         for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, CostOfSale__c,
-                                         EventMonthYear__c, Opportunity__r.Name
+                                         EventMonthYear__c, Opportunity__r.Name, Opportunity__r.Filtered_Job_Number__c,
+                                         Opportunity__c, Opportunity__r.EventMonthYear__c
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
-                                    AND Month__c <= :endDate]) {
+                                    AND Month__c <= :endDate
+                                    ORDER BY Opportunity__r.Event_end__c]) {
 
             reportData.get(adj.EventMonthYear__c).get('Closed Won').add(adj);
 
@@ -203,14 +238,6 @@ public class InsightsController {
                     reportValues.get(adj.EventMonthYear__c).get('Adjustment Profit') + adj.Profit__c);
             reportValues.get(adj.EventMonthYear__c).put('Adjustment COS',
                     reportValues.get(adj.EventMonthYear__c).get('Adjustment COS') + adj.CostOfSale__c);
-        }
-
-        for (QBProfitAndLoss__c target : [SELECT Actual__c, Budget__c, EventMonthYear__c
-                                        FROM QBProfitAndLoss__c
-                                        WHERE Parent__c = 'Revenue'
-                                        AND Month__c >= :startDate
-                                        AND Month__c <= :endDate]) {
-            revenueAggregates.get(target.EventMonthYear__c)[3] = target.Actual__c;
         }
 
         List<QBProfitAndLoss__c> results = [SELECT Actual__c, Parent__c, Budget__c, Grouping__c,
@@ -234,21 +261,21 @@ public class InsightsController {
             if (qpl.Opex__c){
 
                 totalOpex += (qpl.Actual__c * multiplier);
-                opexAggregates.get(qpl.EventMonthYear__c)[1] += (qpl.Actual__c * multiplier);
-                opexAggregates.get(qpl.EventMonthYear__c)[2]   += (qpl.Budget__c * multiplier);
-                profitAggregates.get(qpl.EventMonthYear__c)[3] += (qpl.Actual__c * multiplier);
+                opexAggregates.get(qpl.EventMonthYear__c)[1]        += (qpl.Actual__c * multiplier);
+                opexAggregates.get(qpl.EventMonthYear__c)[2]        += (qpl.Budget__c * multiplier);
+                profitAggregates.get(qpl.EventMonthYear__c)[3]      += (qpl.Actual__c * multiplier);
 
                 if (qpl.Grouping__c == 'Payroll'){
-                    opexAggregates.get(qpl.EventMonthYear__c)[6] += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[6]    += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'IT'){
-                    opexAggregates.get(qpl.EventMonthYear__c)[7] += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[7]    += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'Bus Dev'){
-                    opexAggregates.get(qpl.EventMonthYear__c)[8] += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[8]    += (qpl.Actual__c * multiplier);
                 } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
-                    opexAggregates.get(qpl.EventMonthYear__c)[9] += (qpl.Actual__c * multiplier);
+                    opexAggregates.get(qpl.EventMonthYear__c)[9]    += (qpl.Actual__c * multiplier);
                 }
-            } else {
-
+            } else if (qpl.Parent__c == 'Revenue'){
+                revenueAggregates.get(qpl.EventMonthYear__c)[3]     = (qpl.Actual__c * multiplier);
             }
         }
 
@@ -259,6 +286,13 @@ public class InsightsController {
             netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[0] +
                     profitAggregates.get(months[x])[1] + profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
         }
+
+
+        totalsMap.put('revenue', revenueTotals);
+        totalsMap.put('cos', cosTotals);
+        totalsMap.put('profit', profitTotals);
+        totalsMap.put('opex', opexTotals);
+
 
         totals.put('revenue', totalRevenue);
         totals.put('profit', totalProfit);
@@ -276,45 +310,35 @@ public class InsightsController {
                     (reportValues.get(month).get('Repeat Prospect Revenue' ) - reportValues.get(month).get('Repeat Prospect COS')));
         }
 
+        figuresMap.put('TOTALSMAP',totalsMap);
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
         figuresMap.put('opex',opexAggregates);
 
         figuresMap.put('netProfit',netProfitAggregates);
 
-        figuresMap.put('totals',totals);
+        figuresMap.put('TOTALS',totals);
         figuresMap.put('REPORTDATA',reportData);
         figuresMap.put('REPORTVALUES',reportValues);
-        figuresMap.put('months',months);
+        figuresMap.put('MONTHS',months);
 
         figuresMap.put('qbRevenue',revenueAggregates);
         figuresMap.put('qbProfit',profitAggregates);
 
-        figuresMap.put('qbClose',QBClosedMonth__c.getInstance('QBClosedMonth'));
-        figuresMap.put('sfCommit',QBClosedMonth__c.getInstance('SFCommitMonth'));
-        figuresMap.put('nominalStrings',nominalStrings);
+        figuresMap.put('QBCLOSE',QBClosedMonth__c.getInstance('QBClosedMonth'));
+        figuresMap.put('SFCOMMIT',QBClosedMonth__c.getInstance('SFCommitMonth'));
+        figuresMap.put('NOMINALSTRINGS',nominalStrings);
 
         List<SalesDashboardSnapshot__c> priorSnaps =
                                         [SELECT TotalRevenue__c, TotalGrossProfit__c, TotalOpex__c,
-                                                TotalNetProfit__c
+                                                TotalNetProfit__c, CreatedDate, Age__c
                                         FROM SalesDashboardSnapshot__c
                                         WHERE PeriodEnd__c = :Date.valueOf(endDate)
                                         AND TotalRevenue__c != NULL
-                                        ORDER BY CreatedDate DESC LIMIT 6];
+                                        ORDER BY CreatedDate DESC];
 
-        if (priorSnaps.isEmpty()){
-            figuresMap.put('priorTotals',JSON.deserializeUntyped(
-                    '{"TotalRevenue__c" : 0, ' +
-                            '"TotalGrossProfit__c" : 0, ' +
-                            '"TotalOpex__c" : 0, ' +
-                            '"TotalNetProfit__c" : 0}'));
-        } else {
-            figuresMap.put('priorTotals',JSON.deserializeUntyped(
-                    '{"TotalRevenue__c" : ' + (totalRevenue - priorSnaps[priorSnaps.size()-1].TotalRevenue__c) + ', ' +
-                            '"TotalGrossProfit__c" : ' + (totalProfit - priorSnaps[priorSnaps.size()-1].TotalGrossProfit__c) + ', ' +
-                            '"TotalOpex__c" : ' + (totalOpex - priorSnaps[priorSnaps.size()-1].TotalOpex__c) + ', ' +
-                            '"TotalNetProfit__c" :' + ((totalProfit - totalOpex) - priorSnaps[priorSnaps.size()-1].TotalNetProfit__c) +
-                            '}'));
+        if (!priorSnaps.isEmpty()){
+            figuresMap.put('SNAPSHOTS',priorSnaps);
         }
 
         return figuresMap;
@@ -351,11 +375,11 @@ public class InsightsController {
         // return the new values for the budget entries if the month has changed
         if (monthChanged){
             responseData.put('VALUES', new Map<Id,CashFlowEntry__c>(
-            [SELECT Id,Amount__c
-            FROM CashFlowEntry__c
-            WHERE Id = :entryId
-            OR (Source__c = 'Budget'
-            AND BudgetKey__c = :entry.BudgetKey__c)]));
+                                        [SELECT Id,Amount__c
+                                        FROM CashFlowEntry__c
+                                        WHERE Id = :entryId
+                                        OR (Source__c = 'Budget'
+                                        AND BudgetKey__c = :entry.BudgetKey__c)]));
         }
 
         return responseData;
