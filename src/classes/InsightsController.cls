@@ -1306,12 +1306,29 @@ public class InsightsController {
         Map<String,OpportunityHistory> stageHistoryMap = new Map<String,OpportunityHistory>();
         Set<String> stages  = new Set<String>();
 
+        List<Object> stageObjects = new List<Object>();
+
         for (OpportunityHistory stageHistory : stageHistories) {
 
 //            Decimal percent = (Date.valueOf(stageHistory.CreatedDate).daysBetween(endingDate) / totalTime) * 100;
             Decimal percent = (Decimal.valueOf(Date.valueOf(stageHistory.CreatedDate).daysBetween(endingDate)) /
                                 Decimal.valueOf(totalTime)) * 100;
             if (!stages.contains(stageHistory.StageName)){
+
+                stageObjects.add(
+                    JSON.deserializeUntyped(
+                            '{' +
+                            '   "name" : "' + (stageHistory.StageName != null ? stageHistory.StageName.toUpperCase() :
+                                                'UNKNOWN') + '",' +
+//                            '   "width" : "' + (100 - percent) + '"' +
+                            '   "width" : "' + percent + '"' +
+                            '}'
+                    )
+                );
+
+
+
+
                 stages.add(stageHistory.StageName);
 
                 stageHistoryMap.put(percent + ' ' + stageHistory.StageName,stageHistory);
@@ -1336,7 +1353,8 @@ public class InsightsController {
 //        }
 
 
-        return new Map<String,Object>{'FIGURES' => history, 'HISTORY' => stageHistoryMap};
+//        return new Map<String,Object>{'FIGURES' => history, 'HISTORY' => stageHistoryMap};
+        return new Map<String,Object>{'FIGURES' => history, 'HISTORY' => stageObjects};
 //        return history;
     }
 }

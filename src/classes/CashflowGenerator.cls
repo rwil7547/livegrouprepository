@@ -256,7 +256,7 @@ public class CashflowGenerator {
             HttpRequest billRequest = CashFlowUtils.doCallout(billQuery);
             billResponse = billHttp.send(billRequest);
         } else {
-            balanceResponse = calloutsMap.get('bills');
+            billResponse = calloutsMap.get('bills');
         }
 
         if (billResponse.getStatusCode() == 200) {

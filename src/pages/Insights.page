@@ -1087,6 +1087,28 @@
         .oldIndicator {
             background-color: grey;
         }
+        .stageHistoryBlock {
+            height:100%;
+            position:absolute;
+            right:0;
+            top:0;
+            background-color: white;
+        }
+        .REPEAT {
+            background-image: linear-gradient(rgb(129, 148, 187), rgba(255, 255, 255, 0));
+        }
+        .PIPELINE {
+            background-image: linear-gradient(rgb(95, 197, 194), rgba(255, 255, 255, 0));
+        }
+        .COSTED {
+            background-image: linear-gradient(rgb(33, 164, 170), rgba(255, 255, 255, 0));
+        }
+        .CLOSED {
+            background-image: linear-gradient(rgb(44, 116, 148), rgba(255, 255, 255, 0));
+        }
+        .RECONCILIATION {
+            background-image: linear-gradient(rgb(141, 53, 111), rgba(255, 255, 255, 0));
+        }
     </style>
 
     <!--<div style="position: absolute;width: 98%;display:flex;justify-content: center;">-->
@@ -1525,13 +1547,10 @@
                                 <template v-for="record in stage">
 
                                     <template v-if="record.StageName">
-                                             <!--v-on:click="activeReportRow = !activeReportRow && activeReportRow !== record.Id ? record.Id : ''"-->
-
                                         <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'"
-                                             v-on:click="toggleActiveRow(record)"
+                                             v-on:click="toggleActiveRow(record, this)"
                                              v-bind:style="{fontWeight: activeReportRow === record.Id ? 'bold' : '',
                                                                 opacity : (activeReportRow && activeReportRow !== record.Id) ? '0.5' : ''}">
-
                                             <div style="display: flex;">
                                                 <span v-if="record.Owner.ImageLink__c">
                                                     <img v-bind:src="record.Owner.ImageLink__c" height="25px" style="border-radius: 50%;"/>
@@ -1607,9 +1626,25 @@
 
                                         <div class="rowContent" v-show="activeReportRow === record.Id" style="position: relative;">
                                             <div style="width:84.5%;height:60px;margin-left:9.5%;display: flex;color:white;position: relative;">
-                                                <div style="height:100%;background-image: linear-gradient(to bottom, #8194bb, rgba(255,255,255,0));width:60%;">REPEAT PROSPECT</div>
-                                                <div style="height:100%;background-image: linear-gradient(to bottom, #21a5ab, rgba(255,255,255,0));width:15%;">PIPELINE PROSPECT</div>
-                                                <div style="height:100%;background-image: linear-gradient(to bottom, #2c7495, rgba(255,255,255,0));width:25%;">CLOSED WON</div>
+                                                <template v-if="record.figuresHistory">
+                                                    <template v-for="stage in record.figuresHistory.HISTORY">
+                                                        <div class="stageHistoryBlock" v-bind:class="stage.name.split(' ')[0]" v-bind:style="{width : stage.width + '%'}">
+                                                            <span style="padding: 4px;">{{stage.name}}</span>
+                                                        </div>
+
+                                                    </template>
+                                                </template>
+
+
+                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #8194bb, rgba(255,255,255,0));width:60%;">-->
+                                                    <!--REPEAT PROSPECT-->
+                                                <!--</div>-->
+                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #21a5ab, rgba(255,255,255,0));width:15%;">-->
+                                                    <!--PIPELINE PROSPECT-->
+                                                <!--</div>-->
+                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #2c7495, rgba(255,255,255,0));width:25%;">-->
+                                                    <!--CLOSED WON-->
+                                                <!--</div>-->
 
 
                                             </div>
@@ -3211,7 +3246,6 @@
                         app.drawLine('cashFlow', app.cashGraphData,true);
                     }
                 },
-
                 changeDate : function(type){
                     if (type === 'preset') {
 
@@ -3262,7 +3296,6 @@
                     app.splitOpex = !app.splitOpex;
                     app.drawBar('opex',app.graphData['opex']);
                 },
-
                 getOppRecords : function(){
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.getOppRecords}',
@@ -3688,7 +3721,6 @@
                         }
                     });
                 },
-
                 makeDraggable : function() {
 
                     var categories = ['in','paymentRun','payroll','freelancers','creditCard',
@@ -4004,7 +4036,9 @@
                         },
                         {escape: false});
                 },
-                toggleActiveRow : function(record){
+                toggleActiveRow : function(record, object){
+
+                    console.log(object);
                     if (app.activeReportRow){
                         app.activeReportRow = '';
                     } else {
@@ -4015,7 +4049,8 @@
                                 record.Id,
                                 function (result) {
                                     console.log(result['HISTORY']);
-                                    record.figuresHistory = true;
+                                    // console.log(app.record);//record.set('figuresHistory',result);
+                                    Vue.set(record, 'figuresHistory',result);
                                     app.drawHistoryLine(result['FIGURES'],record.Id);
 
                                 });
@@ -4047,7 +4082,6 @@
                 this.loadData();
             },
             mounted:function(){
-                // var vm = this;
                 window.addEventListener('scroll', function(){
                     app.hideNav = window.scrollY > 99;
                     // var scrollPos = window.scrollY;
