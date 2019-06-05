@@ -998,7 +998,7 @@
 
                 if (loop.toString().substr(0, 15) === today.toString().substr(0, 15)) {
                     var todayDiv = document.getElementById(dayId);
-                    todayDiv.style.backgroundColor = '#dbedfc';
+                    todayDiv.style.backgroundColor = '#bed6ea';
                 }
 
                 if (loop.toString().substr(0, 15) === anchor.toString().substr(0, 15)) {
@@ -1459,7 +1459,7 @@
                         '<img class="photo" src="' + result.Project_Manager__r.ImageLink__c + '"/>';
                     document.getElementById('pmImage').innerHTML     = pmImage;
                     document.getElementById('pmName').innerHTML      = result.Project_Manager__r.FirstName + ' ' + result.Project_Manager__r.LastName;
-                    document.getElementById('pmRole').innerHTML      = result.Project_Manager__r.Title;
+                    document.getElementById('pmRole').innerHTML      = result.Project_Manager__r.Title ? result.Project_Manager__r.Title : '';
                 }
 
                 if (result.OpportunityContactRoles) {
@@ -1564,7 +1564,8 @@
                                 reservations[x].Name__c +
                                 '</span>' +
                                 '<span id=\"kitType' + reservations[x].Id + '\" style=\"padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;\">' +
-                                reservations[x].Type__c + ' (' +  reservations[x].Reference__c + ')</div>' +
+                                '<span style=\"display:none;\">' + reservations[x].Type__c + '</span>' +
+                                reservations[x].Model__c + ' (' +  reservations[x].Reference__c + ')</div>' +
                                 '<div class=\"removeKit\" onclick=\"removeKit(\'' + reservations[x].Id + '\')\">' +
                                 '<i class=\"fas fa-times-circle\"></i>' +
                                 '</div>' +
@@ -1899,7 +1900,8 @@
                         result[x].Name__c +
                         '</span>' +
                         '<span id="kitType' + result[x].Id + '" style="padding-top:0px;padding-right:4px;overflow-x:hidden;text-overflow: ellipsis;white-space: nowrap;">' +
-                        result[x].Type__c + ' (' + result[x].Name + ')</span></div>' +
+                        '<span style=\"display:none;\">' + result[x].Type__c + '</span>' +
+                        result[x].Model__c + ' (' +  result[x].Name + ')</div>' +
                         '</div>' +
                         '</div>';
                 }

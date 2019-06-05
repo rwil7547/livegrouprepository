@@ -554,6 +554,13 @@ public class InsightsTest {
     }
 
     @IsTest
+    public static void testGetOppHistory(){
+
+        InsightsController.getOpportunityHistory([SELECT Id FROM Opportunity LIMIT 1].Id);
+
+    }
+
+    @IsTest
     public static void testCashflowGenerator() {
 
         JSONParserQBOInvoiceFlowMock invMock    = new JSONParserQBOInvoiceFlowMock();

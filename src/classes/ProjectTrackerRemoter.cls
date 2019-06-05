@@ -249,7 +249,7 @@ global class ProjectTrackerRemoter {
         }
 
         return [
-                SELECT Id, Name__c, Type__c, Icon__c, Name
+                SELECT Id, Name__c, Type__c, Icon__c, Name, Model__c
                 FROM Equipment__c
                 WHERE Active__c = TRUE
                 AND Onsite__c = TRUE

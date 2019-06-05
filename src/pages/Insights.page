@@ -629,7 +629,7 @@
             border-left: 25px solid transparent;
         }
         .rowContent {
-            width: 98.5%;
+            width: 100%;
             margin-left: -2px;
             position: absolute;
             background-color: white;
@@ -1073,6 +1073,20 @@
         .reportIcon {
             opacity: 0.5;
         }
+        .ageIndicator {
+            color: white;
+            padding-left: 2px;
+            padding-right: 2px;
+            border-radius: 2px;
+            margin-right: 3px;
+            text-align: center;
+        }
+        .newIndicator {
+            background-color: green;
+        }
+        .oldIndicator {
+            background-color: grey;
+        }
     </style>
 
     <!--<div style="position: absolute;width: 98%;display:flex;justify-content: center;">-->
@@ -1511,8 +1525,10 @@
                                 <template v-for="record in stage">
 
                                     <template v-if="record.StageName">
+                                             <!--v-on:click="activeReportRow = !activeReportRow && activeReportRow !== record.Id ? record.Id : ''"-->
+
                                         <div class="colDivider reportRecord" v-bind:class="record.IsClosed ? 'closed' : 'open'"
-                                             v-on:click="activeReportRow = !activeReportRow && activeReportRow !== record.Id ? record.Id : ''"
+                                             v-on:click="toggleActiveRow(record)"
                                              v-bind:style="{fontWeight: activeReportRow === record.Id ? 'bold' : '',
                                                                 opacity : (activeReportRow && activeReportRow !== record.Id) ? '0.5' : ''}">
 
@@ -1533,7 +1549,15 @@
                                             </div>
 
                                             <div>{{ record.Filtered_Job_Number__c }}</div>
-                                            <div><a v-bind:href=" '/' + record.Id " target="_blank" v-on:click="event.stopPropagation();">{{ record.Name }}</a></div>
+                                            <div>
+                                                <span v-if="new Date(record.CreatedDate) > new Date().setDate(new Date(record.CreatedDate).getDate() - 50)"
+                                                      class="ageIndicator newIndicator">NEW</span>
+                                                <span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 50)"
+                                                      class="ageIndicator oldIndicator">INACTIVE</span>
+                                                <a v-bind:href=" '/' + record.Id " target="_blank" v-on:click="event.stopPropagation();">
+                                                    {{ record.Name }}
+                                                </a>
+                                            </div>
                                             <div>{{ record.Account.Name }}</div>
                                             <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
                                             <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
@@ -1571,12 +1595,6 @@
                                                         <div class="recCostOfSale" v-bind:style="'width:' + (100 - record.Gross_Margin__c) + '%'"></div>
                                                         <div class="recProfit" v-bind:style="'width:' + record.Gross_Margin__c + '%'"></div>
                                                     </span>
-                                                    <!--<div style="position:absolute;left:-20px;"  class="reportIcon">-->
-                                                        <!--<i v-bind:class="record.RecStatus__c === 'COMPLETE' ? 'far fa-check-circle' :-->
-                                                                                     <!--record.RecStatus__c === 'IN PROGRESS' ? 'far fa-clock' : 'fas fa-exclamation-circle' "-->
-                                                           <!--v-bind:style="record.RecStatus__c === 'COMPLETE' ? 'color: green;' :-->
-                                                                                      <!--record.RecStatus__c === 'IN PROGRESS' ? 'color: grey;' : 'color: red;'  "></i>-->
-                                                    <!--</div>-->
                                                 </template>
                                                 <template v-if="!record.IsClosed">
                                                     <div class="probabilityIndicator"
@@ -1587,9 +1605,18 @@
                                             </div>
                                         </div>
 
-                                        <template v-if="activeReportRow === record.Id">
-                                            <div class="rowContent">SOME CONTENT</div>
-                                        </template>
+                                        <div class="rowContent" v-show="activeReportRow === record.Id" style="position: relative;">
+                                            <div style="width:84.5%;height:60px;margin-left:9.5%;display: flex;color:white;position: relative;">
+                                                <div style="height:100%;background-image: linear-gradient(to bottom, #8194bb, rgba(255,255,255,0));width:60%;">REPEAT PROSPECT</div>
+                                                <div style="height:100%;background-image: linear-gradient(to bottom, #21a5ab, rgba(255,255,255,0));width:15%;">PIPELINE PROSPECT</div>
+                                                <div style="height:100%;background-image: linear-gradient(to bottom, #2c7495, rgba(255,255,255,0));width:25%;">CLOSED WON</div>
+
+
+                                            </div>
+                                            <div class="figuresHistory" v-bind:id="record.Id" style="height: 330px;padding: 10px;width:95%;margin-top:30px;">
+                                                <!--{{ record }}-->
+                                            </div>
+                                        </div>
 
                                         <template v-if="record.Adjustments__r">
                                         </template>
@@ -1603,7 +1630,7 @@
                     </div>
                 </template>
 
-                <div class="headerDivider reportCols reportTotals">
+                <div class="headerDivider reportCols reportTotals" style="z-index:3;">
                     <div>{{ period }} TOTAL</div>
                     <div>{{'£' + Math.abs((reportFilter['Closed Won'] ? graphData.TOTALSMAP.revenue[0] : 0 ) +
                         (reportFilter['Costed prospect'] ? graphData.TOTALSMAP.revenue[1] : 0 ) +
@@ -1637,14 +1664,22 @@
 
         <span v-show="setting === 'changes'">
 
-        <!--<span v-bind:class="{hiddenTab : setting !== 'changes'}">-->
             <div class="box">
                 <template v-for="entry in changeData">
                     <div class="boxLite">
-                        {{ entry }}
+                        <!--{{ entry }}-->
+
+                        <!--<div style="position:absolute;top:0;right:0;">-->
+                            <!--<span>{{ entry.VALUE[0].TotalRevenue__c  }}</span>-->
+                            <!--<span>{{ entry.VALUE[0].TotalGrossProfit__c }}</span>-->
+                            <!--<span>{{ entry.VALUE[0].TotalOpex__c }}</span>-->
+                            <!--<span>{{ entry.VALUE[0].TotalNetProfit__c }}</span>-->
+
+                        <!--</div>-->
+
+
                     </div>
                 </template>
-                <!--{{ changeData }}-->
             </div>
         </span>
 
@@ -3040,17 +3075,10 @@
         <div v-bind:class="showAttachment ? 'billframe' : 'billframeHidden'"
              v-on:click="attachmentLink = '';showAttachment = false;">
             <div class="box" style="height:422px;position:relative;" v-on:click="event.stopPropagation();">
-
                 <div style="z-index:1">
-                <iframe width="700" height="400" v-bind:src="attachmentLink" frameborder="0" allowfullscreen="allowfullscreen">
-                    Checking quickbooks for the bill PDF...
-
-
-                </iframe>
+                    <iframe width="700" height="400" v-bind:src="attachmentLink" frameborder="0" allowfullscreen="allowfullscreen">
+                    </iframe>
                 </div>
-                <!--<div style="position:absolute;top:0;height:100%;width:100%;padding-top:150px;display:flex;justify-content: center;">-->
-                    <!--Checking quickbooks for the bill PDF...-->
-                <!--</div>-->
             </div>
         </div>
 
@@ -3060,7 +3088,6 @@
         </template>
 
     </div>
-    <!--</div>-->
     <script>
 
 
@@ -3542,7 +3569,6 @@
                             };
 
                             options = Object.assign(app.getOptions(type), options);
-                            // var chart = new google.visualization.LineChart(document.getElementById(type + 'Line'));
                             var chart = new google.visualization.AreaChart(document.getElementById(type + 'Line'));
                             var formatter = new google.visualization.NumberFormat({
                                 prefix: '£'
@@ -3558,13 +3584,12 @@
                 },
                 getOptions : function(type){
                     return {
-                        // width: (type === 'cashFlow') ? '93%' : '90%',
                         fontName: 'Salesforce Sans',
                         fontSize: 13,
                         height: '370px',
                         hAxis: {
                             format: 'MMM d',
-                            height: '30px',
+                            height: (type === 'history') ? '50px' : '30px',
                             slantedText: true,
                             slantedTextAngle: 30
                         },
@@ -3578,22 +3603,96 @@
                             top: 5
                         },
                         legend: {
-                            position: 'none',
-                            bold: true,
-                            alignment: 'center',
-                            fontSize: 8
+                            position: (type !== 'history') ? 'none' : ''
                         },
                         animation: {
                             duration: 500,
                             easing: 'inAndOut',
-                            // easing: 'out'
                             startup: true
                         }
                     }
                 },
+                drawHistoryLine : function(data, recordId){
+                    google.charts.load('current', {
+                        packages: ['corechart', 'line'],'callback': function () {
+
+                            var chartData = new google.visualization.DataTable();
+
+                            chartData.addColumn('string', 'Date');
+                            chartData.addColumn('number', 'Revenue');
+                            chartData.addColumn('number', 'Invoiced');
+                            chartData.addColumn('number', 'Paid');
+                            chartData.addColumn('number', 'Cost of sale');
+                            chartData.addColumn('number', 'Bills recieved');
+                            chartData.addColumn('number', 'Bills paid');
+
+                            Object.keys(data).forEach(function (element) {
+
+                                var revenue      = data[element][1];// ? data[element][1] : null;
+                                var invoiced     = data[element][2];// ? data[element][2] : null;
+                                var paid         = data[element][3];// ? data[element][3] : null;
+                                var costOfSale   = data[element][4];// ? data[element][4] : null;
+                                var expenses     = data[element][5];// ? data[element][5] : null;
+                                var expensesPaid = data[element][6];// ? data[element][6] : null;
+
+                                chartData.addRow([data[element][0] ? new Date(data[element][0]).toString().substring(4,15) : 'NOW',
+                                    revenue, invoiced, paid, costOfSale, expenses, expensesPaid]);
+                            });
+
+                            var options = {
+                                lineWidth: 1,
+                                vAxis: {
+                                    format: 'short'
+                                },
+                                series: {
+                                    0: {color: 'lightgreen'
+                                        // ,
+                                        // format: '£#,###',
+                                        // areaOpacity : (type === 'opex') ? 0.7 : 0.2
+                                    },
+                                    1: {color: 'green'
+                                        // ,
+                                        // format: '£#,###'
+                                    },
+                                    2: {color: 'darkgreen'
+                                        // ,
+                                        // format: '£#,###',
+                                        // areaOpacity : 0.4
+                                    },
+                                    3: {color: 'pink'
+                                        // ,
+                                        // format: '£#,###',
+                                        // areaOpacity : 0.6
+                                    },
+                                    4 : {color: 'red'
+                                        // app.brand.budget,
+                                        // format: '£#,###'
+                                    },
+                                    5 : {color: 'darkred'}
+                                }
+                            };
+
+                            options = Object.assign(app.getOptions('history'), options);
+                            var chart = new google.visualization.AreaChart(document.getElementById(recordId));
+                            var formatter = new google.visualization.NumberFormat({
+                                prefix: '£'
+                            });
+                            formatter.format(chartData, 1);
+                            formatter.format(chartData, 2);
+                            formatter.format(chartData, 3);
+                            formatter.format(chartData, 4);
+                            formatter.format(chartData, 5);
+                            formatter.format(chartData, 6);
+
+                            chart.draw(chartData, options);
+                        }
+                    });
+                },
+
                 makeDraggable : function() {
 
-                    var categories = ['in','paymentRun','payroll','freelancers','creditCard','managementFees','directDebit', 'vat'];
+                    var categories = ['in','paymentRun','payroll','freelancers','creditCard',
+                                      'managementFees','directDebit', 'vat'];
 
                     // use jQuery sortable librabry method to make each strand of the cashflow sortable
                     categories.forEach(function(category){
@@ -3904,6 +4003,25 @@
                             app.getCashflowLong(false);
                         },
                         {escape: false});
+                },
+                toggleActiveRow : function(record){
+                    if (app.activeReportRow){
+                        app.activeReportRow = '';
+                    } else {
+                        app.activeReportRow = record.Id;
+                        if (!record.figuresHistory){
+                            Visualforce.remoting.Manager.invokeAction(
+                                '{!$RemoteAction.InsightsController.getOpportunityHistory}',
+                                record.Id,
+                                function (result) {
+                                    console.log(result['HISTORY']);
+                                    record.figuresHistory = true;
+                                    app.drawHistoryLine(result['FIGURES'],record.Id);
+
+                                });
+                        }
+                    }
+                   // app.activeReportRow = !app.activeReportRow && app.activeReportRow !== record.Id ? record.Id : '';
                 }
             },
             beforeMount() {
