@@ -556,7 +556,26 @@ public class InsightsTest {
     @IsTest
     public static void testGetOppHistory(){
 
-        InsightsController.getOpportunityHistory([SELECT Id FROM Opportunity LIMIT 1].Id);
+        Opportunity opp = [SELECT Id FROM Opportunity WHERE StageName = 'Repeat Prospect' LIMIT 1];
+
+        opp.StageName = 'Costed prospect';
+        opp.Amount = 0;
+        opp.Forecast_COS__c = 0;
+        update opp;
+
+
+        opp.StageName = 'Pipeline prospect';
+        opp.Amount = 100;
+        opp.Forecast_COS__c = 100;
+        update opp;
+
+        InsightsController.getOpportunityHistory(opp.Id);
+
+        Opportunity opp2 = [SELECT Id FROM Opportunity WHERE Quickbooks_COS__c > 0 LIMIT 1];
+        opp2.Event_start__c = Date.today().addDays(-20);
+        opp2.Event_end__c = Date.today().addDays(-20);
+        update opp2;
+        InsightsController.getOpportunityHistory(opp2.Id);
 
     }
 

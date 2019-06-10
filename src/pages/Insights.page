@@ -411,9 +411,9 @@
             font-weight: bold;
         }
         .monthTile {
-            border-left: 0.5px solid lightgrey;
+            /*border-left: 0.5px solid lightgrey;*/
             text-align: right;
-            padding: 4px;
+            /*padding: 4px;*/
             cursor: pointer;
             position: relative;
         }
@@ -786,7 +786,7 @@
             width:100%;
             display: flex;
             justify-content: center;
-            top: 170px;
+            top: 90px;
             z-index: 1000001;
         }
         .newEntryForm {
@@ -805,13 +805,19 @@
             display: flex;
             justify-content: center;
             font-size: 18px;
-            font-weight: bold;
+            /*font-weight: bold;*/
         }
         .entryGrid {
             display : grid;
             grid-template-columns: 30% 70%;
             margin-top:11px;
         }
+        .managerGrid {
+            display : grid;
+            grid-template-columns: 40% 60%;
+            margin-top:11px;
+        }
+
         .recordButtons {
             width: 100%;
             display: flex;
@@ -983,7 +989,7 @@
         .billframe {
             position: fixed;
             top: 0;
-            padding-top:100px;
+            padding-top:30px;
             left:0;
             width: 100%;
             height: 100%;
@@ -997,7 +1003,7 @@
         .manageIcon {
             position: absolute;
             top: 6px;
-            left: 8px;
+            /*left: 8px;*/
         }
         .triangle-right {
             width: 0;
@@ -1097,17 +1103,32 @@
         .REPEAT {
             background-image: linear-gradient(rgb(129, 148, 187), rgba(255, 255, 255, 0));
         }
+        .REPEATline {
+            background-color: rgb(129, 148, 187);
+        }
         .PIPELINE {
             background-image: linear-gradient(rgb(95, 197, 194), rgba(255, 255, 255, 0));
+        }
+        .PIPELINEline {
+            background-color: rgb(95, 197, 194);
         }
         .COSTED {
             background-image: linear-gradient(rgb(33, 164, 170), rgba(255, 255, 255, 0));
         }
+        .COSTEDline {
+            background-color: rgb(33, 164, 170);
+        }
         .CLOSED {
             background-image: linear-gradient(rgb(44, 116, 148), rgba(255, 255, 255, 0));
         }
+        .CLOSEDline {
+            background-color: rgb(44, 116, 148);
+        }
         .RECONCILIATION {
-            background-image: linear-gradient(rgb(141, 53, 111), rgba(255, 255, 255, 0));
+            background-image: linear-gradient(rgb(211, 59, 142), rgba(255, 255, 255, 0));
+        }
+        .RECONCILIATIONline {
+            background-color: rgb(211, 59, 142);
         }
     </style>
 
@@ -1178,7 +1199,7 @@
                         </template>
                         <div class="viewOption" v-on:click="app.setting = 'cashflow';window.scrollTo(0,0);"
                              v-bind:class="{ activeSetting : setting === 'cashflow'}">
-                            <i class="fas fa-pound-sign"></i> CASH FLOW {{window.scrollTop}}</div>
+                            <i class="fas fa-pound-sign"></i> CASH FLOW</div>
                     </div>
                 </div>
             </div>
@@ -1211,6 +1232,11 @@
                 <template v-if="showChanges && setting === 'graph'">
                     <div class="historyIcon"  v-show="!hideNav || showSideOptions">
                         <i class="fas fa-camera"></i>
+                    </div>
+                </template>
+                <template v-if="showChanges && setting === 'manage'">
+                    <div class="historyIcon" v-on:click="getQBSourceOptions();">
+                        <i class="fas fa-cog" style="margin-top: 2px;"></i>
                     </div>
                 </template>
                 <template v-if="setting === 'cashflow' && showManager && manageAllowed">
@@ -1569,9 +1595,9 @@
 
                                             <div>{{ record.Filtered_Job_Number__c }}</div>
                                             <div>
-                                                <span v-if="new Date(record.CreatedDate) > new Date().setDate(new Date(record.CreatedDate).getDate() - 50)"
+                                                <span v-if="new Date(record.CreatedDate) > new Date().setDate(new Date(record.CreatedDate).getDate() - 5)"
                                                       class="ageIndicator newIndicator">NEW</span>
-                                                <span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 50)"
+                                                <span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 5)"
                                                       class="ageIndicator oldIndicator">INACTIVE</span>
                                                 <a v-bind:href=" '/' + record.Id " target="_blank" v-on:click="event.stopPropagation();">
                                                     {{ record.Name }}
@@ -1625,13 +1651,32 @@
                                         </div>
 
                                         <div class="rowContent" v-show="activeReportRow === record.Id" style="position: relative;">
-                                            <div style="width:84.5%;height:60px;margin-left:9.5%;display: flex;color:white;position: relative;">
+                                            <div style="width:84.2%;height:55px;margin-left:9.7%;display: flex;color:white;position: relative;">
                                                 <template v-if="record.figuresHistory">
                                                     <template v-for="stage in record.figuresHistory.HISTORY">
-                                                        <div class="stageHistoryBlock" v-bind:class="stage.name.split(' ')[0]" v-bind:style="{width : stage.width + '%'}">
-                                                            <span style="padding: 4px;">{{stage.name}}</span>
-                                                        </div>
-
+                                                        <template v-if="stage.type === 'stage'">
+                                                            <div class="stageHistoryBlock" v-bind:class="stage.name.split(' ')[0]" v-bind:style="{width : stage.width + '%'}">
+                                                                <span v-if="stage.name !== 'RECONCILIATION'" style="height:335px;width:1.5px;position:absolute;left:0;z-index:1;"
+                                                                       v-bind:class="stage.name.split(' ')[0] + 'line'" >
+                                                                    <span style="position:absolute;bottom:-5px;left:-4px;width:10px;height:10px;border-radius: 50%;background-color: white;border:1px solid black;"></span>
+                                                                </span>
+                                                                <div style="padding: 4px;">{{stage.name}}</div>
+                                                                <span v-if="stage.imageLink" style="margin-left: 4px;">
+                                                                    <img v-bind:src="stage.imageLink" height="25px" style="position:absolute;top:22px;border-radius: 50%;"/>
+                                                                    <span style="position: absolute;top:20px;left:33px;"> {{ new Date(stage.createdDate).toString().substring(0,15)}}</span>
+                                                                </span>
+                                                                <!--<div style="padding-left: 4px;">{{stage.firstName + ' ' + stage.lastName}}</div>-->
+                                                            </div>
+                                                        </template>
+                                                        <template v-if="stage.type === 'eventDate'">
+                                                            <div v-bind:style="{width : stage.width + '%'}" style="position:absolute;top:58px;right:0;min-width:50px;">
+                                                                <span style="height:255px;margin-top:22px;width:1.5px;position:absolute;left:0;z-index:1;background-color: black;">
+                                                                    <span style="position:absolute;bottom:-5px;left:-4px;width:10px;height:10px;border-radius: 50%;background-color: white;border:1px solid black;"></span>
+                                                                </span>
+                                                                <!--<span style="padding: 4px;background-color: white;border: 1px solid black;color:black;border-radius: 3px;">{{new Date(stage.date).toString().substring(0,15)}}</span>-->
+                                                                <span style="padding: 4px;background-color: white;border: 1px solid black;color:black;border-radius: 3px;margin-left:-34px;">Event end</span>
+                                                            </div>
+                                                        </template>
                                                     </template>
                                                 </template>
 
@@ -1648,7 +1693,7 @@
 
 
                                             </div>
-                                            <div class="figuresHistory" v-bind:id="record.Id" style="height: 330px;padding: 10px;width:95%;margin-top:30px;">
+                                            <div class="figuresHistory" v-bind:id="record.Id" style="height: 320px;padding: 10px;width:95%;margin-top:30px;">
                                                 <!--{{ record }}-->
                                             </div>
                                         </div>
@@ -1731,46 +1776,59 @@
                     <div class="yearGrid">
                         <div></div>
                         <template v-for="month,index in graphData.MONTHS">
-                            <div style="height:25px;display: flex;justify-content: center;padding-top:5px;"
+                            <div style="height:25px;display: flex;padding-top:5px;padding-left:4px;"
                                  v-bind:style="new Date(month) < graphData.SFCOMMIT.Month__c ?
                                         'background-color:#00a1e0;' : 'background-color:#ebeaea;'"   >
-                                <i class="fas " style="font-size: 15px;opacity: 0.2"
-                                   v-bind:class="new Date(month) < graphData.SFCOMMIT.Month__c ? 'fa-lock' : 'fa-lock-open'"></i>
+                                <i v-if="new Date(month) < graphData.SFCOMMIT.Month__c"
+                                   class="fas fa-lock" style="font-size: 15px;opacity: 0.4;"></i>
+                                <i v-if="new Date(month) < graphData.SFCOMMIT.Month__c" v-on:click="configureAdjustment(month)"
+                                   class="fas fa-edit" style="font-size: 15px;opacity: 0.4;cursor:pointer;margin-left: 5px;"></i>
                             </div>
                         </template>
                     </div>
                     <div class="yearGrid">
                         <div>
-                            <div style="padding: 2px;">&nbsp;</div>
+                            <div >&nbsp;</div>
                             <div>REVENUE</div>
-                            <div>PROFIT</div>
                             <div>COST OF SALE</div>
+                            <div>PROFIT</div>
                         </div>
                         <template v-for="month,index in graphData.MONTHS">
                             <div class="monthTile">
                                 <div style="font-weight: bold;">{{month}}
                                 </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'revenue'">
+                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'revenue'" v-on:mouseout="hoverTile = ''"
+                                           v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
+                                                            graphData['revenue'][month][0] !== graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] )?
+                                                            '#fbe5e5' : ''}">
                                     {{'£' + Math.abs(graphData['revenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'cos'">
-                                    {{'£' + Math.abs(graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'profit'">
+                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'cos'" v-on:mouseout="hoverTile = ''"
+                                     v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
+                                                            (graphData['revenue'][month][0] - graphData['profit'][month][0])
+                                                            !== graphData.QUICKBOOKSFIGURES.qbCOS[month][0] )?
+                                                            '#fbe5e5' : ''}">
                                     {{'£' + Math.abs(graphData['revenue'][month][0] - graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                </div>
+                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'profit'" v-on:mouseout="hoverTile = ''"
+                                     v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
+                                                            graphData['profit'][month][0]
+                                                            !== (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0] ))?
+                                                            '#fbe5e5' : ''}">
+                                    {{'£' + Math.abs(graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                             </div>
                         </template>
-                        <div class="monthTile">
-                            <div style="font-weight: bold;">TOTAL</div>
+                        <div class="monthTile" style="font-weight: bold;">
+                            <div >TOTAL</div>
                             <div class="figureTile">
                                 {{'£' + Math.abs(graphData.TOTALS.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                             </div>
                             <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                {{'£' + Math.abs(graphData.TOTALS.revenue - graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                             </div>
                             <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.revenue - graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                {{'£' + Math.abs(graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                             </div>
                         </div>
                     </div>
@@ -1784,129 +1842,117 @@
                     <div class="yearGrid">
                         <div></div>
                         <template v-for="month,index in graphData.MONTHS">
-                            <div style="height:25px;display: flex;justify-content: center;padding-top:5px;"
+                            <div style="height:25px;display: flex;padding-top:5px;padding-left:4px;"
                                  v-bind:style="new Date(month) < graphData.SFCOMMIT.Month__c ?
                                         'background-color:green' : 'background-color:#ebeaea;'"   >
-                                <i class="fas " style="font-size: 15px;opacity: 0.2"
-                                   v-bind:class="new Date(month) < graphData.SFCOMMIT.Month__c ? 'fa-lock' : 'fa-lock-open'"></i>
+                                <i class="fas " style="font-size: 15px;opacity: 0.4;color:white;"
+                                   v-bind:class="new Date(month) < graphData.SFCOMMIT.Month__c ? 'fa-lock' : ''"></i>
                             </div>
                         </template>
                     </div>
                     <div class="yearGrid">
                         <div>
-                            <div style="padding: 2px;">&nbsp;</div>
+                            <div >&nbsp;</div>
                             <div>REVENUE</div>
-                            <div>PROFIT</div>
                             <div>COST OF SALE</div>
+                            <div>PROFIT</div>
                             <div>OPEX</div>
                         </div>
                         <template v-for="month,index in graphData.MONTHS">
                             <div class="monthTile">
                                 <div style="font-weight: bold;">{{month}}
                                 </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'revenue'">
-                                    {{'£' + Math.abs(graphData['revenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'cos'">
-                                    {{'£' + Math.abs(graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                                <div class="figureTile" v-on:mouseenter="hoverTile = index + 'profit'">
-                                    {{'£' + Math.abs(graphData['revenue'][month][0] - graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                                <div class="figureTile">
-                                    {{'£' + Math.abs(graphData['opex'][month][1]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                            </div>
-                        </template>
-                        <div class="monthTile">
-                            <div style="font-weight: bold;">TOTAL</div>
-                            <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                            </div>
-                            <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                            </div>
-                            <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.revenue - graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                            </div>
-                            <div class="figureTile">
-                                {{'£' + Math.abs(graphData.TOTALS.opex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-
-                <div class="boxLite">
-                    <div class="manageIcon">
-                        <img src="{!$Resource.QuickbooksCF}" height="30px" />
-                    </div>
-                    <div class="yearGrid">
-                        <div>
-                            <div style="padding: 2px;">&nbsp;</div>
-                            <div>REVENUE</div>
-                            <div>PROFIT</div>
-                            <div>COST OF SALE</div>
-                            <div>OPERATING COSTS</div>
-                        </div>
-                        <template v-for="month,index in graphData.MONTHS">
-                            <div class="monthTile">
-                                <div style="font-weight: bold;">{{month}}</div>
                                 <div class="figureTile"  v-bind:class="hoverTile === index + 'revenue' ? 'selectedTile' : ''">
-                                    {{'£' + Math.abs(graphData['qbRevenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.qbRevenue[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                                 <div class="figureTile"  v-bind:class="hoverTile === index + 'cos' ? 'selectedTile' : ''">
-                                    {{'£' + Math.abs(graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.qbCOS[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
-                                <div class="figureTile"  v-bind:class="hoverTile === index + 'profit' ? 'selectedTile' : ''">
-                                    {{'£' + Math.abs(graphData['qbRevenue'][month][0] - graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
-                                </div>
-                                <div class="figureTile"  v-bind:class="hoverTile === index + 'opex' ? 'selectedTile' : ''">
-                                    {{'£' + Math.abs(graphData['opex'][month][1]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                <div class="figureTile" v-bind:class="hoverTile === index + 'profit' ? 'selectedTile' : ''" >
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                                 <div class="figureTile">
-                                    {{'£' + Math.abs(graphData['opex'][month][1]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.qbOpex[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                             </div>
                         </template>
-                        <div class="monthTile">
-                            <div style="font-weight: bold;">TOTAL</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.revenue - graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.opex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                        <div class="monthTile" style="font-weight: bold;">
+                            <div >TOTAL</div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.qbRevenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.qbCOS).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.qbRevenue - graphData.TOTALS.qbCOS).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.qbOpex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+
+                <!-- BUDGET FIGURES -->
                 <div class="boxLite">
-                    <div class="manageIcon">
-                        <img src="{!$Resource.QuickbooksCF}" height="30px" />
-                        <span style="font-size: 20px;margin-left: 10px;">BUDGET</span>
+                    <div class="manageIcon" style="font-weight: bold;">
+                        BUDGET {{ period }}
                     </div>
                     <div class="yearGrid">
                         <div>
-                            <div style="padding: 2px;">&nbsp;</div>
+                            <div >&nbsp;</div>
                             <div>REVENUE</div>
-                            <div>PROFIT</div>
                             <div>COST OF SALE</div>
-                            <div>OPERATING COSTS</div>
+                            <div>PROFIT</div>
+                            <div>OPEX</div>
                         </div>
                         <template v-for="month,index in graphData.MONTHS">
                             <div class="monthTile">
-                                <div style="font-weight: bold;">{{month}}</div>
-                                <div class="figureTile">{{'£' + Math.abs(graphData['qbRevenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                                <div class="figureTile">{{'£' + Math.abs(graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                                <div class="figureTile">{{'£' + Math.abs(graphData['qbRevenue'][month][0] - graphData['qbProfit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                                <div class="figureTile">{{'£' + Math.abs(graphData['opex'][month][1]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                                <div style="font-weight: bold;">{{month}}
+                                </div>
+                                <div class="figureTile"  v-bind:class="hoverTile === index + 'revenue' ? 'selectedTile' : ''"
+                                     v-bind:style="{ backgroundColor : new Date(month) < graphData.SFCOMMIT.Month__c ?
+                                                    graphData.QUICKBOOKSFIGURES.budgetRevenue[month][0] > graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] ?
+                                                    '#fbe5e5' : '#cbfacb' : ''}">
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.budgetRevenue[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                </div>
+                                <div class="figureTile"  v-bind:class="hoverTile === index + 'cos' ? 'selectedTile' : ''"
+                                     v-bind:style="{ backgroundColor : new Date(month) < graphData.SFCOMMIT.Month__c ?
+                                                    graphData.QUICKBOOKSFIGURES.budgetCOS[month][0] > graphData.QUICKBOOKSFIGURES.qbCOS[month][0] ?
+                                                    '#fbe5e5' : '#cbfacb' : ''}">
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.budgetCOS[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                </div>
+                                <div class="figureTile" v-bind:class="hoverTile === index + 'profit' ? 'selectedTile' : ''"
+                                     v-bind:style="{ backgroundColor : new Date(month) < graphData.SFCOMMIT.Month__c ?
+                                                    (graphData.QUICKBOOKSFIGURES.budgetRevenue[month][0] - graphData.QUICKBOOKSFIGURES.budgetCOS[month][0])
+                                                    < (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0]) ?
+                                                    '#fbe5e5' : '#cbfacb' : ''}" >
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.budgetRevenue[month][0] - graphData.QUICKBOOKSFIGURES.budgetCOS[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                </div>
+                                <div class="figureTile"
+                                     v-bind:style="{ backgroundColor : new Date(month) < graphData.SFCOMMIT.Month__c ?
+                                                    (graphData.QUICKBOOKSFIGURES.budgetOpex[month][0] < graphData.QUICKBOOKSFIGURES.qbOpex[month][0]) ?
+                                                    '#fbe5e5' : '#cbfacb' : ''}" >
+                                    {{'£' + Math.abs(graphData.QUICKBOOKSFIGURES.budgetOpex[month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                                </div>
                             </div>
                         </template>
-                        <div class="monthTile">
-                            <div style="font-weight: bold;">TOTAL</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.revenue - graphData.TOTALS.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
-                            <div class="figureTile">{{'£' + Math.abs(graphData.TOTALS.opex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
+                        <div class="monthTile" style="font-weight: bold;">
+                            <div >TOTAL</div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.budgetRevenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.budgetCOS).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.budgetRevenue - graphData.TOTALS.budgetCOS).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
+                            <div class="figureTile">
+                                {{'£' + Math.abs(graphData.TOTALS.budgetOpex).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1936,7 +1982,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="boxLite">
+                <div class="boxLite" style="width: 100%;">
                     <div id="cashFlowLine" class="graph"></div>
                 </div>
 
@@ -2993,6 +3039,100 @@
             </div>
         </span>
 
+        <template v-if="manager.configuring">
+            <div class="modalBackdrop" v-on:click="manager.configuring = false;"></div>
+            <div class="newEntryFormHolder">
+                <div class="newEntryForm">
+                    <div class="entryFormTitle">CONFIGURE SOURCE INFORMATION</div>
+                    <div class="managerGrid">
+                        <div>Salesforce commit date: </div>
+                        <select v-model="QBSourceOptions.sfCommit">
+                            <option selected="true">{{QBSourceOptions.sfCommit}}</option>
+                            <template v-for="month in graphData.MONTHS">
+                                <option v-if="new Date(month) >= new Date(graphData.SFCOMMIT.Month__c)">{{month}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="managerGrid">
+                        <div>Quickbooks close date:</div>
+                        <select v-model="QBSourceOptions.qbCommit">
+                            <option selected="true">{{QBSourceOptions.qbCommit}}</option>
+                            <template v-for="month in graphData.MONTHS">
+                                <option v-if="new Date(month) >= new Date(graphData.QBCLOSE.Month__c)">{{month}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="managerGrid" v-if="QBSourceOptions">
+                        <div>Forecast source:</div>
+                        <select v-model="QBSourceOptions.forecastSource">
+                            <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
+                                <option >{{Budget.Name}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="managerGrid" v-if="QBSourceOptions">
+                        <div>Budget source:</div>
+                        <select v-model="QBSourceOptions.budgetSource">
+                            <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
+                                <option >{{Budget.Name}}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <br/>
+                    <div class="recordButtons">
+                        <div v-on:click="manager.configuring = false;" class="recordButton cancel">
+                            <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                        </div>
+                        <div v-on:click="setQBSourceOptions()" class="recordButton save">
+                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template v-if="manager.adjusting">
+            <div class="modalBackdrop" v-on:click="manager.adjusting = false;"></div>
+            <div class="newEntryFormHolder">
+                <div class="newEntryForm">
+                    <div class="entryFormTitle">ADJUSTMENT TO {{ manager.adjustmentMonth.toUpperCase() }}</div>
+                    <div class="managerGrid">
+                        <div>Revenue: </div>
+                        <input type="number" v-model="manager.adjustmentRevenue" v-bind:step="0.01"
+                               v-on:keyup="manager.adjustmentProfit = (manager.adjustmentRevenue - manager.adjustmentCOS).toFixed(2)"
+                               class="amountInput" style="height: 32px;"
+                               v-bind:style="{color : manager.adjustmentRevenue < 0 ? 'red' : ''}" />
+                    </div>
+                    <div class="managerGrid">
+                        <div>Cost of sale:</div>
+                        <input type="number" v-model="manager.adjustmentCOS" v-bind:step="0.01"
+                               v-on:keyup="manager.adjustmentProfit = (manager.adjustmentRevenue - manager.adjustmentCOS).toFixed(2)"
+                               class="amountInput" style="height: 32px;"
+                               v-bind:style="{color : manager.adjustmentCOS < 0 ? 'red' : ''}"/>
+                    </div>
+                    <div class="managerGrid">
+                        <div>Gross profit:</div>
+                        <input type="number" v-model="manager.adjustmentProfit" v-bind:step="0.01"
+                               class="amountInput" style="height: 32px;" disabled="true"
+                               v-bind:style="{color : manager.adjustmentProfit < 0 ? 'red' : ''}"/>
+                    </div>
+                    <div class="managerGrid">
+                        <div>Comment:</div>
+                        <input type="text" v-model="manager.adjustmentComment"/>
+                    </div>
+                    <br/>
+                    <div class="recordButtons">
+                        <div v-on:click="manager.adjusting = false;" class="recordButton cancel">
+                            <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                        </div>
+                        <div v-on:click="postAdjustment()" class="recordButton save">
+                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
         <template v-if="addingEntry">
             <div class="modalBackdrop" v-on:click="addingEntry = false;"></div>
             <div class="newEntryFormHolder">
@@ -3167,6 +3307,16 @@
                 weighted : true,
                 pipeline : true,
                 splitOpex : false,
+                manager : {
+                    configuring : false,
+                    adjusting : false,
+                    adjustmentMonth : '',
+                    adjustmentRevenue : 0,
+                    adjustmentCOS : 0,
+                    adjustmentProfit : 0,
+                    adjustmentComment : ''
+                },
+                QBSourceOptions : '',
                 responsePending : false,
                 rerunningFlow : '',
                 addingEntry : false,
@@ -3674,6 +3824,7 @@
 
                             var options = {
                                 lineWidth: 1,
+                                fontSize: '8px',
                                 vAxis: {
                                     format: 'short'
                                 },
@@ -4049,14 +4200,88 @@
                                 record.Id,
                                 function (result) {
                                     console.log(result['HISTORY']);
-                                    // console.log(app.record);//record.set('figuresHistory',result);
                                     Vue.set(record, 'figuresHistory',result);
                                     app.drawHistoryLine(result['FIGURES'],record.Id);
 
                                 });
                         }
                     }
-                   // app.activeReportRow = !app.activeReportRow && app.activeReportRow !== record.Id ? record.Id : '';
+                },
+                getQBSourceOptions : function(){
+                    app.manager.configuring = true;
+                    if (!app.QBSourceOptions){
+                        Visualforce.remoting.Manager.invokeAction(
+                            '{!$RemoteAction.InsightsController.getQBSourceOptions}',
+                            app.period,
+                            function (result) {
+                                app.QBSourceOptions = result;
+                                Vue.set(app.QBSourceOptions,'sfCommit',
+                                    new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
+                                    new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[2]);
+                                Vue.set(app.QBSourceOptions,'qbCommit',
+                                    new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
+                                    new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[2]);
+
+                                console.log(app.QBSourceOptions);
+
+                            });
+                    }
+                },
+                setQBSourceOptions : function(){
+
+                    app.manager.configuring = false;
+                    app.responsePending     = true;
+                    app.message             = 'Commiting Salesfore data and syncing Quickbooks data...'
+
+/*                    Visualforce.remoting.Manager.invokeAction(
+                        <!--'{!$RemoteAction.InsightsController.setQBSourceOptions}',-->
+                        app.period,
+                        function (result) {
+                            app.QBSourceOptions = result;
+                            Vue.set(app.QBSourceOptions,'sfCommit',
+                                new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
+                                new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[2]);
+                            Vue.set(app.QBSourceOptions,'qbCommit',
+                                new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
+                                new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[2]);
+
+                            console.log(app.QBSourceOptions);
+
+                        });
+
+                    setQBSourceOptions(String budgetId, String forecastId, String year, String month)*/
+
+                },
+                configureAdjustment : function(month){
+                    app.manager.adjusting           = true;
+                    app.manager.adjustmentMonth     = month;
+                    app.manager.adjustmentRevenue   = (app.graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - app.graphData['revenue'][month][0]).toFixed(2);
+                    app.manager.adjustmentCOS       = (app.graphData.QUICKBOOKSFIGURES.qbCOS[month][0] - (app.graphData['revenue'][month][0] - app.graphData['profit'][month][0])).toFixed(2);
+                    app.manager.adjustmentProfit    = (app.manager.adjustmentRevenue - app.manager.adjustmentCOS).toFixed(2);
+                },
+                postAdjustment : function(){
+                    app.manager.adjusting = false;
+                    app.responsePending = true;
+                    app.message = 'posting adjustment...';
+
+                    console.log(app.manager);
+
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.InsightsController.postAdjustment}',
+                        new Date(app.adjustmentMonth),
+                        parseFloat(app.adjustmentRevenue),
+                        parseFloat(app.adjustmentCOS),
+                        parseFloat(app.adjustmentProfit),
+                        app.adjustmentComment,
+                        function (result) {
+                            app.responsePending = false;
+                            app.message = '';
+                            console.log(result);
+                            if (result){
+                                app.loadData();
+                            }
+                            app.QBSourceOptions = result;
+                        });
                 }
             },
             beforeMount() {
@@ -4084,12 +4309,6 @@
             mounted:function(){
                 window.addEventListener('scroll', function(){
                     app.hideNav = window.scrollY > 99;
-                    // var scrollPos = window.scrollY;
-                    // var winHeight = window.innerHeight;
-                    // var docHeight = document.documentElement.scrollHeight;
-                    // var perc = 100 * scrollPos / (docHeight - winHeight);
-                    // console.log(scrollPos);
-                    // vm.$el.style.width = perc + '%'
                 })
             }
         });

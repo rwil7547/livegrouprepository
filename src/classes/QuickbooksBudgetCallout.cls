@@ -19,7 +19,6 @@ public class QuickbooksBudgetCallout {
         Map<String,List<String>> parentInfo = getNominalMap();
 
         String fiscalYear;
-//        Integer yearsToAdd;
         Date startDate;
         Date closeMonth;
         Boolean closeMonthChanged = false;
@@ -27,21 +26,19 @@ public class QuickbooksBudgetCallout {
 
         if (year.equalsIgnoreCase('PREVIOUS FY')) {
             fiscalYear = 'LAST_FISCAL_YEAR';
-//            yearsToAdd = 0;
             startDate  = (Date.today().month() < 4) ?
                     Date.newInstance(Date.today().year() -2, 04, 01) :
                     Date.newInstance(Date.today().year() -1, 04, 01);
-            closeMonth = Date.valueOf(closeMonthString);
+            closeMonth = Date.valueOf(closeMonthString).toStartOfMonth();
             if (closeMonth != QBClosedMonth__c.getInstance('QBClosedMonth').Month__c){
                 closeMonthChanged = true;
             }
         } else if (year.equalsIgnoreCase('CURRENT FY')){
             fiscalYear = 'THIS_FISCAL_YEAR';
-//            yearsToAdd = 0;
             startDate  = (Date.today().month() < 4) ?
                           Date.newInstance(Date.today().year() -1, 04, 01) :
                           Date.newInstance(Date.today().year(), 04, 01);
-            closeMonth = Date.valueOf(closeMonthString);
+            closeMonth = Date.valueOf(closeMonthString).toStartOfMonth();
             if (closeMonth != QBClosedMonth__c.getInstance('QBClosedMonth').Month__c){
                 closeMonthChanged = true;
             }

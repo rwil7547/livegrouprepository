@@ -87,26 +87,39 @@ public class InsightsController {
         Map<String,Object> figuresMap                   = new Map<String,Object>();
 
         // declare variables to host response map data keys and values
-        Map<String,List<Decimal>> revenueAggregates     = buildMap(start,endD);
-        Map<String,List<Decimal>> profitAggregates      = buildMap(start,endD);
-        Map<String,List<Decimal>> opexAggregates        = buildMap(start,endD);
-        Map<String,List<Decimal>> netProfitAggregates   = buildMap(start,endD);
-        Map<String,List<Decimal>> qbRevenueAggregates   = buildMap(start,endD);
-        Map<String,List<Decimal>> qbProfitAggregates    = buildMap(start,endD);
-        Map<String,Map<String,List<Object>>> reportData = new Map<String,Map<String,List<Object>>>();
-        Map<String,Map<String,Decimal>> reportValues    = new Map<String,Map<String,Decimal>>();
-        Set<String> nominalStrings                      = new Set<String>();
+        Map<String,List<Decimal>> revenueAggregates         = buildMap(start,endD);
+        Map<String,List<Decimal>> profitAggregates          = buildMap(start,endD);
+        Map<String,List<Decimal>> opexAggregates            = buildMap(start,endD);
+        Map<String,List<Decimal>> netProfitAggregates       = buildMap(start,endD);
+        Map<String,List<Decimal>> qbRevenueAggregates       = buildMap(start,endD);
+        Map<String,List<Decimal>> qbCOSAggregates           = buildMap(start,endD);
+        Map<String,List<Decimal>> qbOpexAggregates          = buildMap(start,endD);
+        Map<String,List<Decimal>> budgetRevenueAggregates   = buildMap(start,endD);
+        Map<String,List<Decimal>> budgetCOSAggregates       = buildMap(start,endD);
+        Map<String,List<Decimal>> budgetOpexAggregates      = buildMap(start,endD);
+        Map<String,Map<String,List<Object>>> reportData     = new Map<String,Map<String,List<Object>>>();
+        Map<String,Map<String,Decimal>> reportValues        = new Map<String,Map<String,Decimal>>();
+        Map<String,Map<String,List<Decimal>>> qbValues      = new Map<String,Map<String,List<Decimal>>>();
+        Set<String> nominalStrings                          = new Set<String>();
 
-        Map<String,Decimal> totals                      = new Map<String,Decimal>();
-        Decimal totalRevenue    = 0;
-        Decimal totalProfit     = 0;
-        Decimal totalOpex       = 0;
+        // declare variables to hold all totals figures
+        Map<String,Decimal> totals  = new Map<String,Decimal>();
+        Decimal totalRevenue        = 0;
+        Decimal totalProfit         = 0;
+        Decimal totalOpex           = 0;
+        Decimal totalqbRevenue      = 0;
+        Decimal totalqbCOS          = 0;
+        Decimal totalqbOpex         = 0;
+        Decimal totalBudgetRevenue  = 0;
+        Decimal totalBudgetCOS      = 0;
+        Decimal totalBudgetOpex     = 0;
 
-        Map<String,List<Decimal>> totalsMap             = new Map<String,List<Decimal>>();
-        List<Decimal> revenueTotals                     = new List<Decimal>{0,0,0,0};
-        List<Decimal> cosTotals                         = new List<Decimal>{0,0,0,0};
-        List<Decimal> profitTotals                      = new List<Decimal>{0,0,0,0};
-        List<Decimal> opexTotals                        = new List<Decimal>{0,0,0,0};
+
+        Map<String,List<Decimal>> totalsMap  = new Map<String,List<Decimal>>();
+        List<Decimal> revenueTotals          = new List<Decimal>{0,0,0,0};
+        List<Decimal> cosTotals              = new List<Decimal>{0,0,0,0};
+        List<Decimal> profitTotals           = new List<Decimal>{0,0,0,0};
+        List<Decimal> opexTotals             = new List<Decimal>{0,0,0,0};
 
         // work out if start date and end date are not clean start and end dates
         Decimal numberOfDaysStart   = Date.daysInMonth(startDate.year(), startDate.month());
@@ -261,7 +274,9 @@ public class InsightsController {
 
             if (qpl.Opex__c){
 
-                totalOpex += (qpl.Actual__c * multiplier);
+                totalOpex       += (qpl.Actual__c * multiplier);
+                totalqbOpex     += (qpl.Actual__c * multiplier);
+                totalBudgetOpex += (qpl.Budget__c * multiplier);
                 opexAggregates.get(qpl.EventMonthYear__c)[1]        += (qpl.Actual__c * multiplier);
                 opexAggregates.get(qpl.EventMonthYear__c)[2]        += (qpl.Budget__c * multiplier);
                 profitAggregates.get(qpl.EventMonthYear__c)[3]      += (qpl.Actual__c * multiplier);
@@ -275,8 +290,21 @@ public class InsightsController {
                 } else if (qpl.Grouping__c == 'Office' || qpl.Grouping__c == 'Other'){
                     opexAggregates.get(qpl.EventMonthYear__c)[9]    += (qpl.Actual__c * multiplier);
                 }
+                qbOpexAggregates.get(qpl.EventMonthYear__c)[0]      += (qpl.Actual__c * multiplier);
+                budgetOpexAggregates.get(qpl.EventMonthYear__c)[0]  += (qpl.Budget__c * multiplier);
+
             } else if (qpl.Parent__c == 'Revenue'){
-                revenueAggregates.get(qpl.EventMonthYear__c)[3]     = (qpl.Actual__c * multiplier);
+                totalqbRevenue      += (qpl.Actual__c * multiplier);
+                totalBudgetRevenue  += (qpl.Budget__c * multiplier);
+                revenueAggregates.get(qpl.EventMonthYear__c)[3]         = (qpl.Actual__c * multiplier);
+                qbRevenueAggregates.get(qpl.EventMonthYear__c)[0]      += (qpl.Actual__c * multiplier);
+                budgetRevenueAggregates.get(qpl.EventMonthYear__c)[0]  += (qpl.Budget__c * multiplier);
+
+            } else if (qpl.Parent__c == 'Cost of sales'){
+                totalqbCOS      += (qpl.Actual__c * multiplier);
+                totalBudgetCOS  += (qpl.Budget__c * multiplier);
+                qbCOSAggregates.get(qpl.EventMonthYear__c)[0]      += (qpl.Actual__c * multiplier);
+                budgetCOSAggregates.get(qpl.EventMonthYear__c)[0]  += (qpl.Budget__c * multiplier);
             }
         }
 
@@ -299,6 +327,12 @@ public class InsightsController {
         totals.put('profit', totalProfit);
         totals.put('opex', totalOpex);
         totals.put('netProfit', totalProfit - totalOpex);
+        totals.put('qbRevenue', totalqbRevenue);
+        totals.put('qbCOS', totalqbCOS);
+        totals.put('qbOpex', totalqbOpex);
+        totals.put('budgetRevenue', totalBudgetRevenue);
+        totals.put('budgetCOS', totalBudgetCOS);
+        totals.put('budgetOpex', totalBudgetOpex);
 
         for (String month : reportValues.keySet()){
             reportValues.get(month).put('Closed Won Profit',
@@ -311,11 +345,19 @@ public class InsightsController {
                     (reportValues.get(month).get('Repeat Prospect Revenue' ) - reportValues.get(month).get('Repeat Prospect COS')));
         }
 
+        qbValues.put('qbRevenue',qbRevenueAggregates);
+        qbValues.put('qbCOS',qbCOSAggregates);
+        qbValues.put('qbOpex',qbOpexAggregates);
+        qbValues.put('budgetRevenue',budgetRevenueAggregates);
+        qbValues.put('budgetCOS',budgetCOSAggregates);
+        qbValues.put('budgetOpex',budgetOpexAggregates);
+
+
+        // POPULATE FINAL RESPONSE Mp
         figuresMap.put('TOTALSMAP',totalsMap);
         figuresMap.put('revenue',revenueAggregates);
         figuresMap.put('profit',profitAggregates);
         figuresMap.put('opex',opexAggregates);
-
         figuresMap.put('netProfit',netProfitAggregates);
 
         figuresMap.put('TOTALS',totals);
@@ -323,6 +365,7 @@ public class InsightsController {
         figuresMap.put('REPORTVALUES',reportValues);
         figuresMap.put('MONTHS',months);
 
+        figuresMap.put('QUICKBOOKSFIGURES',qbValues);
         figuresMap.put('qbRevenue',revenueAggregates);
         figuresMap.put('qbProfit',profitAggregates);
 
@@ -343,6 +386,97 @@ public class InsightsController {
         }
 
         return figuresMap;
+    }
+
+
+    @RemoteAction
+    public static Boolean setQBSourceOptions(String budgetId, String forecastId, String year, String month){
+
+        QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, month);
+
+        return true;
+    }
+
+    @RemoteAction
+    public static Map<String,Object> getQBSourceOptions(String year){
+
+        String fiscalYear;
+
+        if (year.equalsIgnoreCase('CURRENT FY')){
+            fiscalYear = 'THIS_FISCAL_YEAR';
+        } else if (year.equalsIgnoreCase('NEXT FY')){
+            fiscalYear = 'NEXT_FISCAL_YEAR';
+        }
+
+        Map<String,Object> responseMap = new Map<String,Object>();
+
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
+                'EndDate%2c%20Id%20from%20budget&minorversion=4');
+        request.setHeader('Accept', 'application/json');
+        request.setMethod('GET');
+        request.setTimeout(120000);
+        HttpResponse response = http.send(request);
+
+        if (response.getStatusCode() == 200){
+            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
+        }
+
+        List<QBProfitAndLoss__c> budgetSourceList =
+                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
+                        'FROM QBProfitAndLoss__c ' +
+                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+                        'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!budgetSourceList.isEmpty()){
+            if (budgetSourceList[0].BudgetSource__c != null){
+                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
+            } else {
+                responseMap.put('budgetSource', 'Unknown Budget');
+            }
+
+            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
+        }
+
+        List<QBProfitAndLoss__c> forecastSourceList =
+                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
+                        'FROM QBProfitAndLoss__c ' +
+                        'WHERE Month__c = ' + fiscalYear  + ' ' +
+                        'ORDER BY Month__c DESC LIMIT 1');
+
+        if (!forecastSourceList.isEmpty()){
+            if (forecastSourceList[0].ForecastSource__c != null){
+                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
+            } else {
+                responseMap.put('forecastSource', 'Unknown Forecast');
+            }
+            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
+        }
+
+        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
+            if (month.Name == 'QBClosedMonth'){
+                responseMap.put('closedMonth', month.Month__c);
+            }
+        }
+
+        return responseMap;
+    }
+
+    @RemoteAction
+    public static Boolean postAdjustment(Date monthDate, Decimal revenue, Decimal costOfSale, Decimal profit,
+                                         String commentString){
+
+        insert new Adjustment__c(
+            Month__c        = monthDate.toStartOfMonth(),
+            Revenue__c      = revenue,
+            CostOfSale__c   = costOfSale,
+            Profit__c       = profit,
+            Comment__c      = commentString,
+            Committed__c    = true
+        );
+
+        return true;
     }
 
     @RemoteAction
@@ -734,83 +868,6 @@ public class InsightsController {
 
     }
 
-//    @RemoteAction
-//    public static Map<String,Object> getQBBudgets(String year){
-//
-//        String fiscalYear;
-//
-//        if (year.equalsIgnoreCase('PREVIOUS FY')){
-//            fiscalYear = 'LAST_FISCAL_YEAR';
-//        } else if (year.equalsIgnoreCase('CURRENT FY')){
-//            fiscalYear = 'THIS_FISCAL_YEAR';
-//        } else if (year.equalsIgnoreCase('NEXT FY')){
-//            fiscalYear = 'NEXT_FISCAL_YEAR';
-//        }
-//
-//        Map<String,Object> responseMap = new Map<String,Object>();
-//
-//        Http http = new Http();
-//        HttpRequest request = new HttpRequest();
-//        request.setEndpoint('callout:QuickBooksOnline/query?query=select%20name,metadata,BudgetEntryType,StartDate,' +
-//                'EndDate%2c%20Id%20from%20budget&minorversion=4');
-//        request.setHeader('Accept', 'application/json');
-//        request.setMethod('GET');
-//        request.setTimeout(120000);
-//        HttpResponse response = http.send(request);
-//
-//        if (response.getStatusCode() == 200){
-//            responseMap.put('budgets', JSON.deserializeUntyped(response.getBody()));
-//        }
-//
-//        List<QBProfitAndLoss__c> budgetSourceList =
-//                Database.query('SELECT BudgetSource__c, LastModifiedDate ' +
-//                        'FROM QBProfitAndLoss__c ' +
-//                        'WHERE Month__c = ' + fiscalYear  + ' ' +
-//                        'ORDER BY Month__c DESC LIMIT 1');
-//
-//        if (!budgetSourceList.isEmpty()){
-//            if (budgetSourceList[0].BudgetSource__c != null){
-//                responseMap.put('budgetSource', budgetSourceList[0].BudgetSource__c);
-//            } else {
-//                responseMap.put('budgetSource', 'Unknown Budget');
-//            }
-//
-//            responseMap.put('budgetUpdate', budgetSourceList[0].LastModifiedDate);
-//        }
-//
-//        List<QBProfitAndLoss__c> forecastSourceList =
-//                Database.query('SELECT ForecastSource__c, LastModifiedDate ' +
-//                        'FROM QBProfitAndLoss__c ' +
-//                        'WHERE Month__c = ' + fiscalYear  + ' ' +
-//                        'ORDER BY Month__c DESC LIMIT 1');
-//
-//        if (!forecastSourceList.isEmpty()){
-//            if (forecastSourceList[0].ForecastSource__c != null){
-//                responseMap.put('forecastSource', forecastSourceList[0].ForecastSource__c);
-//            } else {
-//                responseMap.put('forecastSource', 'Unknown Forecast');
-//            }
-//            responseMap.put('forecastUpdate', forecastSourceList[0].LastModifiedDate);
-//        }
-//
-//        for (QBClosedMonth__c month : QBClosedMonth__c.getAll().values()){
-//            if (month.Name == 'QBClosedMonth'){
-//                responseMap.put('closedMonth', month.Month__c);
-//            }
-//        }
-//
-//        return responseMap;
-//    }
-
-
-    @RemoteAction
-    public static Boolean updateBudgets(String budgetId, String forecastId, String year, String month){
-
-        Boolean result = QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, month);
-        return result;
-    }
-
-
     @RemoteAction
     public static Map<String,Map<String,List<Object>>> getRecordChanges(String start,
                                         String endD, Integer days, Decimal currentTotal){
@@ -1174,6 +1231,19 @@ public class InsightsController {
         Map<String,Decimal> expenseMap     = new Map<String,Decimal>();
         Map<String,Decimal> expensePaidMap = new Map<String,Decimal>();
 
+
+        //get opportunity
+        Opportunity opp = [SELECT CreatedDate, LastModifiedDate, RecStatus__c, Amount_Calder__c,
+                                Amount_Invoiced2__c, Amount_Paid__c, Filtered_Cost_of_Sale__c,
+                                Quickbooks_COS__c, Quickbooks_COS_Paid__c, Event_start__c, Event_end__c,
+                                Owner.FirstName, Owner.LastName, Owner.ImageLink__c, Project_Manager__r.FirstName,
+                                Project_Manager__r.LastName, Project_Manager__r.ImageLink__c, Calder_Opportunity__c
+                        FROM Opportunity
+                        WHERE Id = :oppId];
+
+        Date lastActivityDate = Date.valueOf(opp.CreatedDate);
+
+        // collect contributing historical values
         for (OpportunityFieldHistory ofs :
                     [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
                             Opportunity.Amount, Opportunity.Calder_Opportunity__c,
@@ -1184,18 +1254,41 @@ public class InsightsController {
                         AND OpportunityId = :oppId
                         ORDER BY CreatedDate ASC]){
 
+            if (Date.valueOf(ofs.CreatedDate) > lastActivityDate) {
+                lastActivityDate = Date.valueOf(ofs.CreatedDate);
+            }
+
             String dateKey = String.valueOf(Date.valueOf(ofs.CreatedDate));
 
             if (ofs.NewValue != null){
-                if (ofs.Field == 'Amount'){
+                if (ofs.Field == 'Amount' && Decimal.valueOf((String)ofs.NewValue) != (Decimal.valueOf((String)ofs.NewValue) * 2)){
                     Decimal amount = ofs.Opportunity.Calder_Opportunity__c ?
                             Decimal.valueOf((String)ofs.NewValue) * 0.9 : Decimal.valueOf((String)ofs.NewValue);
                     revenueMap.put(dateKey, amount);
-                } else if (ofs.Field == 'Gross_Profit_Field_History__c'){
-                    profitMap.put(dateKey, Decimal.valueOf((String)ofs.NewValue));
+                }
+                else if (ofs.Field == 'Gross_Profit_Field_History__c'){
+
+                    system.debug('gross profit was ' + ofs.OldValue + ' and is now ' + ofs.NewValue);
+
+//                    profitMap.put(dateKey, Decimal.valueOf((String)ofs.NewValue));
                 }
 
             }
+        }
+
+        for (SBQQ__Quote__c quote : [SELECT Id, SBQQ__NetAmount__c, Gross_Profit__c, CreatedDate
+                                     FROM SBQQ__Quote__c
+                                     WHERE SBQQ__Opportunity2__c = :oppId
+                                     ORDER BY CreatedDate ASC]){
+
+            if (Date.valueOf(quote.CreatedDate) > lastActivityDate) {
+                lastActivityDate = Date.valueOf(quote.CreatedDate);
+            }
+
+            String dateKey = String.valueOf(Date.valueOf(quote.CreatedDate));
+            Decimal commission = opp.Calder_Opportunity__c ? quote.SBQQ__NetAmount__c * 0.1 : 0;
+            revenueMap.put(dateKey, quote.SBQQ__NetAmount__c - commission);
+            profitMap.put(dateKey, quote.Gross_Profit__c - commission);
         }
 
         for (Invoice_Schedule__c is : [SELECT Amount__c, Invoice_Sent__c, Send_Date__c,
@@ -1203,6 +1296,11 @@ public class InsightsController {
                                         FROM Invoice_Schedule__c
                                         WHERE Opportunity__c = :oppId
                                         ORDER BY Send_Date__c ASC]){
+
+            if (Date.valueOf(is.Payment_Date__c) > lastActivityDate) {
+                lastActivityDate = Date.valueOf(is.Payment_Date__c);
+            }
+
             if (is.Invoice_Sent__c){
                 if (invoiceMap.containsKey(String.valueOf(is.Send_Date__c))){
                     invoiceMap.put(String.valueOf(is.Send_Date__c),invoiceMap.get(String.valueOf(is.Send_Date__c) + is.Amount__c));
@@ -1223,6 +1321,10 @@ public class InsightsController {
                                 FROM Expense__c WHERE Opportunity__c = :oppId
                                 ORDER BY CreatedDate ASC]){
 
+            if (Date.valueOf(ex.Due_Date__c) > lastActivityDate) {
+                lastActivityDate = Date.valueOf(ex.Due_Date__c);
+            }
+
             String createdKey = String.valueOf(Date.valueOf(ex.CreatedDate));
             if (expenseMap.containsKey(createdKey)){
                 expenseMap.put(createdKey,expenseMap.get(createdKey) + ex.Amount__c);
@@ -1238,19 +1340,36 @@ public class InsightsController {
             }
         }
 
+        List<OpportunityHistory> stageHistories = [SELECT Id, StageName, CreatedDate, OpportunityId,
+                                                            CreatedBy.FirstName, CreatedBy.LastName,
+                                                            CreatedBy.ImageLink__c, Amount
+                                                    FROM OpportunityHistory
+                                                    WHERE OpportunityId = :oppId
+                                                    ORDER BY CreatedDate ASC];
+
+        if (!stageHistories.isEmpty() && stageHistories[0].StageName == 'Repeat Prospect'){
+
+            String dateKey = String.valueOf(Date.valueOf(stageHistories[0].CreatedDate));
+            Decimal commission = opp.Calder_Opportunity__c ? stageHistories[0].Amount * 0.1 : 0;
+            revenueMap.put(dateKey,  stageHistories[0].Amount  - commission);
+
+        }
+
+
         Map<String,List<Decimal>> figuresHistory = new Map<String,List<Decimal>>();
         List<Object> history = new List<Object>();
 
-        //get opp created date
-        Opportunity opp = [SELECT CreatedDate, LastModifiedDate, RecStatus__c, Amount_Calder__c,
-                                  Amount_Invoiced2__c, Amount_Paid__c, Filtered_Cost_of_Sale__c,
-                                  Quickbooks_COS__c, Quickbooks_COS_Paid__c
-                            FROM Opportunity
-                            WHERE Id = :oppId];
-        Date startingDate   = Date.valueOf(opp.CreatedDate).addDays(-1);
+
+        Date startingDate   = Date.valueOf(opp.CreatedDate);
         Date endingDate     = opp.RecStatus__c == 'REC COMPLETE' ?
-                                Date.valueOf(opp.LastModifiedDate) :
+//                                Date.valueOf(opp.LastModifiedDate) :
+                                lastActivityDate :
                                 Date.today().addDays(-1);
+
+        if (Test.isRunningTest()){
+            startingDate = Date.today().addDays(-60);
+        }
+
         Integer totalTime   = startingDate.daysBetween(endingDate);
 
         Decimal revenue     = 0;
@@ -1269,7 +1388,8 @@ public class InsightsController {
             }
             if (profitMap.containsKey(dateKey)){
                 profit = profitMap.get(dateKey);
-                costOfSale = revenue - profit;
+//                costOfSale = revenue - profit;
+                costOfSale = profit;
             }
             if (invoiceMap.containsKey(dateKey)){
                 invoiced += invoiceMap.get(dateKey);
@@ -1297,42 +1417,95 @@ public class InsightsController {
 
 
         // work out proportion of time spent in each stage of the opportunity
-        List<OpportunityHistory> stageHistories = [SELECT Id, StageName, CreatedDate, OpportunityId,
-                                                        CreatedBy.Name
-                                                FROM OpportunityHistory
-                                                WHERE OpportunityId = :oppId
-                                                ORDER BY CreatedDate ASC];
 
-        Map<String,OpportunityHistory> stageHistoryMap = new Map<String,OpportunityHistory>();
-        Set<String> stages  = new Set<String>();
+
+//        Map<String,OpportunityHistory> stageHistoryMap = new Map<String,OpportunityHistory>();
+//        Set<String> stages  = new Set<String>();
+
+        String lastStage = '';
 
         List<Object> stageObjects = new List<Object>();
 
         for (OpportunityHistory stageHistory : stageHistories) {
 
-//            Decimal percent = (Date.valueOf(stageHistory.CreatedDate).daysBetween(endingDate) / totalTime) * 100;
             Decimal percent = (Decimal.valueOf(Date.valueOf(stageHistory.CreatedDate).daysBetween(endingDate)) /
                                 Decimal.valueOf(totalTime)) * 100;
-            if (!stages.contains(stageHistory.StageName)){
+            if (stageHistory.StageName != lastStage){
 
                 stageObjects.add(
                     JSON.deserializeUntyped(
                             '{' +
+                            '   "type" : "stage",' +
                             '   "name" : "' + (stageHistory.StageName != null ? stageHistory.StageName.toUpperCase() :
                                                 'UNKNOWN') + '",' +
-//                            '   "width" : "' + (100 - percent) + '"' +
-                            '   "width" : "' + percent + '"' +
+                            '   "width" : "' + percent + '",' +
+                            '   "createdDate" : "' + stageHistory.CreatedDate + '",' +
+                            '   "firstName" : "' + stageHistory.CreatedBy.FirstName + '",' +
+                            '   "lastName" : "' + stageHistory.CreatedBy.LastName + '",' +
+                            '   "imageLink" : "' + stageHistory.CreatedBy.ImageLink__c + '"' +
                             '}'
                     )
                 );
 
+                lastStage = stageHistory.StageName;
 
+//                stages.add(stageHistory.StageName);
 
-
-                stages.add(stageHistory.StageName);
-
-                stageHistoryMap.put(percent + ' ' + stageHistory.StageName,stageHistory);
+//                stageHistoryMap.put(percent + ' ' + stageHistory.StageName,stageHistory);
+//                stageHistoryMap.put(percent + ' ' + stageHistory.Id,stageHistory);
             }
+
+        }
+
+        // add the opportunity event dates
+        if (opp.Event_end__c < endingDate){
+
+            Decimal percent = (Decimal.valueOf(Date.valueOf(opp.Event_end__c).daysBetween(endingDate)) /
+                    Decimal.valueOf(totalTime)) * 100;
+
+            stageObjects.add(
+                    JSON.deserializeUntyped(
+                            '{' +
+                                    '   "type" : "stage",' +
+                                    '   "name" : "' + ('RECONCILIATION') + '",' +
+                                    '   "width" : "' + percent + '",' +
+                                    '   "createdDate" : "' + opp.Event_end__c + '",' +
+                                    '   "firstName" : "' + opp.Project_Manager__r.FirstName + '",' +
+                                    '   "lastName" : "' + opp.Project_Manager__r.LastName + '",' +
+                                    '   "imageLink" : "' + opp.Project_Manager__r.ImageLink__c + '"' +
+                                    '}'
+                    )
+            );
+
+            stageObjects.add(
+                    JSON.deserializeUntyped(
+                            '{' +
+                            '   "type" : "eventDate",' +
+                            '   "width" : "' + percent + '",' +
+                            '   "date" : "' + opp.Event_end__c  + '"' +
+                            '}'
+                    )
+            );
+
+        }
+
+
+        for (SBQQ__QuoteDocument__c doc : [SELECT Id, CreatedDate, SBQQ__Version__c
+                                            FROM SBQQ__QuoteDocument__c
+                                            WHERE SBQQ__Opportunity__c = :opp.Id]){
+
+            Decimal percent = (Decimal.valueOf(Date.valueOf(doc.CreatedDate).daysBetween(endingDate)) /
+                    Decimal.valueOf(totalTime)) * 100;
+            stageObjects.add(
+                    JSON.deserializeUntyped(
+                            '{' +
+                                    '   "type" : "document",' +
+                                    '   "width" : "' + percent + '",' +
+                                    '   "date" : "' + doc.CreatedDate + '",' +
+                                    '   "name" : "' + doc.SBQQ__Version__c + '"' +
+                                    '}'
+                    )
+            );
 
         }
 
