@@ -33,6 +33,7 @@
             border: 0.5px solid grey;
             margin-bottom: 10px;
             position: relative;
+            width: 100%;
         }
         .controlHolder {
             position: sticky;
@@ -712,6 +713,7 @@
             width: 100%;
             max-width: 1500px;
             padding: 10px;
+            position:relative;
         }
 
         .fadeIn {
@@ -956,9 +958,11 @@
             position: absolute;
             left: 0;
             top: 0;
-            background-color: lightgrey;
+            border-bottom: 1px solid grey;
             text-align: right;
-            padding-right: 2px;
+            /*padding-right: 2px;*/
+            /*text-shadow: 0px 0px 2px #000000;*/
+            /*color: white;*/
         }
         .recIndicator {
             position: absolute;
@@ -969,7 +973,7 @@
             height: 15px;
         }
         .recCostOfSale {
-            background-color: #f0cfd0;
+            background-color: #f0b4b6;
             height: 100%;
         }
         .recProfit {
@@ -978,12 +982,13 @@
         }
         .hiddenTab {
             position: absolute;
-            left: -100%;
+            left: -1000%;
         }
         .hiddenTabLong {
             position: absolute;
-            left: -100%;
-            width: 100%;
+            left: -1000%;
+            width: 98%;
+            max-width:1500px;
         }
 
         .billframe {
@@ -1003,7 +1008,6 @@
         .manageIcon {
             position: absolute;
             top: 6px;
-            /*left: 8px;*/
         }
         .triangle-right {
             width: 0;
@@ -1016,7 +1020,6 @@
             top:0;
         }
         .historyIcon {
-            /*position: absolute;*/
             margin-right: 8px;
             margin-left: 5px;
             font-size: 24px;
@@ -1034,11 +1037,9 @@
         .forbidden {
             background-color: lightcoral;
         }
-        .fa-thumbtack {
+        .faflow {
             color: grey;
-        }
-        .fa-wrench {
-            color: grey;
+            font-size: 12px;
         }
         .imageText {
             height: 25px;
@@ -1132,10 +1133,9 @@
         }
     </style>
 
-    <!--<div style="position: absolute;width: 98%;display:flex;justify-content: center;">-->
+    <div style="width: 100%;display:flex;justify-content: center;">
     <div id="app">
 
-        <!--<div class="box controlHolder" v-bind:style="expandId ? 'visibility:hidden' : '', hideNav ? 'opacity:0',''"]>-->
         <div class="controlHolder">
             <div class="box control"  v-bind:style="hideNav ? 'opacity:0' : ''"
                  style="-webkit-transition: opacity 1s;transition: opacity 1s;">
@@ -1234,6 +1234,11 @@
                         <i class="fas fa-camera"></i>
                     </div>
                 </template>
+                <template v-if="showChanges && setting === 'report'">
+                    <div class="historyIcon"  v-show="!hideNav || showSideOptions" v-on:click="downloadCSV()">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </template>
                 <template v-if="showChanges && setting === 'manage'">
                     <div class="historyIcon" v-on:click="getQBSourceOptions();">
                         <i class="fas fa-cog" style="margin-top: 2px;"></i>
@@ -1255,9 +1260,6 @@
         </div>
 
         <span v-bind:class="{hiddenTab : setting !== 'graph'}">
-
-        <!--<span v-bind:style="{ visibility : setting !== 'graph' ? 'hidden' : '', zIndex : setting !== 'graph' ? '0' : ''}">-->
-        <!--<span v-show="setting === 'graph'">-->
 
             <!--REVENUE GRAPHS-->
             <div class="box" >
@@ -1597,8 +1599,8 @@
                                             <div>
                                                 <span v-if="new Date(record.CreatedDate) > new Date().setDate(new Date(record.CreatedDate).getDate() - 5)"
                                                       class="ageIndicator newIndicator">NEW</span>
-                                                <span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 5)"
-                                                      class="ageIndicator oldIndicator">INACTIVE</span>
+                                                <!--<span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 30)"-->
+                                                      <!--class="ageIndicator oldIndicator">AGEING</span>-->
                                                 <a v-bind:href=" '/' + record.Id " target="_blank" v-on:click="event.stopPropagation();">
                                                     {{ record.Name }}
                                                 </a>
@@ -1634,17 +1636,21 @@
                                             </div>
                                             <div>{{ record.Gross_Margin__c }}%</div>
                                             <div style="position: relative;">
-                                                <template v-if="record.IsClosed">
-                                                    <span class="recIndicator"
-                                                          v-bind:style="'width:' + ((record.Amount_Calder__c < 100000 ? record.Amount_Calder__c : 100000) / 1000) + '%'">
-                                                        <div class="recCostOfSale" v-bind:style="'width:' + (100 - record.Gross_Margin__c) + '%'"></div>
-                                                        <div class="recProfit" v-bind:style="'width:' + record.Gross_Margin__c + '%'"></div>
+                                                <!--<template v-if="record.IsClosed">-->
+                                                <template>
+                                                    <span class="recIndicator" v-bind:style="'width:' + ((record.Amount_Calder__c < 100000 ? record.Amount_Calder__c : 100000) / 1000) + '%'">
+                                                        <!--<div class="recCostOfSale" v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%', backgroundColor : !record.IsClosed ? '#e0d6d6' : ''}"></div>-->
+                                                        <div class="recCostOfSale"
+                                                             v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
+                                                        <!--<div class="recProfit" v-bind:style="{ width: (record.Gross_Margin__c) + '%', backgroundColor : !record.IsClosed ? '#8bca8b' : ''}"></div>-->
+                                                        <div class="recProfit"
+                                                             v-bind:style="{ width: (record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
                                                     </span>
                                                 </template>
                                                 <template v-if="!record.IsClosed">
                                                     <div class="probabilityIndicator"
-                                                         v-bind:style=" 'width:' + record.Probability + '%'">
-                                                        {{ record.Probability + '%'}}
+                                                         v-bind:style="'width:' + record.Probability + '%'">
+                                                        <span style="margin-right:-12px;">{{ record.Probability + '%'}}</span>
                                                     </div>
                                                 </template>
                                             </div>
@@ -1656,45 +1662,38 @@
                                                     <template v-for="stage in record.figuresHistory.HISTORY">
                                                         <template v-if="stage.type === 'stage'">
                                                             <div class="stageHistoryBlock" v-bind:class="stage.name.split(' ')[0]" v-bind:style="{width : stage.width + '%'}">
-                                                                <span v-if="stage.name !== 'RECONCILIATION'" style="height:335px;width:1.5px;position:absolute;left:0;z-index:1;"
+                                                                <span v-if="stage.name !== 'RECONCILIATION'" style="height:364px;width:1.5px;position:absolute;left:0;z-index:1;"
                                                                        v-bind:class="stage.name.split(' ')[0] + 'line'" >
                                                                     <span style="position:absolute;bottom:-5px;left:-4px;width:10px;height:10px;border-radius: 50%;background-color: white;border:1px solid black;"></span>
                                                                 </span>
                                                                 <div style="padding: 4px;">{{stage.name}}</div>
-                                                                <span v-if="stage.imageLink" style="margin-left: 4px;">
+                                                                <span v-if="stage.imageLink !== 'null'" style="margin-left: 4px;">
                                                                     <img v-bind:src="stage.imageLink" height="25px" style="position:absolute;top:22px;border-radius: 50%;"/>
-                                                                    <span style="position: absolute;top:20px;left:33px;"> {{ new Date(stage.createdDate).toString().substring(0,15)}}</span>
                                                                 </span>
-                                                                <!--<div style="padding-left: 4px;">{{stage.firstName + ' ' + stage.lastName}}</div>-->
+                                                                <span v-if="stage.imageLink === 'null'" style="position:absolute;top:22px;border-radius: 50%;margin-left: 4px;">
+                                                                    <div class="imageText">{{ stage.firstName.substring(0,1) + stage.lastName.substring(0,1)}}</div>
+                                                                </span>
+                                                                <span style="position: absolute;top:20px;left:33px;"> {{ new Date(stage.createdDate).toString().substring(0,15)}}</span>
+
                                                             </div>
                                                         </template>
                                                         <template v-if="stage.type === 'eventDate'">
                                                             <div v-bind:style="{width : stage.width + '%'}" style="position:absolute;top:58px;right:0;min-width:50px;">
-                                                                <span style="height:255px;margin-top:22px;width:1.5px;position:absolute;left:0;z-index:1;background-color: black;">
+                                                                <span style="height:284px;margin-top:22px;width:1.5px;position:absolute;left:0;z-index:1;background-color: black;">
                                                                     <span style="position:absolute;bottom:-5px;left:-4px;width:10px;height:10px;border-radius: 50%;background-color: white;border:1px solid black;"></span>
                                                                 </span>
-                                                                <!--<span style="padding: 4px;background-color: white;border: 1px solid black;color:black;border-radius: 3px;">{{new Date(stage.date).toString().substring(0,15)}}</span>-->
                                                                 <span style="padding: 4px;background-color: white;border: 1px solid black;color:black;border-radius: 3px;margin-left:-34px;">Event end</span>
+                                                            </div>
+                                                        </template>
+                                                        <template v-if="stage.type === 'eventDateFuture'">
+                                                            <div style="position:absolute;top:58px;right:0;">
+                                                                <span style="padding: 4px;background-color: white;border: 1px solid black;color:black;border-radius: 3px;margin-left:-34px;">{{ stage.days + ' days until the event'}}</span>
                                                             </div>
                                                         </template>
                                                     </template>
                                                 </template>
-
-
-                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #8194bb, rgba(255,255,255,0));width:60%;">-->
-                                                    <!--REPEAT PROSPECT-->
-                                                <!--</div>-->
-                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #21a5ab, rgba(255,255,255,0));width:15%;">-->
-                                                    <!--PIPELINE PROSPECT-->
-                                                <!--</div>-->
-                                                <!--<div style="height:100%;background-image: linear-gradient(to bottom, #2c7495, rgba(255,255,255,0));width:25%;">-->
-                                                    <!--CLOSED WON-->
-                                                <!--</div>-->
-
-
                                             </div>
-                                            <div class="figuresHistory" v-bind:id="record.Id" style="height: 320px;padding: 10px;width:95%;margin-top:30px;">
-                                                <!--{{ record }}-->
+                                            <div class="figuresHistory" v-bind:id="record.Id" style="height: 350px;padding: 10px;width:95%;margin-top:30px;">
                                             </div>
                                         </div>
 
@@ -1961,7 +1960,6 @@
 
         <span v-bind:class="{hiddenTabLong : setting !== 'cashflow'}">
         <!--CASH FLOW AND MANAGER-->
-        <!--<span v-show="setting === 'cashflow'">-->
             <div class="box">
                 <div class="splitTwo">
                     <div class="title" id="flowManagerTitle" >
@@ -1982,11 +1980,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="boxLite" style="width: 100%;">
-                    <div id="cashFlowLine" class="graph"></div>
+                <div class="boxLite" style="width: 100%;position:relative;">
+                    <div id="cashFlowLine" class="graph" style="width:100%;"></div>
                 </div>
 
-                <div v-bind:class="responsePending || expandId ? 'dragPrevent' : ''" v-on:click="abortEdit()"></div>
+                <div v-bind:class="(responsePending || expandId) && !draggingId ? 'dragPrevent' : ''" v-on:click="abortEdit()"></div>
 
                 <span v-show="showManager">
                     <div class="boxLite" v-bind:class="managing ? 'scroll' : ''">
@@ -2047,8 +2045,9 @@
                                                                         (record.Source__c !== 'Budget' ? ' draggable' : '')">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">
-                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-thumbtack">&nbsp;</i>
-                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-wrench">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-map-pin faflow">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-pound-sign faflow">&nbsp;</i>
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
                                                             {{ record.Description__c }}
                                                         </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
@@ -2069,7 +2068,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                            <div v-on:click="updateAmount(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2092,7 +2091,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2172,8 +2171,9 @@
 
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">
-                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-thumbtack">&nbsp;</i>
-                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-wrench">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-map-pin faflow">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-pound-sign faflow">&nbsp;</i>
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
                                                             {{record.Description__c}}
                                                         </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
@@ -2197,7 +2197,7 @@
                                                                                      class="recordButton recordButtonSmall cancel">
                                                                                     <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                                 </div>
-                                                                                <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                                <div v-on:click="updateAmount(record)"
                                                                                      class="recordButton recordButtonSmall save">
                                                                                     <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                                 </div>
@@ -2350,7 +2350,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="updateComment(record.Comment__c)"
+                                                                            <div v-on:click="updateComment(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2401,7 +2401,10 @@
                                                          v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' ' +
                                                                         (record.Source__c !== 'Budget' ? ' draggable' : '')">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
-                                                        <div class="description">{{record.Description__c}}</div>
+                                                        <div class="description">
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
+                                                            {{record.Description__c}}
+                                                        </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
                                                         <div class="amount" v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
@@ -2419,7 +2422,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                            <div v-on:click="updateAmount(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2452,7 +2455,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2469,7 +2472,6 @@
                                              v-bind:data-week="index"  v-bind:class="dragging === 'creditCard' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
-                                                <!--<div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>-->
                                             </div>
                                         </div>
                                     </span>
@@ -2509,8 +2511,9 @@
 
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
                                                         <div class="description">
-                                                            <i v-show="record.Source__c !== 'Custom'" class="fas fa-thumbtack">&nbsp;</i>
-                                                            <i v-show="record.Source__c !== 'Custom' && record.AmountAdjusted__c" class="fas fa-wrench">&nbsp;</i>
+                                                            <i v-show="record.Source__c !== 'Custom'" class="fas fa-map-pin faflow">&nbsp;</i>
+                                                            <i v-show="record.Source__c !== 'Custom' && record.AmountAdjusted__c" class="fas fa-pound-sign faflow">&nbsp;</i>
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
                                                             {{record.Description__c}}
                                                         </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
@@ -2531,7 +2534,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                        <div v-on:click="updateAmount(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2686,7 +2689,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2704,7 +2707,6 @@
                                              v-bind:data-week="index"  v-bind:class="dragging === 'directDebit' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
-                                                <!--<div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>-->
                                             </div>
                                         </div>
                                     </span>
@@ -2739,7 +2741,11 @@
                                                          v-bind:data-index="recordIndex"
                                                          v-bind:class="(expandId === record.Id ? 'selectedRecord ' : ' ') + record.Source__c + ' draggable'">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
-                                                        <div class="description">{{record.Description__c}}</div>
+                                                        <div class="description">
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
+                                                            <i v-show="record.Source__c !== 'Custom' && record.AmountAdjusted__c" class="fas fa-pound-sign faflow">&nbsp;</i>
+                                                            {{record.Description__c}}
+                                                        </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
                                                         <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">{{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div style="padding: 3px;">
@@ -2757,7 +2763,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                            <div v-on:click="updateAmount(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2785,7 +2791,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2802,7 +2808,6 @@
                                              v-bind:data-week="index" v-bind:class="dragging === 'payroll' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
-                                                <!--<div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>-->
                                             </div>
                                         </div>
                                     </span>
@@ -2840,8 +2845,9 @@
                                                             {{record.Source__c.substring(0,1)}}
                                                         </div>
                                                         <div class="description">
-                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-thumbtack">&nbsp;</i>
-                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-wrench">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget'" class="fas fa-map-pin faflow">&nbsp;</i>
+                                                            <i v-show="record.Source__c === 'Budget' && record.AmountAdjusted__c" class="fas fa-pound-sign faflow">&nbsp;</i>
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
                                                             {{record.Description__c}}
                                                         </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
@@ -2863,7 +2869,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                            <div v-on:click="updateAmount(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2896,7 +2902,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -2913,7 +2919,6 @@
                                              v-bind:data-week="index" v-bind:class="dragging === 'freelancers' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
-                                                <!--<div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>-->
                                             </div>
                                         </div>
                                     </span>
@@ -2948,7 +2953,10 @@
                                                          v-bind:data-index="recordIndex"
                                                          v-bind:class="(expandId === record.Id ? 'selectedRecord draggable ' : 'draggable ') + record.Source__c">
                                                         <div v-bind:class="record.Source__c + 'Circle'" class="indicator">{{record.Source__c.substring(0,1)}}</div>
-                                                        <div class="description">{{record.Description__c}}</div>
+                                                        <div class="description">
+                                                            <i v-show="record.AdjustedDate__c" class="fas fa-calendar-check faflow">&nbsp;</i>
+                                                            {{record.Description__c}}
+                                                        </div>
                                                         <div class="commentIcon"><i v-bind:class="record.Comment__c ? 'far fa-comment' : ''"></i></div>
                                                         <div class="amount"  v-bind:style="record.Amount__c < 0 ? 'color:red' :''">
                                                             {{'£' + Math.abs(record.Amount__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
@@ -2968,7 +2976,7 @@
                                                                                  class="recordButton recordButtonSmall cancel">
                                                                                 <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                             </div>
-                                                                            <div v-on:click="record.AmountAdjusted__c = true;updateAmount(record.Amount__c)"
+                                                                            <div v-on:click="updateAmount(record)"
                                                                                  class="recordButton recordButtonSmall save">
                                                                                 <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                             </div>
@@ -2991,7 +2999,7 @@
                                                                              class="recordButton recordButtonSmall cancel">
                                                                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                                                                         </div>
-                                                                        <div v-on:click="updateComment(record.Comment__c)"
+                                                                        <div v-on:click="updateComment(record)"
                                                                              class="recordButton recordButtonSmall save">
                                                                             <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; SAVE
                                                                         </div>
@@ -3008,7 +3016,6 @@
                                              v-bind:data-week="index" v-bind:class="dragging === 'vat' ? 'dropZoneActive' : ''">
                                             <div class="dropText">
                                                 <div class="dropTextDate" >{{ new Date(cashflowData['WEEK COMMENCING'][index]).toDateString().substring(0,10)}}</div>
-                                                <!--<div class="dropTextNumber" >{{'£' + Math.abs(balance).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>-->
                                             </div>
                                         </div>
                                     </span>
@@ -3230,10 +3237,6 @@
                         <input type="checkbox" v-model="rerunConfig.resetBudgets"/>
                         <span v-on:click="rerunConfig.resetBudgets = !rerunConfig.resetBudgets">Override budget adjustments</span>
                     </div>
-                    <!--<div>-->
-                        <!--<input type="checkbox" v-model="rerunConfig.clearCustom"/>-->
-                        <!--<span v-on:click="rerunConfig.clearCustom = !rerunConfig.clearCustom">Remove custom entries</span>-->
-                    <!--</div>-->
                     <br/>
                     <div class="recordButtons">
                         <div v-on:click="rerunningFlow = false;" class="recordButton cancel">
@@ -3249,7 +3252,7 @@
 
         <div v-bind:class="showAttachment ? 'billframe' : 'billframeHidden'"
              v-on:click="attachmentLink = '';showAttachment = false;">
-            <div class="box" style="height:422px;position:relative;" v-on:click="event.stopPropagation();">
+            <div class="box" style="height:422px;position:relative;width:auto;" v-on:click="event.stopPropagation();">
                 <div style="z-index:1">
                     <iframe width="700" height="400" v-bind:src="attachmentLink" frameborder="0" allowfullscreen="allowfullscreen">
                     </iframe>
@@ -3262,6 +3265,7 @@
             <div class="pendingMessage">{{ message }}</div>
         </template>
 
+    </div>
     </div>
     <script>
 
@@ -3829,29 +3833,11 @@
                                     format: 'short'
                                 },
                                 series: {
-                                    0: {color: 'lightgreen'
-                                        // ,
-                                        // format: '£#,###',
-                                        // areaOpacity : (type === 'opex') ? 0.7 : 0.2
-                                    },
-                                    1: {color: 'green'
-                                        // ,
-                                        // format: '£#,###'
-                                    },
-                                    2: {color: 'darkgreen'
-                                        // ,
-                                        // format: '£#,###',
-                                        // areaOpacity : 0.4
-                                    },
-                                    3: {color: 'pink'
-                                        // ,
-                                        // format: '£#,###',
-                                        // areaOpacity : 0.6
-                                    },
-                                    4 : {color: 'red'
-                                        // app.brand.budget,
-                                        // format: '£#,###'
-                                    },
+                                    0: {color: 'lightgreen'},
+                                    1: {color: 'green'},
+                                    2: {color: 'darkgreen'},
+                                    3: {color: 'pink'},
+                                    4 : {color: 'red'},
                                     5 : {color: 'darkred'}
                                 }
                             };
@@ -3888,12 +3874,6 @@
                                 }
                             },
                             start: function(event, ui) {
-                                if(app.expandId){
-                                    app.abortEdit();
-                                }
-                                if(!ui.item[0].classList.contains('draggable')){
-                                    app.dragProhibited = true;
-                                }
                                 item            = ui.item;
                                 newList         = oldList = ui.item.parent().parent();
                                 app.dragging    = category;
@@ -3902,7 +3882,6 @@
                             stop: function(event, ui) {
                                 app.dragging        = '';
                                 app.draggingId      = '';
-                                app.dragProhibited  = false;
                             },
                             change: function(event, ui) {
                                 if (ui.sender) newList = ui.placeholder.parent().parent();
@@ -3914,7 +3893,8 @@
 
                             drop: function( event, ui ) {
 
-                                if (ui.draggable[0].classList.contains('draggable')){
+                                if (ui.draggable[0].classList.contains('draggable')
+                                    && ui.draggable[0].dataset.week !==  event.target.dataset.week){
                                     app.responsePending = true;
                                     app.message         = 'Updating the record date and recalculating the flow';
 
@@ -3942,10 +3922,9 @@
 
                                             if (event.status){
                                                 Object.assign(app.cashflowData,result);
-
-                                                app.cashflowData['RECORDS'][sourceRecord.index].DayMonthYear__c
-                                                    = weekDate.getDate() + ' ' + weekDate.toString().substring(4,7) + ' ' +
-                                                    weekDate.toString().substring(11,16);
+                                                Vue.set(app.cashflowData['RECORDS'][sourceRecord.index],'AdjustedDate__c',true);
+                                                $('div[data-index="' + sourceRecord.index + '"]')[0].style.zIndex = 1;
+                                                $('div[data-index="' + sourceRecord.index + '"]')[0].dataset.week = weekNumber;
 
                                                 if (result['VALUES']){
                                                     app.cashflowData['RECORDS'].forEach(function(entry){
@@ -4015,21 +3994,21 @@
                         },
                         {escape: false});
                 },
-                updateAmount : function(amount){
+                updateAmount : function(record){
                     app.responsePending = true;
                     app.message         = 'Updating the record amount and recalculating the cash flow...';
+                    app.expandId        = '';
 
-                    var recordId = app.expandId;
-                    app.expandId = '';
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.updateAmount}',
-                        recordId,
-                        amount,
+                        record.Id,
+                        record.Amount__c,
                         function (result, event) {
                             app.responsePending = false;
                             app.message         = '';
                             if (event.status){
                                 Object.assign(app.cashflowData,result);
+                                Vue.set(record,'AmountAdjusted__c',true);
                                 app.drawLine('cashFlow', app.cashflowData['CASHFLOW']);
                                 app.getCashflowLong(false);
                             }
@@ -4055,15 +4034,18 @@
                         },
                         {escape: false});
                 },
-                updateComment : function(comment){
-                    var recordId        = app.expandId;
+                updateComment : function(record){
                     app.expandId        = '';
 
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.updateComment}',
-                        recordId,
-                        comment,
-                        function (result, event) {},
+                        record.Id,
+                        record.Comment__c,
+                        function (result, event) {
+                            if (!event.status){
+                                record.Comment__c = app.cancelValues.comment;
+                            }
+                        },
                         {escape: false});
                 },
                 getAttachmentLink : function(billId){
@@ -4282,6 +4264,120 @@
                             }
                             app.QBSourceOptions = result;
                         });
+                },
+                downloadCSV : function() {
+                    var args = app.exportOppReportData();
+                    var data, filename, link;
+                    var csv = app.convertArrayOfObjectsToCSV({
+                        data: args
+                    });
+                    if (csv == null) return;
+
+                    filename = args.filename || 'INSIGHTS REPORT ' + app.period + '.csv';
+
+                    if (!csv.match(/^data:text\/csv/i)) {
+                        csv = 'data:text/csv;charset=utf-8,' + csv;
+                    }
+                    data = encodeURI(csv);
+
+                    link = document.createElement('a');
+                    link.setAttribute('href', data);
+                    link.setAttribute('download', filename);
+                    link.click();
+                },
+                convertArrayOfObjectsToCSV : function(args) {
+                    var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+
+                    data = args.data || null;
+                    if (data == null || !data.length) {
+                        return null;
+                    }
+
+                    columnDelimiter = args.columnDelimiter || ',';
+                    lineDelimiter = args.lineDelimiter || '\n';
+
+                    keys = Object.keys(data[0]);
+
+                    result = '';
+                    result += keys.join(columnDelimiter);
+                    result += lineDelimiter;
+
+                    data.forEach(function(item) {
+                        ctr = 0;
+                        keys.forEach(function(key) {
+                            if (ctr > 0) result += columnDelimiter;
+
+                            result += item[key];
+                            ctr++;
+                        });
+                        result += lineDelimiter;
+                    });
+
+                    return result;
+                },
+                exportOppReportData : function(){
+
+                    var reportData = [];
+
+                    Object.keys(app.graphData.REPORTDATA).forEach(function(month){
+                        Object.keys(app.graphData.REPORTDATA[month]).forEach(function(stage){
+
+                            var records = app.graphData.REPORTDATA[month][stage];
+
+                            for (var x = 0; x < records.length; x++){
+                                if (records[x].Revenue__c || records[x].Profit__c || records[x].CostOfSale__c){
+                                    var type = records[x].Opportunity__c ? 'INHERITANCE' :
+                                                records[x].Calder__c ? 'COMMISSION' : 'CUSTOM ADJUSTMENT';
+                                    reportData.push(
+                                        {
+                                            Type : type,
+                                            'Account Manager' : '',
+                                            'Project Manager' : '',
+                                            'Job Number' : records[x].Opportunity__c ? records[x].Opportunity__r.Filtered_Job_Number__c : '',
+                                            'Name' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Name + '"' : '',
+                                            'Account' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Account.Name + '"' : '',
+                                            'Start Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
+                                            'End Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
+                                            'Stage' : stage,
+                                            'Revenue' : records[x].Revenue__c,
+                                            'Cost of sale' : records[x].CostOfSale__c,
+                                            'Gross Profit' : records[x].Profit__c,
+                                            'Margin' : '',
+                                            'Invoiced' : '',
+                                            'Paid' : '',
+                                            'COS Billed' : '',
+                                            'COS Paid' : '',
+                                            'Rec Status' : '',
+                                            'Probability' : 100
+                                        });
+                                } else if (records[x].Account) {
+                                    reportData.push(
+                                        {
+                                            Type : 'OPPORTUNITY',
+                                            'Account Manager' : records[x].Owner.FirstName.substring(0,1) + '. ' + records[x].Owner.LastName,
+                                            'Project Manager' : records[x].Project_Manager__c ? records[x].Project_Manager__r.FirstName.substring(0,1) + '. ' + records[x].Project_Manager__r.LastName : '',
+                                            'Job Number' : records[x].Filtered_Job_Number__c,
+                                            'Name' : '"' + records[x].Name + '"',
+                                            'Account' : '"' + records[x].Account.Name + '"',
+                                            'Start Date' : new Date(records[x].Event_start__c).toString().substring(0,10),
+                                            'End Date' : new Date(records[x].Event_end__c).toString().substring(0,10),
+                                            'Stage' : stage,
+                                            'Revenue' : records[x].Committed__c ? records[x].CommittedRevenue__c : records[x].Amount_Calder__c,
+                                            'Cost of sale' : records[x].Committed__c ? records[x].CommittedCOS__c : records[x].Filtered_Cost_of_Sale__c,
+                                            'Gross Profit' : records[x].Committed__c ? records[x].CommittedProfit__c : records[x].Gross_profit_2__c,
+                                            'Margin' : records[x].Gross_Margin__c,
+                                            'Invoiced' : records[x].Amount_Invoiced2__c,
+                                            'Paid' : records[x].Amount_Paid__c,
+                                            'COS Billed' : records[x].Quickbooks_COS__c,
+                                            'COS Paid' : records[x].Quickbooks_COS_Paid__c,
+                                            'Rec Status' : records[x].RecStatus__c,
+                                            'Probability' : records[x].Probability
+                                        });
+                                }
+                            }
+                        });
+                    });
+                    return reportData;
                 }
             },
             beforeMount() {
@@ -4312,7 +4408,6 @@
                 })
             }
         });
-
 
     </script>
     </html>

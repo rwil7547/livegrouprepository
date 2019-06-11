@@ -389,6 +389,11 @@ public class InsightsTest {
 
     }
 
+    @IsTest
+    public static void testInsertCustomEntry() {
+        InsightsController.addCustomEntry('type', 'description', 'budgetKey', 100, String.valueOf(Date.today()));
+    }
+
 
     @IsTest
     public static void testFreelancerConfig() {

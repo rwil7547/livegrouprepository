@@ -160,7 +160,8 @@ public class InsightsController {
                                         Gross_Margin__c, Quote_Status__c, Filtered_Job_Number__c,
                                         EventMonthYear__c, Committed__c, CommittedRevenue__c,
                                         CommittedProfit__c, CommittedCOS__c, IsClosed, Amount_Paid__c, Amount_Invoiced2__c,
-                                        Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c,
+                                        Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c, Quickbooks_COS__c,
+                                        Quickbooks_COS_Paid__c,
                                         EventMonthString__c, Owner.FirstName, Owner.LastName, Owner.ImageLink__c,
                                         Project_Manager__c, Project_Manager__r.ImageLink__c,
                                         Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
@@ -233,7 +234,7 @@ public class InsightsController {
 
         for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, CostOfSale__c,
                                          EventMonthYear__c, Opportunity__r.Name, Opportunity__r.Filtered_Job_Number__c,
-                                         Opportunity__c, Opportunity__r.EventMonthYear__c
+                                         Opportunity__c, Opportunity__r.EventMonthYear__c, Opportunity__r.Account.Name
                                     FROM Adjustment__c
                                     WHERE Month__c >= :startDate
                                     AND Month__c <= :endDate
@@ -310,10 +311,19 @@ public class InsightsController {
 
         for (Integer x = 0; x < months.size(); x++){
             netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[1]);
-            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[0] +
-                    profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
-            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[0] +
-                    profitAggregates.get(months[x])[1] + profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
+
+//            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[0] +
+//                    profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
+//
+//            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[0] +
+//                    profitAggregates.get(months[x])[1] + profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
+
+
+            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
+
+            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
+
+
         }
 
 
@@ -1484,6 +1494,18 @@ public class InsightsController {
                             '   "width" : "' + percent + '",' +
                             '   "date" : "' + opp.Event_end__c  + '"' +
                             '}'
+                    )
+            );
+
+        } else {
+
+            stageObjects.add(
+                    JSON.deserializeUntyped(
+                            '{' +
+                                    '   "type" : "eventDateFuture",' +
+                                    '   "width" : "' + 0 + '",' +
+                                    '   "days" : "' + Date.today().daysBetween(opp.Event_end__c) + '"' +
+                                    '}'
                     )
             );
 
