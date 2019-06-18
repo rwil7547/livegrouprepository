@@ -651,7 +651,9 @@
         }
         .reportFilterOption {
             cursor: pointer;
-            padding: 8px;
+            padding: 3px;
+            padding-top: 8px;
+            padding-bottom: 8px;
             color: white;
         }
         .flowManagerIcons {
@@ -1544,7 +1546,7 @@
                                         <div>{{ '£' + Math.abs(graphData.REPORTVALUES[monthIndex]['Adjustment Profit']).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                     </div>
                                     <template v-if="activeReportRow === (stage + ' ' + month)">
-                                        <div class="rowContent inheritanceContent" >
+                                        <div class="rowContent inheritanceContent" style="width: 98.5%;" >
                                             <template v-for="record in stage">
                                                 <template v-if="!record.StageName">
                                                     <div class="headerDivider reportRecord" v-if="record.Opportunity__c">
@@ -1560,7 +1562,7 @@
                                                     <div class="headerDivider reportRecord" v-if="!record.Opportunity__c">
                                                         <div>
                                                             <span v-if="record.Calder__c">Calder commission for {{record.Opportunity__r.EventMonthYear__c}}</span>
-                                                            <span v-if="!record.Calder__c">Statutory adjustment</span>
+                                                            <span v-if="!record.Calder__c">Statutory adjustment added on {{ new Date(record.CreatedDate).toString().substring(4,15) }} by {{ record.CreatedBy.Name }}</span>
                                                         </div>
                                                         <div>{{ '£' + Math.abs(record.Revenue__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
                                                         <div>{{ '£' + Math.abs(record.CostOfSale__c).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}</div>
@@ -1599,13 +1601,20 @@
                                             <div>
                                                 <span v-if="new Date(record.CreatedDate) > new Date().setDate(new Date(record.CreatedDate).getDate() - 5)"
                                                       class="ageIndicator newIndicator">NEW</span>
-                                                <!--<span v-if="!record.IsClosed && new Date(record.LastModifiedDate) < new Date().setDate(new Date(record.LastModifiedDate).getDate() - 30)"-->
-                                                      <!--class="ageIndicator oldIndicator">AGEING</span>-->
+                                                <span v-if="!record.IsClosed && new Date(record.LastModifiedDate) <
+                                                            new Date().setDate(new Date(record.LastModifiedDate).getDate() - 45)"
+                                                      class="ageIndicator oldIndicator">AGEING</span>
                                                 <a v-bind:href=" '/' + record.Id " target="_blank" v-on:click="event.stopPropagation();">
                                                     {{ record.Name }}
                                                 </a>
                                             </div>
-                                            <div>{{ record.Account.Name }}</div>
+                                            <div >
+                                                <span v-if="!record.Calder_Opportunity__c">{{ record.Account.Name }}</span>
+                                                <span v-if="record.Calder_Opportunity__c" style="display:grid;grid-template-columns: 80% 20%;">
+                                                    <span>{{ record.Account.Name }}</span>
+                                                    <img height="25px" style="border-radius: 50%;" src="{!$Resource.CalderLogo}"/>
+                                                </span>
+                                            </div>
                                             <div>{{ new Date(record.Event_start__c).toDateString().substring(0,10) }}</div>
                                             <div>{{ new Date(record.Event_end__c).toDateString().substring(0,10) }}</div>
                                             <div>
@@ -1637,17 +1646,20 @@
                                             <div>{{ record.Gross_Margin__c }}%</div>
                                             <div style="position: relative;">
                                                 <!--<template v-if="record.IsClosed">-->
-                                                <template>
+                                                <template v-if="record.IsClosed">
                                                     <span class="recIndicator" v-bind:style="'width:' + ((record.Amount_Calder__c < 100000 ? record.Amount_Calder__c : 100000) / 1000) + '%'">
-                                                        <!--<div class="recCostOfSale" v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%', backgroundColor : !record.IsClosed ? '#e0d6d6' : ''}"></div>-->
-                                                        <div class="recCostOfSale"
-                                                             v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
-                                                        <!--<div class="recProfit" v-bind:style="{ width: (record.Gross_Margin__c) + '%', backgroundColor : !record.IsClosed ? '#8bca8b' : ''}"></div>-->
-                                                        <div class="recProfit"
-                                                             v-bind:style="{ width: (record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
+                                                        <div class="recCostOfSale" v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%'}"></div>
+                                                        <div class="recProfit" v-bind:style="{ width: (record.Gross_Margin__c) + '%'}"></div>
                                                     </span>
                                                 </template>
                                                 <template v-if="!record.IsClosed">
+                                                    <span class="recIndicator" v-bind:style="'width:' + ((record.Amount_Calder__c < 100000 ? record.Amount_Calder__c : 100000) / 1000) + '%'">
+                                                        <div class="recCostOfSale"
+                                                             v-bind:style="{ width: (100 - record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
+                                                        <div class="recProfit"
+                                                             v-bind:style="{ width: (record.Gross_Margin__c) + '%', opacity : !record.IsClosed ? '0.' + record.Probability : ''}"></div>
+                                                    </span>
+
                                                     <div class="probabilityIndicator"
                                                          v-bind:style="'width:' + record.Probability + '%'">
                                                         <span style="margin-right:-12px;">{{ record.Probability + '%'}}</span>
@@ -1798,21 +1810,22 @@
                                 </div>
                                 <div class="figureTile" v-on:mouseenter="hoverTile = index + 'revenue'" v-on:mouseout="hoverTile = ''"
                                            v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
-                                                            graphData['revenue'][month][0] !== graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] )?
+                                                            (graphData['revenue'][month][0] < (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - 1000) ||
+                                                            graphData['revenue'][month][0] > (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] + 1000)))?
                                                             '#fbe5e5' : ''}">
                                     {{'£' + Math.abs(graphData['revenue'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                                 <div class="figureTile" v-on:mouseenter="hoverTile = index + 'cos'" v-on:mouseout="hoverTile = ''"
-                                     v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
-                                                            (graphData['revenue'][month][0] - graphData['profit'][month][0])
-                                                            !== graphData.QUICKBOOKSFIGURES.qbCOS[month][0] )?
+                                            v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
+                                                            ((graphData['revenue'][month][0] - graphData['profit'][month][0]) < graphData.QUICKBOOKSFIGURES.qbCOS[month][0] - 100 ||
+                                                            (graphData['revenue'][month][0] - graphData['profit'][month][0]) > graphData.QUICKBOOKSFIGURES.qbCOS[month][0] + 100))?
                                                             '#fbe5e5' : ''}">
                                     {{'£' + Math.abs(graphData['revenue'][month][0] - graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
                                 <div class="figureTile" v-on:mouseenter="hoverTile = index + 'profit'" v-on:mouseout="hoverTile = ''"
-                                     v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
-                                                            graphData['profit'][month][0]
-                                                            !== (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0] ))?
+                                            v-bind:style="{ backgroundColor : (new Date(month) < graphData.SFCOMMIT.Month__c &&
+                                                            (graphData['profit'][month][0] < (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0] - 1000) ||
+                                                            graphData['profit'][month][0] > (graphData.QUICKBOOKSFIGURES.qbRevenue[month][0] - graphData.QUICKBOOKSFIGURES.qbCOS[month][0] + 1000)))?
                                                             '#fbe5e5' : ''}">
                                     {{'£' + Math.abs(graphData['profit'][month][0]).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,")}}
                                 </div>
@@ -3051,49 +3064,54 @@
             <div class="newEntryFormHolder">
                 <div class="newEntryForm">
                     <div class="entryFormTitle">CONFIGURE SOURCE INFORMATION</div>
-                    <div class="managerGrid">
-                        <div>Salesforce commit date: </div>
-                        <select v-model="QBSourceOptions.sfCommit">
-                            <option selected="true">{{QBSourceOptions.sfCommit}}</option>
-                            <template v-for="month in graphData.MONTHS">
-                                <option v-if="new Date(month) >= new Date(graphData.SFCOMMIT.Month__c)">{{month}}</option>
-                            </template>
-                        </select>
-                    </div>
-                    <div class="managerGrid">
-                        <div>Quickbooks close date:</div>
-                        <select v-model="QBSourceOptions.qbCommit">
-                            <option selected="true">{{QBSourceOptions.qbCommit}}</option>
-                            <template v-for="month in graphData.MONTHS">
-                                <option v-if="new Date(month) >= new Date(graphData.QBCLOSE.Month__c)">{{month}}</option>
-                            </template>
-                        </select>
-                    </div>
-                    <div class="managerGrid" v-if="QBSourceOptions">
-                        <div>Forecast source:</div>
-                        <select v-model="QBSourceOptions.forecastSource">
-                            <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
-                                <option >{{Budget.Name}}</option>
-                            </template>
-                        </select>
-                    </div>
-                    <div class="managerGrid" v-if="QBSourceOptions">
-                        <div>Budget source:</div>
-                        <select v-model="QBSourceOptions.budgetSource">
-                            <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
-                                <option >{{Budget.Name}}</option>
-                            </template>
-                        </select>
-                    </div>
-                    <br/>
-                    <div class="recordButtons">
-                        <div v-on:click="manager.configuring = false;" class="recordButton cancel">
-                            <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                    <span v-if="!QBSourceOptions" style="margin-left:10px;">retrieving settings...</span>
+                    <span v-if="QBSourceOptions">
+                        <div class="managerGrid">
+                            <div>Salesforce commit date: </div>
+                            <select v-model="QBSourceOptions.sfCommit">
+                                <!--<option selected="true">{{QBSourceOptions.sfCommit}}</option>-->
+                                <template v-for="month in graphData.MONTHS">
+                                    <option v-if="new Date(month) >= new Date(graphData.SFCOMMIT.Month__c) &&
+                                                  new Date(month) >= new Date(QBSourceOptions.qbCommit)">{{month}}</option>
+                                </template>
+                            </select>
                         </div>
-                        <div v-on:click="setQBSourceOptions()" class="recordButton save">
-                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                        <div class="managerGrid">
+                            <div>Quickbooks close date:</div>
+                            <select v-model="QBSourceOptions.qbCommit">
+                                <!--<option selected="true">{{QBSourceOptions.qbCommit}}</option>-->
+                                <template v-for="month in graphData.MONTHS">
+                                    <option v-if="new Date(month) >= new Date(graphData.QBCLOSE.Month__c)">{{month}}</option>
+                                </template>
+                            </select>
                         </div>
-                    </div>
+                        <div class="managerGrid" v-if="QBSourceOptions">
+                            <div>Forecast source:</div>
+                            <select v-model="QBSourceOptions.forecastSource">
+                                <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
+                                    <option v-bind:value="Budget.Id">{{Budget.Name}}</option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="managerGrid" v-if="QBSourceOptions">
+                            <div>Budget source:</div>
+                            <select v-model="QBSourceOptions.budgetSource">
+                                <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
+                                    <option  v-bind:value="Budget.Id">{{Budget.Name}}</option>
+                                </template>
+                            </select>
+                        </div>
+                        <br/>
+                        <div class="recordButtons" v-if="QBSourceOptions.sfCommit && QBSourceOptions.qbCommit &&
+                                                         QBSourceOptions.forecastSource && QBSourceOptions.budgetSource">
+                            <div v-on:click="manager.configuring = false;" class="recordButton cancel">
+                                <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
+                            </div>
+                            <div v-on:click="setQBSourceOptions()" class="recordButton save">
+                                <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                            </div>
+                        </div>
+                    </span>
                 </div>
             </div>
         </template>
@@ -3133,7 +3151,7 @@
                             <i class="recordButtonIcon fas fa-times-circle"></i> &nbsp; CANCEL
                         </div>
                         <div v-on:click="postAdjustment()" class="recordButton save">
-                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; UPDATE
+                            <i class="recordButtonIcon fas fa-check-circle"></i> &nbsp; POST
                         </div>
                     </div>
                 </div>
@@ -3260,10 +3278,10 @@
             </div>
         </div>
 
-        <template v-if="responsePending">
+        <div v-if="responsePending" style="display: flex;flex-direction: row;">
             <div class="loader"></div>
             <div class="pendingMessage">{{ message }}</div>
-        </template>
+        </div>
 
     </div>
     </div>
@@ -4213,25 +4231,27 @@
 
                     app.manager.configuring = false;
                     app.responsePending     = true;
-                    app.message             = 'Commiting Salesfore data and syncing Quickbooks data...'
+                    app.message             = 'Comitting Salesfore data and syncing Quickbooks data...';
 
-/*                    Visualforce.remoting.Manager.invokeAction(
-                        <!--'{!$RemoteAction.InsightsController.setQBSourceOptions}',-->
+                    console.log(app.QBSourceOptions);
+
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.InsightsController.setQBSourceOptions}',
+                        app.QBSourceOptions.budgetSource,
+                        app.QBSourceOptions.forecastSource,
                         app.period,
+                        new Date(app.QBSourceOptions.qbCommit),
+                        new Date(app.QBSourceOptions.sfCommit),
                         function (result) {
-                            app.QBSourceOptions = result;
-                            Vue.set(app.QBSourceOptions,'sfCommit',
-                                new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
-                                new Date(app.graphData.SFCOMMIT.Month__c).toString().substring(4,15).split(' ')[2]);
-                            Vue.set(app.QBSourceOptions,'qbCommit',
-                                new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[0] + ' '  +
-                                new Date(app.graphData.QBCLOSE.Month__c).toString().substring(4,15).split(' ')[2]);
-
-                            console.log(app.QBSourceOptions);
-
+                            app.responsePending     = false;
+                            app.message             = '';
+                            if (result){
+                                app.loadData();
+                            }
                         });
 
-                    setQBSourceOptions(String budgetId, String forecastId, String year, String month)*/
+                    // (String budgetId, String forecastId, String year, String qbCloseDate,
+                    // String sfCloseDate)
 
                 },
                 configureAdjustment : function(month){
@@ -4242,19 +4262,19 @@
                     app.manager.adjustmentProfit    = (app.manager.adjustmentRevenue - app.manager.adjustmentCOS).toFixed(2);
                 },
                 postAdjustment : function(){
-                    app.manager.adjusting = false;
-                    app.responsePending = true;
-                    app.message = 'posting adjustment...';
+                    app.manager.adjusting   = false;
+                    app.responsePending     = true;
+                    app.message             = 'posting adjustment...';
 
                     console.log(app.manager);
 
                     Visualforce.remoting.Manager.invokeAction(
                         '{!$RemoteAction.InsightsController.postAdjustment}',
-                        new Date(app.adjustmentMonth),
-                        parseFloat(app.adjustmentRevenue),
-                        parseFloat(app.adjustmentCOS),
-                        parseFloat(app.adjustmentProfit),
-                        app.adjustmentComment,
+                        new Date(app.manager.adjustmentMonth),
+                        app.manager.adjustmentRevenue,
+                        app.manager.adjustmentCOS,
+                        app.manager.adjustmentProfit,
+                        app.manager.adjustmentComment,
                         function (result) {
                             app.responsePending = false;
                             app.message = '';
@@ -4336,6 +4356,7 @@
                                             'Job Number' : records[x].Opportunity__c ? records[x].Opportunity__r.Filtered_Job_Number__c : '',
                                             'Name' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Name + '"' : '',
                                             'Account' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Account.Name + '"' : '',
+                                            'Calder' : false,
                                             'Start Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
                                             'End Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
                                             'Stage' : stage,
@@ -4359,6 +4380,7 @@
                                             'Job Number' : records[x].Filtered_Job_Number__c,
                                             'Name' : '"' + records[x].Name + '"',
                                             'Account' : '"' + records[x].Account.Name + '"',
+                                            'Calder' : records[x].Calder_Opportunity__c,
                                             'Start Date' : new Date(records[x].Event_start__c).toString().substring(0,10),
                                             'End Date' : new Date(records[x].Event_end__c).toString().substring(0,10),
                                             'Stage' : stage,

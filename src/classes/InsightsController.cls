@@ -161,7 +161,7 @@ public class InsightsController {
                                         EventMonthYear__c, Committed__c, CommittedRevenue__c,
                                         CommittedProfit__c, CommittedCOS__c, IsClosed, Amount_Paid__c, Amount_Invoiced2__c,
                                         Gross_profit_2__c, Event_End_Grouping__c, COSRemaining__c, Quickbooks_COS__c,
-                                        Quickbooks_COS_Paid__c,
+                                        Quickbooks_COS_Paid__c, Calder_Opportunity__c,
                                         EventMonthString__c, Owner.FirstName, Owner.LastName, Owner.ImageLink__c,
                                         Project_Manager__c, Project_Manager__r.ImageLink__c,
                                         Project_Manager__r.FirstName, Project_Manager__r.LastName, RecStatus__c,
@@ -232,7 +232,7 @@ public class InsightsController {
             }
         }
 
-        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, CostOfSale__c,
+        for (Adjustment__c adj : [SELECT Revenue__c, Profit__c, CostOfSale__c, CreatedDate, CreatedBy.Name,
                                          EventMonthYear__c, Opportunity__r.Name, Opportunity__r.Filtered_Job_Number__c,
                                          Opportunity__c, Opportunity__r.EventMonthYear__c, Opportunity__r.Account.Name
                                     FROM Adjustment__c
@@ -311,19 +311,8 @@ public class InsightsController {
 
         for (Integer x = 0; x < months.size(); x++){
             netProfitAggregates.get(months[x])[0] = (profitAggregates.get(months[x])[0] - opexAggregates.get(months[x])[1]);
-
-//            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[0] +
-//                    profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
-//
-//            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[0] +
-//                    profitAggregates.get(months[x])[1] + profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
-
-
-            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1] - opexAggregates.get(months[x])[1]);
-
-            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2] - opexAggregates.get(months[x])[1]);
-
-
+            netProfitAggregates.get(months[x])[1] = (profitAggregates.get(months[x])[1]);
+            netProfitAggregates.get(months[x])[2] = (profitAggregates.get(months[x])[2]);
         }
 
 
@@ -400,9 +389,11 @@ public class InsightsController {
 
 
     @RemoteAction
-    public static Boolean setQBSourceOptions(String budgetId, String forecastId, String year, String month){
+    public static Boolean setQBSourceOptions(String budgetId, String forecastId, String year, String qbCloseDate,
+                                             String sfCloseDate){
 
-        QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, month);
+        QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, qbCloseDate);
+        SalesDashboardUtils.commitOpportunities(Date.valueOf(sfCloseDate));
 
         return true;
     }
@@ -412,7 +403,9 @@ public class InsightsController {
 
         String fiscalYear;
 
-        if (year.equalsIgnoreCase('CURRENT FY')){
+        if (year.equalsIgnoreCase('PREVIOUS FY')){
+            fiscalYear = 'LAST_FISCAL_YEAR';
+        } else if (year.equalsIgnoreCase('CURRENT FY')){
             fiscalYear = 'THIS_FISCAL_YEAR';
         } else if (year.equalsIgnoreCase('NEXT FY')){
             fiscalYear = 'NEXT_FISCAL_YEAR';
@@ -474,11 +467,11 @@ public class InsightsController {
     }
 
     @RemoteAction
-    public static Boolean postAdjustment(Date monthDate, Decimal revenue, Decimal costOfSale, Decimal profit,
-                                         String commentString){
+    public static Boolean postAdjustment(String monthDate, Decimal revenue, Decimal costOfSale,
+                                         Decimal profit, String commentString){
 
         insert new Adjustment__c(
-            Month__c        = monthDate.toStartOfMonth(),
+            Month__c        = Date.valueOf(monthDate).toStartOfMonth(),
             Revenue__c      = revenue,
             CostOfSale__c   = costOfSale,
             Profit__c       = profit,
@@ -1286,7 +1279,7 @@ public class InsightsController {
             }
         }
 
-        for (SBQQ__Quote__c quote : [SELECT Id, SBQQ__NetAmount__c, Gross_Profit__c, CreatedDate
+        for (SBQQ__Quote__c quote : [SELECT Id, SBQQ__NetAmount__c, Gross_Profit__c, Cost_of_sale__c, CreatedDate
                                      FROM SBQQ__Quote__c
                                      WHERE SBQQ__Opportunity2__c = :oppId
                                      ORDER BY CreatedDate ASC]){
@@ -1298,7 +1291,7 @@ public class InsightsController {
             String dateKey = String.valueOf(Date.valueOf(quote.CreatedDate));
             Decimal commission = opp.Calder_Opportunity__c ? quote.SBQQ__NetAmount__c * 0.1 : 0;
             revenueMap.put(dateKey, quote.SBQQ__NetAmount__c - commission);
-            profitMap.put(dateKey, quote.Gross_Profit__c - commission);
+            profitMap.put(dateKey, quote.Gross_Profit__c);
         }
 
         for (Invoice_Schedule__c is : [SELECT Amount__c, Invoice_Sent__c, Send_Date__c,
@@ -1398,8 +1391,8 @@ public class InsightsController {
             }
             if (profitMap.containsKey(dateKey)){
                 profit = profitMap.get(dateKey);
-//                costOfSale = revenue - profit;
-                costOfSale = profit;
+                costOfSale = revenue - profit;
+//                costOfSale = profit;
             }
             if (invoiceMap.containsKey(dateKey)){
                 invoiced += invoiceMap.get(dateKey);

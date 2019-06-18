@@ -152,7 +152,7 @@ public class SalesDashboardUtils {
 
     }
 
-    public static void commitOpportunites(Date commitMonth){
+    public static void commitOpportunities(Date commitMonth){
 
         commitMonth = commitMonth.addMonths(1).toStartOfMonth().addDays(-1);
 
