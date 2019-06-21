@@ -44,9 +44,6 @@
 
             <div style="position: relative;">
                 <aura:iteration items="{!v.estimates}" var="quote">
-
-                    <!--<div style="{!not(v.estimatesOpen) ? (and(quote.SBQQ__Primary__c, quote.position &lt; v.estimates.length -1))  ?-->
-                    <!--quote.position == 0 ? 'margin-bottom:75px;position:relative;' : 'margin-top:-83px;margin-bottom:75px;position:relative;' : 'margin-top:-83px;position:relative;' : ''}">-->
                     <div style="{!and(not(v.estimatesOpen),quote.position != 0) ? (and(quote.SBQQ__Primary__c, quote.position &lt; v.estimates.length -1))  ?
                     'margin-top:-83px;margin-bottom:75px;position:relative;' : 'margin-top:-83px;position:relative;' : ''}">
                         <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
@@ -59,7 +56,9 @@
                 <div class="title">CONTRACTS {!v.contracts.length > 1 ? v.contractsOpen ? '&#x21E7;' : '&#x21E9;' : ''}</div>
             </div>
             <aura:iteration items="{!v.contracts}" var="quote">
-                <div style="{!and(not(v.contractsOpen),quote.position != 0) ? 'margin-top:-83px;position:relative;' : ''}">
+                <!--<div style="{!and(not(v.contractsOpen),quote.position != 0) ? 'margin-top:-83px;position:relative;' : ''}">-->
+                    <div style="{!and(not(v.contractsOpen),quote.position != 0) ? (and(quote.SBQQ__Primary__c, quote.position &lt; v.contracts.length -1))  ?
+                    'margin-top:-83px;margin-bottom:75px;position:relative;' : 'margin-top:-83px;position:relative;' : ''}">
                     <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
                 </div>
             </aura:iteration>
@@ -69,7 +68,9 @@
                 <div class="title">RECONCILIATIONS {!v.reconciliations.length > 1 ? v.reconciliationsOpen ? '&#x21E7;' : '&#x21E9;' : ''}</div>
             </div>
             <aura:iteration items="{!v.reconciliations}" var="quote">
-                <div style="{!and(not(v.reconciliationsOpen),quote.position != 0) ? 'margin-top:-83px;position:relative;' : ''}">
+                <!--<div style="{!and(not(v.reconciliationsOpen),quote.position != 0) ? 'margin-top:-83px;position:relative;' : ''}">-->
+                <div style="{!and(not(v.reconciliationsOpen),quote.position != 0) ? (and(quote.SBQQ__Primary__c, quote.position &lt; v.reconciliations.length -1))  ?
+                    'margin-top:-83px;margin-bottom:75px;position:relative;' : 'margin-top:-83px;position:relative;' : ''}">
                     <c:QuoteCard quote="{!quote}" primary="{!quote.SBQQ__Primary__c}"/>
                 </div>
             </aura:iteration>

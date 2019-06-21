@@ -582,6 +582,7 @@ public class CashflowGenerator {
             Decimal vatAmt  = (String) ar.get('Category__c') == 'Revenue' ?
                               (sum * 0.2).setScale(2) : ((sum * -1) * 0.15).setScale(2);
             String comment  = '';
+            Boolean paid    = false;
 
             if (oldEntryMap.containsKey(vatKey)){
                 if (oldEntryMap.get(vatKey).AmountAdjusted__c){
@@ -590,6 +591,7 @@ public class CashflowGenerator {
                 if (oldEntryMap.get(vatKey).AdjustedDate__c != null && !resetValues){
                     vatDate = oldEntryMap.get(vatKey).AdjustedDate__c;
                 }
+                paid    = oldEntryMap.get(vatKey).Paid__c;
                 comment = oldEntryMap.get(vatKey).Comment__c;
             }
 
@@ -605,6 +607,7 @@ public class CashflowGenerator {
                     vatEntry.QuickbooksId__c    = vatKey;
                     vatEntry.Source__c          = 'Budget';
                     vatEntry.Comment__c         = comment;
+                    vatEntry.Paid__c            = paid;
                     vatEntryMap.put(vatKey, vatEntry);
                 }
 
@@ -628,6 +631,7 @@ public class CashflowGenerator {
                 Decimal amount          = budgetEntry.Actual__c.setScale(2);
                 Boolean amountAdjusted  = false;
                 Boolean dateAdjusted    = false;
+                Boolean paid            = false;
 
                 // determine if the amount on the budget has been manually specified
                 if (!resetBudgets && oldEntryMap.containsKey(entryKey) && oldEntryMap.get(entryKey).AmountAdjusted__c){
@@ -643,11 +647,14 @@ public class CashflowGenerator {
                 }
 
                 // determine if the date on the entry has been manually specified (applies to payroll only)
-                if (budgetEntry.Category__c == 'Payroll' && oldEntryMap.containsKey(entryKey)
-                                                && oldEntryMap.get(entryKey).AdjustedDate__c != null){
-                    dateAdjusted        = true;
-                    Date adjustedDate   = oldEntryMap.get(entryKey).AdjustedDate__c;
-                    entryDate           = adjustedDate < Date.today() ? Date.today() : adjustedDate;
+                if (budgetEntry.Category__c == 'Payroll' && oldEntryMap.containsKey(entryKey)){
+                    if (oldEntryMap.get(entryKey).AdjustedDate__c != null){
+                        dateAdjusted        = true;
+                        Date adjustedDate   = oldEntryMap.get(entryKey).AdjustedDate__c;
+                        entryDate           = adjustedDate < Date.today() ? Date.today() : adjustedDate;
+                    }
+                    // check if the entity has been marked as already paid
+                    paid = oldEntryMap.get(entryKey).Paid__c;
                 }
 
                 String comment  = oldEntryMap.containsKey(entryKey) ? oldEntryMap.get(entryKey).Comment__c : '';
@@ -668,6 +675,7 @@ public class CashflowGenerator {
                     flowEntry.QuickbooksId__c    = budgetEntry.Parent__c +
                                                     String.valueOf(budgetEntry.Month__c.addMonths(1).addDays(-1));
                     flowEntry.Source__c          = 'Budget';
+                    flowEntry.Paid__c            = paid;
                     newEntries.add(flowEntry);
                 }
             }

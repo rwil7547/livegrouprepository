@@ -4249,10 +4249,6 @@
                                 app.loadData();
                             }
                         });
-
-                    // (String budgetId, String forecastId, String year, String qbCloseDate,
-                    // String sfCloseDate)
-
                 },
                 configureAdjustment : function(month){
                     app.manager.adjusting           = true;
@@ -4357,8 +4353,8 @@
                                             'Name' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Name + '"' : '',
                                             'Account' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Account.Name + '"' : '',
                                             'Calder' : false,
-                                            'Start Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
-                                            'End Date' : new Date(records[x].EventMonthYear__c).toString().substring(0,10),
+                                            'Start Date' : new Date(records[x].EventMonthYear__c).toString().substring(4,15),
+                                            'End Date' : new Date(records[x].EventMonthYear__c).toString().substring(4,15),
                                             'Stage' : stage,
                                             'Revenue' : records[x].Revenue__c,
                                             'Cost of sale' : records[x].CostOfSale__c,
@@ -4381,8 +4377,8 @@
                                             'Name' : '"' + records[x].Name + '"',
                                             'Account' : '"' + records[x].Account.Name + '"',
                                             'Calder' : records[x].Calder_Opportunity__c,
-                                            'Start Date' : new Date(records[x].Event_start__c).toString().substring(0,10),
-                                            'End Date' : new Date(records[x].Event_end__c).toString().substring(0,10),
+                                            'Start Date' : new Date(records[x].Event_start__c).toString().substring(4,15),
+                                            'End Date' : new Date(records[x].Event_end__c).toString().substring(4,15),
                                             'Stage' : stage,
                                             'Revenue' : records[x].Committed__c ? records[x].CommittedRevenue__c : records[x].Amount_Calder__c,
                                             'Cost of sale' : records[x].Committed__c ? records[x].CommittedCOS__c : records[x].Filtered_Cost_of_Sale__c,

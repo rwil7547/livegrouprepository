@@ -13,6 +13,10 @@ public class InsightsTest {
         Account acc = new Account(Name = 'TestAcc');
         insert acc;
 
+        SBQQ__Quote__c primaryQuote = new SBQQ__Quote__c();
+        primaryQuote.SBQQ__Primary__c = true;
+        insert primaryQuote;
+
         // insert Opportunities
         List<Opportunity> oppsToInsert = new List<Opportunity>();
 
@@ -30,6 +34,7 @@ public class InsightsTest {
                 opp.CommittedProfit__c = 1000;
                 opp.Calder_Opportunity__c = true;
                 opp.StageName = 'Closed Won';
+                opp.SBQQ__PrimaryQuote__c = primaryQuote.Id;
                 opp.Invoice_Schedule__c = 'Single up-front invoice';
                 opp.Event_start__c = Date.today().toStartOfMonth().addMonths(x + 1);
                 opp.Event_end__c = Date.today().toStartOfMonth().addMonths(x + 1);
@@ -41,6 +46,7 @@ public class InsightsTest {
                 opp.Forecast_COS__c = 1000;
                 opp.Calder_Opportunity__c = true;
                 opp.StageName = 'Closed Won';
+                opp.SBQQ__PrimaryQuote__c = primaryQuote.Id;
                 opp.Invoice_Schedule__c = 'Single up-front invoice';
                 opp.Event_start__c = Date.today().toStartOfMonth().addMonths(x - 1);
                 opp.Event_end__c = Date.today().toStartOfMonth().addMonths(x - 1);
@@ -96,6 +102,7 @@ public class InsightsTest {
                 opp.Probability = 50;
                 opp.Calder_Opportunity__c = true;
                 opp.StageName = 'Closed Won';
+                opp.SBQQ__PrimaryQuote__c = primaryQuote.Id;
                 opp.Invoice_Schedule__c = 'Single up-front invoice';
                 opp.Event_start__c = Date.newInstance(2018, 03, 01);
                 opp.Event_end__c = Date.newInstance(2018, 03, 01);

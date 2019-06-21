@@ -43,23 +43,31 @@
                         </span>
                     </aura:if>
                 </div>
-                <aura:if isTrue="{!v.editmode &amp;&amp; not(v.hasDocument)}">
-                    <div draggable="false" ondragstart="event.preventDefault();event.stopPropagation();" onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}">
-                        <lightning:inputRichText value="{!v.line.SBQQ__Description__c}"
-                                                 aura:id="lineform"
-                                                 class="{!v.line.Id}"
-                                                 disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT" />
-                    </div>
-                    <aura:set attribute="else">
-                        <div style="max-height: 62px;overflow-y: hidden;position: relative;">
-                            <lightning:formattedRichText value="{!v.line.SBQQ__Description__c}"/>
-                            <div style="position:absolute;top:48px;">........</div>
+                <aura:if isTrue="{!v.editmode}">
+                    <aura:if isTrue="{!not(v.hasDocument)}">
+                        <div draggable="false" ondragstart="event.preventDefault();event.stopPropagation();"
+                             onkeyup="{!c.setChanged}" onpaste="{!c.formatPaste}" style="position: relative;">
+                            <lightning:inputRichText value="{!v.line.SBQQ__Description__c}"
+                                                     aura:id="lineform"
+                                                     class="{!v.line.Id}"
+                                                     disabledCategories="FORMAT_FONT,FORMAT_TEXT,FORMAT_BODY,ALIGN_TEXT,INSERT_CONTENT"/>
                         </div>
+                        <aura:set attribute="else">
+                            <div style="overflow-y: hidden;position: relative;">
+                                <lightning:formattedRichText value="{!v.line.SBQQ__Description__c}"/>
+                            </div>
+                        </aura:set>
+                    </aura:if>
+                    <aura:set attribute="else">
+                            <div style="max-height: 62px;overflow-y: hidden;position: relative;">
+                                <lightning:formattedRichText value="{!v.line.SBQQ__Description__c}"/>
+                                <div style="position:absolute;top:48px;">........</div>
+                            </div>
                     </aura:set>
                 </aura:if>
             </div>
             <div>
-                <div class="figures">
+                <div class="figures"   style="max-height:28px;">
                     <div class="right">
                         <aura:if isTrue="{!and(v.editmode, v.revEditable)}">
                             <aura:if isTrue="{!v.line.SBQQ__Product__r.SBQQ__SubscriptionTerm__c != null}">
@@ -169,7 +177,7 @@
                         </div>
                     </aura:if>
                 </div>
-                <aura:if isTrue="{!v.reconciling}">
+                <aura:if isTrue="{!and(!v.line.SBQQ__Optional__c,or(v.quoteType == 'Contract', v.quoteType == 'Reconciliation'))}">
                     <div>
                         <div class="quickbooksTotal figures">
                             <div></div>
@@ -184,17 +192,25 @@
                             </div>
                             <aura:if isTrue="{!v.line.Line_total_cost__c != v.expensesTotal}">
                                 <div style="margin-left:5px;">
-                                    <lightning:icon iconName="utility:change_record_type" alternativeText="Cancel" size="x-small" onclick="{!c.reconcileLine}" title="Calculate" />
+                                    <lightning:icon iconName="utility:change_record_type"
+                                                    alternativeText="Cancel" size="x-small" onclick="{!c.reconcileLine}" title="Calculate" />
                                 </div>
+                                <aura:set attribute="else">
+                                    <div style="margin-left:5px;">
+                                        <lightning:icon iconName="utility:success" size="x-small"/>
+                                    </div>
+                                </aura:set>
                             </aura:if>
                         </div>
-                        <aura:iteration items="{!v.expenses}" var="expense">
-                            <aura:if isTrue="{!expense.QuoteLine__c == v.line.Id}">
-                                <div style="width:31vw;margin-right:15%;float:right;">
-                                    <c:QuickbooksExpense expense="{!expense}" opacity="0.7" />
-                                </div>
-                            </aura:if>
-                        </aura:iteration>
+                        <aura:if isTrue="{!v.reconciling}">
+                            <aura:iteration items="{!v.expenses}" var="expense">
+                                <aura:if isTrue="{!expense.QuoteLine__c == v.line.Id}">
+                                    <div style="width:31vw;margin-right:15%;float:right;">
+                                        <c:QuickbooksExpense expense="{!expense}" opacity="0.7" />
+                                    </div>
+                                </aura:if>
+                            </aura:iteration>
+                        </aura:if>
                     </div>
                 </aura:if>
             </div>

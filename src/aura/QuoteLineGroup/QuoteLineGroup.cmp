@@ -79,18 +79,20 @@
 
                 <lightning:layoutItem size="12" >
                     <aura:iteration items="{!v.lines}" var="line">
-                        <div style="position:relative;">
-                            <c:QuoteLine line="{!line}"
-                                         groupDragging="{!v.groupDragging}"
-                                         editable="{!v.editable}"
-                                         revEditable="{!v.revEditable}"
-                                         hasDocument="{!v.hasDocument}"
-                                         quoteType="{!v.quoteType}"
-                                         expenses="{!v.expenses}"
-                                         reconciling="{!v.reconciling}"
-                                         lineUpdatesPending="{!v.lineUpdatesPending}"
-                                         sortOrder="{!line.SBQQ__Number__c}"/>
-                        </div>
+                        <aura:renderIf isTrue="{!or(!line.SBQQ__Optional__c, line.SBQQ__Optional__c &amp;&amp; !v.reconciling)}">
+                            <div style="position:relative;">
+                                <c:QuoteLine line="{!line}"
+                                             groupDragging="{!v.groupDragging}"
+                                             editable="{!v.editable}"
+                                             revEditable="{!v.revEditable}"
+                                             hasDocument="{!v.hasDocument}"
+                                             quoteType="{!v.quoteType}"
+                                             expenses="{!v.expenses}"
+                                             reconciling="{!v.reconciling}"
+                                             lineUpdatesPending="{!v.lineUpdatesPending}"
+                                             sortOrder="{!line.SBQQ__Number__c}"/>
+                            </div>
+                        </aura:renderIf>
                     </aura:iteration>
                 </lightning:layoutItem>
 

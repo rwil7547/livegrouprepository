@@ -528,6 +528,8 @@
         getRefresh.setCallback(this, function(response){
             if (response.getState() === 'SUCCESS'){
 
+                console.log(response.getReturnValue());
+
                 var quote = component.get('v.quote');
                 quote.SBQQ__NetAmount__c    = response.getReturnValue()['SBQQ__NetAmount__c'];
                 quote.Cost_of_sale__c       = response.getReturnValue()['Cost_of_sale__c'];
@@ -538,7 +540,8 @@
                 quote.SBQQ__LineItemCount__c = response.getReturnValue()['SBQQ__LineItemCount__c'];
                 quote.SBQQ__Opportunity2__r.UnassignedExpenses__c = response.getReturnValue()['SBQQ__Opportunity2__r.UnassignedExpenses__c'];
                 quote.SBQQ__Opportunity2__r.Quote_Status__c = response.getReturnValue()['SBQQ__Opportunity2__r.Quote_Status__c'];
-                component.set('v.quote', component.get('v.quote'));
+                // component.set('v.quote', component.get('v.quote'));
+                component.set('v.quote', quote);
 
                 if (!component.get('v.revEditable') && !quote.HasDocument__c){
                     component.set('v.revEditable',true);
@@ -652,8 +655,6 @@
             });
             $A.enqueueAction(updateExpense);
         }
-
-
     },
     togglePrimary : function(component, event, helper){
         var isPrimary = (component.get('v.quote.SBQQ__Primary__c')) ? false : true;
@@ -666,9 +667,11 @@
         });
         togglePrimary.setCallback(this, function(response){
             if (response.getState() === "SUCCESS" && response.getReturnValue()){
+                console.log('rec:');
+                console.log(component.get('v.quote.SBQQ__Opportunity2__r.Quote_Status__c'));
                 helper.showToast('Success!', 'Quote updated','success');
                 component.set('v.quote.SBQQ__Primary__c', isPrimary);
-                console.log('firing refresh event');
+                component.set('v.cloneDisabled', !isPrimary);
                 var refresh = $A.get("e.c:Refresh");
                 refresh.setParams({
                     id : component.get('v.quote.Id')
@@ -750,7 +753,6 @@
             });
             $A.enqueueAction(changeGroupOrder);
         }
-
     },
     recComplete : function(component, event, helper){
 
@@ -787,7 +789,6 @@
         filename = args.filename ||
             component.get('v.quote.SBQQ__Opportunity2__r.Name') + ' ' +
             component.get('v.quote.Version__c') + '.csv';
-        //QuoteExport.csv';
 
         if (!csv.match(/^data:text\/csv/i)) {
             csv = 'data:text/csv;charset=utf-8,' + csv;

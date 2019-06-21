@@ -82,7 +82,7 @@
                                     <aura:if isTrue="{!and(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Primary__c)}">
                                         <lightning:button variant="neutral" label="{!'RECONCILE (' + v.quote.SBQQ__Opportunity2__r.UnassignedExpenses__c + ')'}" onclick="{!c.openReconcile}" class="slds-truncate"/>
                                     </aura:if>
-                                    <aura:if isTrue="{!and(v.editable,!v.quote.HasDocument__c)}">
+                                    <aura:if isTrue="{!v.editable &amp;&amp; not(v.quote.HasDocument__c)}">
                                         <!--<lightning:button variant="neutral" label="IMPORT" class="slds-truncate" disabled="true"/>-->
                                         <aura:if isTrue="{!!v.quote.SBQQ__LineItemsGrouped__c}">
                                             <lightning:button variant="neutral" label="ADD PRODUCTS" onclick="{!c.showModal}" class="slds-truncate"/>
@@ -108,7 +108,7 @@
                                             <lightning:button variant="brand" label="REC COMPLETE" onclick="{!c.recComplete}" class="slds-truncate"/>
                                         </aura:if>
                                     </aura:if>
-                                    <aura:if isTrue="{!and(v.quote.SBQQ__Opportunity2__r.Contracted__c,v.quote.SBQQ__Opportunity2__r.Legacy__c,not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c))}">
+                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Contracted__c &amp;&amp; v.quote.SBQQ__Opportunity2__r.Legacy__c  &amp;&amp; not(v.quote.SBQQ__Opportunity2__r.SBQQ__PrimaryQuote__c)}">
                                         <lightning:button variant="brand" label="CONVERT TO CONTRACT" onclick="{!c.convertToContract}" class="slds-truncate"/>
                                     </aura:if>
 
@@ -121,7 +121,7 @@
                     </div>
                 </lightning:layoutItem>
                 <lightning:layoutItem size="12">
-                    <div style="width:100%;display: grid;grid-template-columns: 75% 25%">
+                    <div style="width:100%;display: grid;grid-template-columns: 70% 30%">
                         <div >
                             <div style="display:flex;font-weight:bold;font-size:18px;margin-bottom:10px;">
                                 <div >{!v.quote.Version__c}</div>
@@ -177,7 +177,8 @@
                                 <span>
                                     <div class="totalsField">Primary</div>
                                     <div style="text-align:center;padding-top:2px;">
-                                        <input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}" disabled="{!or(not(v.editable),not(v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate'))}"
+                                        <input type="checkbox" checked="{!v.quote.SBQQ__Primary__c}"
+                                               disabled="{!or(not(v.editable),not(v.quote.SBQQ__Opportunity2__r.QuoteType__c == 'Estimate') &amp;&amp; not(v.quote.Latest__c) &amp;&amp; v.quote.SBQQ__Primary__c)}"
                                                style="{!v.editable ? 'zoom:1.5;cursor:pointer;' : 'zoom:1.5;'}" onclick="{!c.togglePrimary}"/>
                                     </div>
                                 </span>
@@ -191,11 +192,11 @@
                         <aura:if isTrue="{!or(v.quote.Stage__c != 'Estimate',v.quote.SBQQ__Opportunity2__r.Legacy__c) &amp;&amp; v.quote.SBQQ__Primary__c}">
                             <div class="recPanel">
                                 <div style="display:flex;font-weight:bold;font-size:14px;margin-bottom:2px;color:white;">
-                                    <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c == 'Reconciliation - completed'}">
-                                        <div style="background-color: green;padding-left: 3px;padding-right: 3px;border-radius: 2px;padding-top: 0;">REC COMPLETE</div>
-                                    </aura:if>
                                     <aura:if isTrue="{!v.quote.SBQQ__Opportunity2__r.Quote_Status__c != 'Reconciliation - completed'}">
                                         <div style="background-color: dimgray;padding-left: 3px;padding-right: 3px;border-radius: 2px;padding-top: 0;">REC INCOMPLETE</div>
+                                        <aura:set attribute="else">
+                                            <div style="background-color: green;padding-left: 3px;padding-right: 3px;border-radius: 2px;padding-top: 0;">REC COMPLETE</div>
+                                        </aura:set>
                                     </aura:if>
                                 </div>
                                 <div style="font-size: 13px;">
@@ -231,15 +232,15 @@
                                     <div style="display: flex;">
                                         <aura:if isTrue="{!v.quote.Cost_of_sale__c &gt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
                                             <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
-                                            <span>COS is <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c - v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}" style="currency" currencyCode="GBP"/> too high</span>
+                                            <span>SF COS is <lightning:formattedNumber value="{!v.quote.Cost_of_sale__c - v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}" style="currency" currencyCode="GBP"/> too high</span>
                                         </aura:if>
                                         <aura:if isTrue="{!v.quote.Cost_of_sale__c &lt; v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
                                             <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:red;'}">&#10007;</span> &nbsp;
-                                            <span>COS is <lightning:formattedNumber value="{!v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c - v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/> too low</span>
+                                            <span>SF COS is <lightning:formattedNumber value="{!v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c - v.quote.Cost_of_sale__c}" style="currency" currencyCode="GBP"/> too low</span>
                                         </aura:if>
                                         <aura:if isTrue="{!v.quote.Cost_of_sale__c == v.quote.SBQQ__Opportunity2__r.Quickbooks_COS__c}">
                                             <span style="{!v.quote.SBQQ__Opportunity2__r.Legacy__c ? 'font-weight: bolder;color:grey;' : 'font-weight: bolder;color:green;'}">&#10003;</span> &nbsp;
-                                            <span>COS matches Quickbooks</span>
+                                            <span>SF COS matches Quickbooks</span>
                                         </aura:if>
                                     </div>
 

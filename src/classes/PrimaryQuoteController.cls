@@ -763,6 +763,7 @@ public with sharing class PrimaryQuoteController {
             cloneQuote.Stage__c                 = 'Contract';
             cloneQuote.Version__c               = 'Contract';
             cloneQuote.SBQQ__Status__c          = null;
+            cloneQuote.Latest__c                = true;
             cloneQuote.Proposal_Introduction__c =
                             'You\'re ready. We\'re ready. Let\'s get this show on the road! ' +
                             'Here\'s the legal stuff for ' + quote.SBQQ__Opportunity2__r.Name + ', get it signed-off, ' +
@@ -866,8 +867,6 @@ public with sharing class PrimaryQuoteController {
 
         String version = (type == 'Contract') ? 'Contract Amendment' + ' ' + count.size() :
                 type + ' ' + (count.size() + 1);
-//        Boolean primary = type == 'Estimate' && !parentOpp.Legacy__c ? false : true;
-//        Boolean primary = false;
 
         SBQQ__Quote__c cloneQuote           = quote.clone(false,true);
         cloneQuote.SBQQ__Opportunity2__c    = oppId;
@@ -876,6 +875,7 @@ public with sharing class PrimaryQuoteController {
         cloneQuote.Version__c               = version;
         cloneQuote.HasDocument__c           = false;
         cloneQuote.Locked__c                = false;
+        cloneQuote.Latest__c                = true;
         cloneQuote.Ancestor__c              = quote.Id;
         cloneQuote.SBQQ__Status__c          = parentOpp.Legacy__c ? quote.SBQQ__Status__c : null;
 
@@ -984,14 +984,16 @@ public with sharing class PrimaryQuoteController {
         // if it is a contract, lock the documents and the quote itself
         if (cloneQuote.Stage__c == 'Estimate' && !parentOpp.Legacy__c){
             for (SBQQ__Quote__c prior : priorQuotes){
+                prior.Latest__c         = false;
                 if (prior.HasDocument__c && !prior.DocumentLocked__c){
                     prior.DocumentLocked__c = true;
                 }
             }
         } else {
             for (SBQQ__Quote__c prior : priorQuotes){
-                prior.Locked__c = true;
-                prior.SBQQ__Primary__c = false;
+                prior.Locked__c         = prior.Id != quote.Id;
+                prior.SBQQ__Primary__c  = prior.Id == quote.Id;
+                prior.Latest__c         = false;
 
                 if (prior.HasDocument__c && !prior.DocumentLocked__c) {
                     prior.DocumentLocked__c = true;
@@ -1003,10 +1005,6 @@ public with sharing class PrimaryQuoteController {
             parentOpp.Pricebook2Id = cloneQuote.SBQQ__PriceBook__c;
             parentOpp.SBQQ__QuotePricebookId__c = cloneQuote.SBQQ__PriceBook__c;
         }
-
-//        if (primary){
-//            parentOpp.SBQQ__PrimaryQuote__c = cloneQuote.Id;
-//        }
 
         update parentOpp;
 
@@ -1021,30 +1019,45 @@ public with sharing class PrimaryQuoteController {
 
         String result   = 'error';
 
-        Opportunity opp = [SELECT Id, Name FROM Opportunity WHERE Id = :oppId];
+        Opportunity opp = [SELECT Id, Name, StageName FROM Opportunity WHERE Id = :oppId];
         List<SBQQ__Quote__c> count = [SELECT Id FROM SBQQ__Quote__c WHERE SBQQ__Opportunity2__c = :oppId];
 
         SBQQ__Quote__c newQuote           = new SBQQ__Quote__c();
         newQuote.SBQQ__Opportunity2__c    = oppId;
-        newQuote.SBQQ__Primary__c         = false;
-        newQuote.Stage__c                 = 'Estimate';
-        newQuote.Version__c               = 'Estimate ' + (count.size() + 1);
-        newQuote.Proposal_Introduction__c = 'We\'re ready and raring to get started work on ' +
-                                            opp.Name + '. Over the next few pages, you\'ll get the ' +
-                                            'complete picture of the costs above. Excited? Great! ' +
-                                            'We are too. Let\'s get to work.';
         newQuote.SBQQ__PriceBook__c       = [SELECT Id FROM Pricebook2 WHERE Name = 'Default'].Id;
         newQuote.SBQQ__Status__c          = null;
+        newQuote.Latest__c                = true;
+
+        if (opp.StageName == 'Closed Won'){
+            newQuote.Stage__c                 = 'Contract';
+            newQuote.Version__c               = 'Contract';
+            newQuote.SBQQ__Primary__c         = true;
+            newQuote.Proposal_Introduction__c = 'You\'re ready. We\'re ready. Let\'s get this show on the road! ' +
+                    'Here\'s the legal stuff for ' + opp.Name + ', get it signed-off, ' +
+                    'and we can get started. Don\'t worry, if things change, we\'ll get it all updated ' +
+                    'and sent back to you for approval. ';
+        } else {
+            newQuote.Stage__c                 = 'Estimate';
+            newQuote.Version__c               = 'Estimate ' + (count.size() + 1);
+            newQuote.SBQQ__Primary__c         = false;
+            newQuote.Proposal_Introduction__c = 'We\'re ready and raring to get started work on ' +
+                    opp.Name + '. Over the next few pages, you\'ll get the ' +
+                    'complete picture of the costs above. Excited? Great! ' +
+                    'We are too. Let\'s get to work.';
+        }
 
         Database.SaveResult quoteInsert   = Database.insert(newQuote);
 
         if (quoteInsert.isSuccess()){
 
+            Boolean contracted = opp.StageName == 'Closed Won';
+
             Database.SaveResult oppUpdate  = Database.update(
                     new Opportunity(
                         Id = oppId,
                         Pricebook2Id = newQuote.SBQQ__PriceBook__c,
-                        SBQQ__QuotePricebookId__c = newQuote.SBQQ__PriceBook__c
+                        SBQQ__QuotePricebookId__c = newQuote.SBQQ__PriceBook__c,
+                        Contracted__c = contracted
                     )
             );
 
