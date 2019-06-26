@@ -157,7 +157,7 @@ public class QuickbooksDashboardCallout {
                                             Month__c    = budgetDate,
                                             Budget__c   = detail.Amount,
                                             Actual__c   = 0,
-                                            BudgetSource__c = parsedResults.QueryResponse.Budget[0].Name
+                                            BudgetSource__c = parsedResults.QueryResponse.Budget[0].Id
                                     )
                             );
                         }
@@ -209,7 +209,7 @@ public class QuickbooksDashboardCallout {
                                                 Month__c = budgetDate,
                                                 Budget__c = 0,
                                                 Actual__c = detail.Amount,
-                                                ForecastSource__c = parsedResults.QueryResponse.Budget[0].Name
+                                                ForecastSource__c = parsedResults.QueryResponse.Budget[0].Id
                                         )
                                 );
                             }

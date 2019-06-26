@@ -514,7 +514,7 @@ public class SalesDashboardTest {
         Object priorsnapshot = SalesDashboardRemoter.getPriorTotals(endDate);
         SalesDashboardSnapshot__c snapshotData = SalesDashboardRemoter.getSnapshotData(createdDate, endDate);
 
-        SalesDashboardUtils.commitOpportunites(Date.today());
+        SalesDashboardUtils.commitOpportunities(Date.today());
         SalesDashboardUtils.adjustOpportunities();
     }
 

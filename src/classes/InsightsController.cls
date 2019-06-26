@@ -247,8 +247,13 @@ public class InsightsController {
             revenueAggregates.get(adj.EventMonthYear__c)[0] += adj.Revenue__c;
             profitAggregates.get(adj.EventMonthYear__c)[0] += adj.Profit__c;
 
+            reportValues.get(adj.EventMonthYear__c).put('Closed Won Revenue',
+                    reportValues.get(adj.EventMonthYear__c).get('Closed Won Revenue') + adj.Revenue__c);
+            reportValues.get(adj.EventMonthYear__c).put('Closed Won COS',
+                    reportValues.get(adj.EventMonthYear__c).get('Closed Won COS') + adj.CostOfSale__c);
+
             reportValues.get(adj.EventMonthYear__c).put('Adjustment Revenue',
-                    reportValues.get(adj.EventMonthYear__c).get('Adjustment Profit') + adj.Revenue__c);
+                    reportValues.get(adj.EventMonthYear__c).get('Adjustment Revenue') + adj.Revenue__c);
             reportValues.get(adj.EventMonthYear__c).put('Adjustment Profit',
                     reportValues.get(adj.EventMonthYear__c).get('Adjustment Profit') + adj.Profit__c);
             reportValues.get(adj.EventMonthYear__c).put('Adjustment COS',
@@ -387,13 +392,47 @@ public class InsightsController {
         return figuresMap;
     }
 
+    @RemoteAction
+    public static List<SalesDashboardSnapshot__c> getSnapshotData(String createdDate, String endDate){
+
+        return  [SELECT
+                QBCloseDate__c, PeriodEnd__c, DateCreated__c, Budget11__c, Budget12__c,
+                Budget1__c, Budget2__c, Budget3__c, Budget4__c, Budget5__c, Budget6__c,
+                Budget7__c, Budget8__c, Budget9__c, GPConf10__c, GPConf11__c, GPConf12__c,
+                GPConf1__c, GPConf2__c, GPConf3__c, GPConf4__c, GPConf5__c, GPConf6__c,
+                GPConf7__c, GPConf8__c, GPConf9__c, GPPipeline10__c, GPPipeline11__c,
+                GPPipeline12__c, GPPipeline1__c, GPPipeline2__c, GPPipeline3__c, GPPipeline4__c,
+                GPPipeline5__c, GPPipeline6__c, GPPipeline7__c, GPPipeline8__c,
+                GPPipeline9__c, GPWeighted10__c, GPWeighted11__c, GPWeighted12__c,
+                GPWeighted1__c,  GPWeighted2__c, GPWeighted3__c, GPWeighted4__c, GPWeighted5__c,
+                GPWeighted6__c, GPWeighted7__c, GPWeighted8__c, GPWeighted9__c, Opex10__c,
+                Opex11__c, Opex12__c, Opex1__c, Opex2__c, Opex3__c, Opex4__c, Opex5__c,
+                Opex6__c, Opex7__c, Opex8__c, Opex9__c,  RevConf10__c, RevConf11__c,
+                RevConf12__c,  RevConf1__c, RevConf2__c,  RevConf3__c,  RevConf4__c,
+                RevConf5__c,  RevConf6__c, RevConf7__c, RevConf8__c, RevConf9__c, RevPipeline10__c,
+                RevPipeline11__c, RevPipeline12__c, RevPipeline1__c, RevPipeline2__c,
+                RevPipeline3__c, RevPipeline4__c, RevPipeline5__c, RevPipeline6__c,
+                RevPipeline7__c, RevPipeline8__c, RevPipeline9__c, RevTarget10__c,
+                RevTarget11__c, RevTarget12__c, RevTarget1__c, RevTarget2__c, RevTarget3__c,
+                RevTarget4__c, RevTarget5__c, RevTarget6__c, RevTarget7__c, RevTarget8__c,
+                RevTarget9__c, RevWeighted10__c, RevWeighted11__c, RevWeighted12__c,
+                RevWeighted1__c, RevWeighted2__c, RevWeighted3__c, RevWeighted4__c,
+                RevWeighted5__c, RevWeighted6__c, RevWeighted7__c, RevWeighted8__c,
+                RevWeighted9__c, Balance__c, TotalRevenue__c, TotalGrossProfit__c,
+                TotalOpex__c, TotalNetProfit__c, PriorRevenue__c, PriorGrossProfit__c,
+                PriorNetProfit__c, PriorOpex__c
+        FROM SalesDashboardSnapshot__c
+        WHERE DateCreated__c = :Date.valueOf(createdDate)
+        AND PeriodEnd__c = :Date.valueOf(endDate)
+        ORDER BY CreatedDate DESC LIMIT 1];
+    }
 
     @RemoteAction
     public static Boolean setQBSourceOptions(String budgetId, String forecastId, String year, String qbCloseDate,
                                              String sfCloseDate){
 
         QuickbooksDashboardCallout.updateOpexForecast(budgetId, forecastId, year, qbCloseDate);
-        SalesDashboardUtils.commitOpportunities(Date.valueOf(sfCloseDate));
+//        SalesDashboardUtils.commitOpportunities(Date.valueOf(sfCloseDate));
 
         return true;
     }
@@ -872,7 +911,293 @@ public class InsightsController {
     }
 
     @RemoteAction
-    public static Map<String,Map<String,List<Object>>> getRecordChanges(String start,
+    public static Object getDataChanges(String period){
+
+
+        return null;
+
+    }
+
+    @RemoteAction
+    public static Map<Integer,Map<String,InsightsController.RecordChange>> getRecordChanges(String start,
+            String endD, Integer days, Decimal currentTotal){
+
+        Date startDate  = Date.valueOf(start);
+        Date endDate    = Date.valueOf(endD);
+
+        Map<Integer,Map<String,InsightsController.RecordChange>> changeMap = new Map<Integer,Map<String,InsightsController.RecordChange>>();
+
+        for (Integer x = 0; x < 8; x++){
+            changeMap.put(Date.today().addDays(x * -1).day(), new Map<String,InsightsController.RecordChange>());
+            InsightsController.RecordChange change = new InsightsController.RecordChange();
+            change.RevenueEnd   = 0;
+            change.ProfitEnd    = 0;
+            changeMap.get(Date.today().addDays(x * -1).day()).put('total',change);
+
+        }
+
+
+        // find any opportunities which were set to won in the last 7 days, and create a map which contains
+        // the time at which the job is won. this is necessary to prevent including revenue and profit changes
+        // from a job from before it was won
+        Map<Id,Datetime> oppWinTime = new Map<Id,Datetime>();
+
+        for (OpportunityHistory stageHistory : [SELECT OpportunityId, StageName, CreatedDate
+                                                FROM OpportunityHistory
+                                                WHERE CreatedDate = LAST_N_DAYS:7]){
+            oppWinTime.put(stageHistory.OpportunityId,stageHistory.CreatedDate);
+        }
+
+        // track date changes
+        List<OpportunityFieldHistory> dateChanges =
+                            [SELECT OpportunityId, Opportunity.Name,
+                                    Opportunity.Filtered_Job_Number__c, Opportunity.Filtered_Cost_of_Sale__c,
+                                    Opportunity.Gross_Profit_Field_History__c, Opportunity.Gross_profit_2__c,
+                                    Opportunity.Amount_Calder__c,
+                                    Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                    CreatedBy.FirstName, CreatedBy.LastName, CreatedBy.Name
+                            FROM OpportunityFieldHistory
+                            WHERE Opportunity.StageName = 'Closed Won'
+                            AND CreatedDate = LAST_N_DAYS:7
+                            AND Field = 'Event_end__c'
+                            ORDER BY CreatedDate DESC];
+
+        for (OpportunityFieldHistory dateChange : dateChanges){
+            // Revenue which has gone out of the current financial year
+
+            if (!changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).containsKey(dateChange.OpportunityId + 'datein')){
+
+                if (((Date)dateChange.OldValue >= startDate && (Date)dateChange.OldValue <= endDate)
+                        && ((Date)dateChange.NewValue < startDate || (Date)dateChange.NewValue > endDate)) {
+
+                    InsightsController.RecordChange change = new InsightsController.RecordChange();
+                    change.Name         = dateChange.Opportunity.Name;
+                    change.Id           = dateChange.OpportunityId;
+                    change.Operation    = 'dateout';
+                    change.RevenueEnd   = dateChange.Opportunity.Amount_Calder__c;
+                    change.ProfitEnd    = dateChange.Opportunity.Gross_profit_2__c;
+                    change.OldEventEnd  = (Date)dateChange.OldValue;
+                    change.NewEventEnd  = (Date)dateChange.NewValue;
+                    change.Names.add(dateChange.CreatedBy.Name);
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).put(dateChange.OpportunityId + 'dateout',change);
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).get('total').RevenueEnd -= change.RevenueEnd;
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).get('total').ProfitEnd -= change.ProfitEnd;
+
+                    // else if the revenue has come into the current financial year
+                } else if (((Date)dateChange.OldValue < startDate || (Date)dateChange.OldValue > endDate)
+                        && ((Date)dateChange.NewValue >= startDate && (Date)dateChange.NewValue <= endDate)) {
+
+                    InsightsController.RecordChange change = new InsightsController.RecordChange();
+                    change.Name         = dateChange.Opportunity.Name;
+                    change.Id           = dateChange.OpportunityId;
+                    change.Operation    = 'datein';
+                    change.RevenueEnd   = dateChange.Opportunity.Amount_Calder__c;
+                    change.ProfitEnd    = dateChange.Opportunity.Gross_profit_2__c;
+                    change.OldEventEnd  = (Date)dateChange.OldValue;
+                    change.NewEventEnd  = (Date)dateChange.NewValue;
+                    change.Names.add(dateChange.CreatedBy.Name);
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).put(dateChange.OpportunityId + 'datein',change);
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).get('total').RevenueEnd += change.RevenueEnd;
+                    changeMap.get(Date.valueOf(dateChange.CreatedDate).day()).get('total').ProfitEnd += change.ProfitEnd;
+                }
+            }
+        }
+
+        // capture stage changes
+        List<OpportunityFieldHistory> stageChanges = [SELECT OpportunityId, Opportunity.Name,
+                                    Opportunity.Filtered_Job_Number__c, Opportunity.Gross_Profit_Field_History__c,
+                                    Opportunity.Calder_Opportunity__c, Opportunity.Amount_Calder__c,
+                                    Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                    CreatedBy.FirstName, CreatedBy.LastName, CreatedBy.Name, Opportunity.Gross_profit_2__c
+                            FROM OpportunityFieldHistory
+                            WHERE Opportunity.Event_end__c >= :startDate
+                            AND Opportunity.Event_end__c <= :endDate
+                            AND CreatedDate = LAST_N_DAYS:7
+                            AND Field = 'StageName'
+                            ORDER BY CreatedDate DESC];
+
+        for (OpportunityFieldHistory stageChange : stageChanges) {
+            if (stageChange.OldValue == 'Closed Won' || stageChange.NewValue == 'Closed Won') {
+
+                String operation    = stageChange.OldValue == 'Closed Won' ? 'lost' : 'won';
+
+                InsightsController.RecordChange change = new InsightsController.RecordChange();
+                change.Name         = stageChange.Opportunity.Name;
+                change.Id           = stageChange.OpportunityId;
+                change.Operation    = operation;
+                change.RevenueEnd   = stageChange.Opportunity.Amount_Calder__c;
+                change.ProfitEnd    = stageChange.Opportunity.Gross_profit_2__c;
+                change.Names.add(stageChange.CreatedBy.Name);
+                changeMap.get(Date.valueOf(stageChange.CreatedDate).day()).put(stageChange.OpportunityId + operation,change);
+
+                Decimal multiplier = operation == 'lost' ? -1 : 1;
+
+                changeMap.get(Date.valueOf(stageChange.CreatedDate).day()).get('total').RevenueEnd -= (change.RevenueEnd * multiplier);
+                changeMap.get(Date.valueOf(stageChange.CreatedDate).day()).get('total').ProfitEnd -= (change.ProfitEnd * multiplier);
+
+            }
+        }
+
+        // capture amount changes and relevant stage (Closed Won) at time of change
+        List<OpportunityFieldHistory> valueChanges =
+                                    [SELECT OpportunityId, Opportunity.Name, Opportunity.Filtered_Job_Number__c,
+                                            Opportunity.Amount_Calder__c, Opportunity.Calder_Opportunity__c,
+                                            Opportunity.StageName, Field, OldValue, NewValue, CreatedDate,
+                                            CreatedBy.Name, CreatedById
+                                    FROM OpportunityFieldHistory
+                                    WHERE Opportunity.Event_end__c >= :startDate
+                                    AND Opportunity.Event_end__c <= :endDate
+                                    AND Opportunity.StageName = 'Closed Won'
+                                    AND CreatedDate >= LAST_N_DAYS:7
+                                    AND (Field = 'Gross_Profit_Field_History__c' OR Field = 'Amount')
+                                    ORDER BY CreatedDate ASC];
+
+        for (OpportunityFieldHistory valueChange : valueChanges) {
+
+            System.debug('field ' + valueChange.Field + ' old ' + valueChange.OldValue + ' new ' + valueChange.NewValue);
+
+            // check that the value change did not happen before the job was won
+            if (!oppWinTime.containsKey(valueChange.OpportunityId) ||
+                    (oppWinTime.containsKey(valueChange.OpportunityId) &&
+                            valueChange.CreatedDate > oppWinTime.get(valueChange.OpportunityId))){
+
+                Integer createdDay = Date.valueOf(valueChange.CreatedDate).day();
+
+                if (!changeMap.get(createdDay).containsKey(valueChange.OpportunityId + 'won') &&
+                        !changeMap.get(createdDay).containsKey(valueChange.OpportunityId + 'datein')){
+
+                    if (changeMap.get(createdDay).containsKey(valueChange.OpportunityId)){
+                        changeMap.get(createdDay).get(valueChange.OpportunityId).Names.add(valueChange.CreatedBy.Name);
+                        if (valueChange.Field == 'Amount' && valueChange.NewValue != null &&
+                                valueChange.CreatedDate > changeMap.get(createdDay).get(valueChange.OpportunityId).RevenueEndTime) {
+                            changeMap.get(createdDay).get(valueChange.OpportunityId).RevenueEndTime  = valueChange.CreatedDate;
+                            changeMap.get(createdDay).get(valueChange.OpportunityId).RevenueEnd      = Decimal.valueOf((String)valueChange.NewValue);
+//                    changeMap.get(createdDay).get('total').RevenueEnd -= (change.RevenueEnd * multiplier);
+                        } else if (valueChange.Field == 'Gross_Profit_Field_History__c' && valueChange.NewValue != null &&
+                                valueChange.CreatedDate > changeMap.get(createdDay).get(valueChange.OpportunityId).ProfitEndTime){
+                            changeMap.get(createdDay).get(valueChange.OpportunityId).ProfitEndTime  = valueChange.CreatedDate;
+                            changeMap.get(createdDay).get(valueChange.OpportunityId).ProfitEnd      = Decimal.valueOf((String)valueChange.NewValue);
+                        }
+                    } else {
+                        InsightsController.RecordChange change = new InsightsController.RecordChange();
+                        change.Name             = valueChange.Opportunity.Name;
+                        change.Id               = valueChange.OpportunityId;
+                        change.Operation        = 'value';
+
+                        if (valueChange.Field == 'Amount'){
+
+                            system.debug('start is ' + valueChange.OldValue);
+
+                            change.RevenueStart     = valueChange.OldValue != null ? Decimal.valueOf((String)valueChange.OldValue) : 0;
+                            change.RevenueStartTime = valueChange.CreatedDate;
+                            change.RevenueEnd       = Decimal.valueOf((String)valueChange.NewValue);
+                            change.RevenueEndTime   = valueChange.CreatedDate;
+                            change.ProfitStart      = 0;
+                            change.ProfitStartTime  = startDate;
+                            change.ProfitEnd        = 0;
+                            change.ProfitEndTime    = startDate;
+                        } else if (valueChange.Field == 'Gross_Profit_Field_History__c'){
+                            change.ProfitStart      = valueChange.OldValue != null ? Decimal.valueOf((String)valueChange.OldValue) : 0;
+                            change.ProfitStartTime  = valueChange.CreatedDate;
+                            change.ProfitEnd        = Decimal.valueOf((String)valueChange.NewValue);
+                            change.ProfitEndTime    = valueChange.CreatedDate;
+                            change.RevenueStart     = 0;
+                            change.RevenueStartTime = startDate;
+                            change.RevenueEnd       = 0;
+                            change.RevenueEndTime   = startDate;
+                        }
+                        change.Names.add(valueChange.CreatedBy.Name);
+                        changeMap.get(createdDay).put(valueChange.OpportunityId,change);
+                    }
+                }
+
+            }
+
+
+
+        }
+
+
+        // track any statutory adjustments
+        List<Adjustment__c> statutoryAdjustments =
+                        [SELECT Revenue__c, CostOfSale__c, Profit__c, CreatedDate, EventMonthYear__c,
+                                CreatedBy.Name, Comment__c, Id
+                        FROM Adjustment__c
+                        WHERE Calder__c = FALSE
+                        AND Opportunity__c = NULL
+                        AND CreatedDate = LAST_N_DAYS:7
+                        AND Month__c >= :startDate
+                        AND Month__c <= :endDate];
+
+        for (Adjustment__c adj : statutoryAdjustments){
+            InsightsController.RecordChange change = new InsightsController.RecordChange();
+            change.Name             = 'Statutory adjustment ' + adj.Comment__c;
+            change.Operation        = 'statAdjustment';
+            change.RevenueEnd       = adj.Revenue__c;
+            change.ProfitEnd        = adj.Profit__c;
+            change.EventMonthYear   = adj.EventMonthYear__c;
+            change.Names.add(adj.CreatedBy.Name);
+            changeMap.get(Date.valueOf(adj.CreatedDate).day()).put(adj.Id,change);
+            changeMap.get(Date.valueOf(adj.CreatedDate).day()).get('total').RevenueEnd += change.RevenueEnd;
+            changeMap.get(Date.valueOf(adj.CreatedDate).day()).get('total').ProfitEnd += change.ProfitEnd;
+        }
+
+
+//        // track new and changed calder commissions
+//                List<Adjustment__c> newCommissions =
+//                                [SELECT Profit__c, CreatedDate, Month__c, CreatedBy.FirstName,
+//                                        CreatedBy.LastName, EventMonthYear__c
+//                                FROM Adjustment__c WHERE Calder__c = TRUE
+//                                AND CreatedDate = LAST_N_DAYS:7
+//                                AND Month__c >= :startDate
+//                                AND Month__c <= :endDate];
+//
+//        for (Adjustment__c adj : newCommissions){
+//            Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
+//            String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+//            changeMap.get(dayString).get('RECORDS').add(adj);
+//        }
+//
+//        List<Adjustment__History> changedCommissions =
+//                                [SELECT Field, OldValue, NewValue, CreatedDate, CreatedBy.FirstName,
+//                                        CreatedBy.LastName, Parent.Calder__c,
+//                                        Parent.Month__c, Parent.EventMonthYear__c
+//                                FROM Adjustment__History
+//                                WHERE CreatedDate >= :fallBack
+//                                AND Parent.Calder__c = TRUE
+//                                AND Parent.Month__c >= :startDate
+//                                AND Parent.Month__c <= :endDate];
+//
+//        for (Adjustment__History adj : changedCommissions){
+//            Date createdDate = Date.newInstance(adj.CreatedDate.year(), adj.CreatedDate.month(), adj.CreatedDate.day());
+//            String dayString = String.valueOf(createdDate.daysBetween(Date.today()));
+//            changeMap.get(dayString).get('RECORDS').add(adj);
+//        }
+
+        return changeMap;
+
+    }
+
+    private class RecordChange {
+        String Name;
+        String Id;
+        String Operation;
+        Decimal RevenueStart;
+        Decimal RevenueEnd;
+        Datetime RevenueStartTime;
+        Datetime RevenueEndTime;
+        Decimal ProfitStart;
+        Decimal ProfitEnd;
+        Datetime ProfitStartTime;
+        Datetime ProfitEndTime;
+        Date OldEventEnd;
+        Date NewEventEnd;
+        String EventMonthYear;
+        Set<String> Names = new Set<String>();
+    }
+
+    @RemoteAction
+    public static Map<String,Map<String,List<Object>>> getRecordChanges1(String start,
                                         String endD, Integer days, Decimal currentTotal){
 
 //        Date startDate      = Date.valueOf(start);
@@ -1213,15 +1538,6 @@ public class InsightsController {
 
     }
 
-    public class RecordChange {
-        DateTime ChangeDate;
-        String Description;
-        Decimal Revenue;
-        Decimal CostOfSale;
-        Decimal Profit;
-        Decimal Opex;
-        String ImageLink;
-    }
 
 
     @RemoteAction

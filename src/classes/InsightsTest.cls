@@ -646,4 +646,59 @@ public class InsightsTest {
 
     }
 
+    @IsTest
+    public static void testAdjustCalderCommission(){
+        SalesDashboardUtils.adjustCalderCommissions();
+    }
+
+    @IsTest
+    public static void testGetSnapshots(){
+
+        SalesDashboardUtils.createSnapshots();
+
+        String createdDate  = String.valueOf(Date.today());
+        String endDate      = String.valueOf(Date.today().addMonths(20));
+
+        Test.startTest();
+        List<Date> snapshotDates = SalesDashboardRemoter.getSnapshots(endDate);
+        Test.stopTest();
+    }
+
+    @IsTest
+    public static void testGetPriorTotals(){
+
+        String createdDate  = String.valueOf(Date.today());
+        String endDate      = String.valueOf(Date.today());
+
+        QBClosedMonth__c closedMonth = new QBClosedMonth__c();
+        closedMonth.Name = 'SFCommitMonth';
+        insert closedMonth;
+
+        Object priorsnapshot = SalesDashboardRemoter.getPriorTotals(endDate);
+        SalesDashboardSnapshot__c snapshotData = SalesDashboardRemoter.getSnapshotData(createdDate, endDate);
+
+        SalesDashboardUtils.commitOpportunities(Date.today());
+        SalesDashboardUtils.adjustOpportunities();
+    }
+
+    @IsTest
+    public static void testGetBalance200Response(){
+
+        Test.setMock(HttpCalloutMock.class, new JSONParserQBOCurrentAccountMock(200));
+
+        Test.startTest();
+        SalesDashboardUtils.getCurrentBalance();
+        Test.stopTest();
+    }
+
+    @IsTest
+    public static void testGetBalance400Response(){
+
+        Test.setMock(HttpCalloutMock.class, new JSONParserQBOCurrentAccountMock(400));
+
+        Test.startTest();
+        SalesDashboardUtils.getCurrentBalance();
+        Test.stopTest();
+    }
+
 }

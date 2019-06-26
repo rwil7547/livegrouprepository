@@ -2,7 +2,7 @@
  * Created by Ronan Williams on 11/10/2018.
  */
 
-public class SalesDashboardUtils {
+public class SalesDashboardUtils  {
 
     @Future(Callout=true)
     public static void getCurrentBalance(){
@@ -88,8 +88,8 @@ public class SalesDashboardUtils {
             Map<String, List<Decimal>> currentFYOpex =
                     SalesDashboardRemoter.getOperatingCosts(String.valueOf(startDate), String.valueOf(endDate));
 
-            Map<Date, List<Object>> balances =
-                    SalesDashboardRemoter.getBalances(String.valueOf(startDate), String.valueOf(endDate));
+//            Map<Date, List<Object>> balances =
+//                    SalesDashboardRemoter.getBalances(String.valueOf(startDate), String.valueOf(endDate));
 
             List<String> months = new List<String>(currentFYRevenue.keySet());
 
@@ -107,19 +107,19 @@ public class SalesDashboardUtils {
                 snapshot.put('Budget' + (x + 1) + '__c', currentFYOpex.get(months[x])[3]);
             }
 
-            for (Date balDate : balances.keySet()){
-
-                Decimal balOne      = (balances.get(balDate)[1] == null) ? 0 : ((Decimal)balances.get(balDate)[1]).setScale(2);
-                Decimal balTwo      = (balances.get(balDate)[2] == null) ? 0 : ((Decimal)balances.get(balDate)[2]).setScale(2);
-                Decimal balThree    = (balances.get(balDate)[3] == null) ? 0 : ((Decimal)balances.get(balDate)[3]).setScale(2);
-                Decimal balFour     = (balances.get(balDate)[4] == null) ? 0 : ((Decimal)balances.get(balDate)[4]).setScale(2);
-
-                snapshot.Balance__c += ':' + balances.get(balDate)[0] +
-                        ' *' + balOne +
-                        ' *' + balTwo +
-                        ' *' + balThree +
-                        ' *' + balFour + ' ';
-            }
+//            for (Date balDate : balances.keySet()){
+//
+//                Decimal balOne      = (balances.get(balDate)[1] == null) ? 0 : ((Decimal)balances.get(balDate)[1]).setScale(2);
+//                Decimal balTwo      = (balances.get(balDate)[2] == null) ? 0 : ((Decimal)balances.get(balDate)[2]).setScale(2);
+//                Decimal balThree    = (balances.get(balDate)[3] == null) ? 0 : ((Decimal)balances.get(balDate)[3]).setScale(2);
+//                Decimal balFour     = (balances.get(balDate)[4] == null) ? 0 : ((Decimal)balances.get(balDate)[4]).setScale(2);
+//
+//                snapshot.Balance__c += ':' + balances.get(balDate)[0] +
+//                        ' *' + balOne +
+//                        ' *' + balTwo +
+//                        ' *' + balThree +
+//                        ' *' + balFour + ' ';
+//            }
 
             List<Decimal> totals = SalesDashboardRemoter.getHeadlineTotals(String.valueOf(startDate), String.valueOf(endDate));
             snapshot.TotalRevenue__c        = totals[0];
@@ -154,6 +154,7 @@ public class SalesDashboardUtils {
 
     public static void commitOpportunities(Date commitMonth){
 
+        QBClosedMonth__c month = QBClosedMonth__c.getInstance('SFCommitMonth');
         commitMonth = commitMonth.addMonths(1).toStartOfMonth().addDays(-1);
 
         List<Opportunity> priorOpportunities = [SELECT Id, Event_end__c, Amount_Calder__c, Gross_profit_2__c,
@@ -167,7 +168,7 @@ public class SalesDashboardUtils {
         for (Opportunity opp : priorOpportunities){
             opp.Committed__c        = true;
             // if the opportunity falls in the prior month
-            if (opp.Event_end__c >= Date.today().addMonths(-1).toStartOfMonth()){
+            if (opp.Event_end__c >= month.Month__c.toStartOfMonth()){
                 opp.CommittedRevenue__c = opp.Amount_Calder__c;
                 opp.CommittedProfit__c  = opp.Gross_profit_2__c;
                 opp.CommittedCOS__c     = opp.Filtered_Cost_of_Sale__c;
@@ -191,7 +192,6 @@ public class SalesDashboardUtils {
 
         update priorAdjustments;
 
-        QBClosedMonth__c month = QBClosedMonth__c.getInstance('SFCommitMonth');
         month.Month__c = commitMonth;
         update month;
 

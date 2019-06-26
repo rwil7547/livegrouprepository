@@ -1036,6 +1036,36 @@
             color: white;
             background: grey;
         }
+        .snpashotFade {
+            -webkit-transition: opacity 0.5s;
+            transition: opacity 0.5s;
+        }
+        .snapshotText {
+            margin-left: 8px;
+            opacity: 0.8;
+            cursor:pointer;
+            padding-left:4px;
+            padding-right:4px;
+            border-radius: 4px;
+            background-color: grey;
+            color:white;
+            -webkit-transition: opacity 0.5s;
+            transition: opacity 0.5s;
+        }
+        .snapshotGraph {
+            -webkit-transition: opacity 0.5s;
+            transition: opacity 0.5s;
+            margin-top:-51.8%;
+        }
+        .snapshotIcon {
+            -webkit-transition: opacity 0.5s;
+            transition: opacity 0.5s;
+            position: absolute;
+            top: 10px;
+            left: 70px;
+            font-size: 40px;
+            opacity: 0.3;
+        }
         .forbidden {
             background-color: lightcoral;
         }
@@ -1133,6 +1163,23 @@
         .RECONCILIATIONline {
             background-color: rgb(211, 59, 142);
         }
+        .changeGrid {
+            display: grid;
+            grid-template-columns:70% 10% 10% 10%;
+        }
+        .changeRow {
+            min-height:30px;
+            cursor:pointer;
+            padding: 4px;
+        }
+        .changeRow:hover {
+            background-color: #f9f9f9;
+        }
+        .dayChangeFigure {
+            background-color: white;
+            padding-left: 3px;
+            padding-right:3px;
+        }
     </style>
 
     <div style="width: 100%;display:flex;justify-content: center;">
@@ -1192,16 +1239,16 @@
                              v-bind:class="{ activeSetting : setting === 'report'}">
                             <i class="fas fa-list"></i> REPORT </div>
                         <template v-if="showChanges && preset">
-                            <div class="viewOption" v-on:click="app.setting = 'changes';window.scrollTo(0,0);"
+                            <div v-if="period !== 'PREVIOUS FY'" class="viewOption" v-on:click="app.setting = 'changes';window.scrollTo(0,0);"
                                  v-bind:class="{ activeSetting : setting === 'changes'}">
                                 <i class="fas fa-arrows-alt-v"></i> CHANGES </div>
                             <div class="viewOption" v-on:click="app.setting = 'manage';window.scrollTo(0,0);"
                                  v-bind:class="{ activeSetting : setting === 'manage'}">
                                 <i class="fas fa-cog"></i> MANAGE </div>
+                            <div class="viewOption" v-on:click="app.setting = 'cashflow';window.scrollTo(0,0);"
+                                 v-bind:class="{ activeSetting : setting === 'cashflow'}">
+                                <i class="fas fa-pound-sign"></i> CASH FLOW</div>
                         </template>
-                        <div class="viewOption" v-on:click="app.setting = 'cashflow';window.scrollTo(0,0);"
-                             v-bind:class="{ activeSetting : setting === 'cashflow'}">
-                            <i class="fas fa-pound-sign"></i> CASH FLOW</div>
                     </div>
                 </div>
             </div>
@@ -1232,9 +1279,18 @@
                     </div>
                 </template>
                 <template v-if="showChanges && setting === 'graph'">
-                    <div class="historyIcon"  v-show="!hideNav || showSideOptions">
-                        <i class="fas fa-camera"></i>
-                    </div>
+                    <span style="display: flex;">
+                        <div class="historyIcon"  v-show="!hideNav || showSideOptions"
+                            v-on:click="setSnapshot = !setSnapshot">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <input v-show="setSnapshot"
+                               type="date" style="width: 130px;font-size:11px;font-weight: lighter;margin-right: 10px;"
+                               v-model="snapshotDate"
+                               v-on:change="getSnapshotData()"
+                               v-bind:max="new Date(graphData.SNAPSHOTS[0].CreatedDate).toISOString().substring(0, 10)"
+                               v-bind:min="new Date(graphData.SNAPSHOTS[graphData.SNAPSHOTS.length - 1].CreatedDate).toISOString().substring(0, 10)"/>
+                    </span>
                 </template>
                 <template v-if="showChanges && setting === 'report'">
                     <div class="historyIcon"  v-show="!hideNav || showSideOptions" v-on:click="downloadCSV()">
@@ -1266,7 +1322,17 @@
             <!--REVENUE GRAPHS-->
             <div class="box" >
                 <div class="splitTwo">
-                    <div class="title">REVENUE {{period}} </div>
+                    <div class="title">
+                        <span>REVENUE {{period}} </span>
+                        <span v-if="snapshotDate">
+                            <div class="snapshotText" v-on:mouseenter="snapshot.hideRevenue = true;"
+                                 v-on:mouseout="snapshot.hideRevenue = false;"
+                                 v-bind:style="snapshot.hideRevenue ? 'opacity:0' : 'opacity:1' ">
+                                <i class="fas fa-camera"></i>
+                                {{ new Date(snapshotDate).toString().substring(0,15).toUpperCase() }}
+                            </div>
+                        </span>
+                    </div>
                     <div class="optionsHolder">
                         <div class="options">
                             <div class="option confirmed"
@@ -1282,9 +1348,21 @@
                 <div class="splitTwo">
                     <div class="boxLite">
                         <div id="revenueBar" class="graph"></div>
+                        <div v-show="snapshotDate" id="revenueBarSnapshot" class="graph snapshotGraph"
+                             v-bind:style="snapshot.hideRevenue ? 'opacity:0' : 'opacity:1' "></div>
+                        <div v-show="snapshotDate" class="snapshotIcon"
+                             v-bind:style="snapshot.hideRevenue ? 'opacity:0' : '' ">
+                            <i class="fas fa-camera"></i>
+                        </div>
                     </div>
                     <div class="boxLite">
                         <div id="revenueLine" class="graph"></div>
+                        <div v-show="snapshotDate" id="revenueLineSnapshot" class="graph snapshotGraph"
+                             v-bind:style="snapshot.hideRevenue ? 'opacity:0' : 'opacity:1' "></div>
+                        <div v-show="snapshotDate" class="snapshotIcon"
+                             v-bind:style="snapshot.hideRevenue ? 'opacity:0' : '' ">
+                            <i class="fas fa-camera"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1292,7 +1370,17 @@
             <!--GROSS PROFIT GRAPHS-->
             <div class="box">
                 <div class="splitTwo">
-                    <div class="title">GROSS PROFIT {{period}}</div>
+                    <div class="title">
+                        <span>GROSS PROFIT {{period}} </span>
+                        <span v-if="snapshotDate">
+                            <div class="snapshotText" v-on:mouseenter="snapshot.hideProfit = true;"
+                                 v-on:mouseout="snapshot.hideProfit = false;"
+                                 v-bind:style="snapshot.hideProfit ? 'opacity:0' : 'opacity:1' ">
+                                <i class="fas fa-camera"></i>
+                                {{ new Date(snapshotDate).toString().substring(0,15).toUpperCase() }}
+                            </div>
+                        </span>
+                    </div>
                     <div class="optionsHolder">
                         <div class="options">
                             <div class="option confirmed"
@@ -1308,6 +1396,12 @@
                 <div class="splitTwo">
                     <div class="boxLite">
                         <div id="profitBar" class="graph"></div>
+                        <div v-show="snapshotDate" id="profitBarSnapshot" class="graph snapshotGraph"
+                             v-bind:style="snapshot.hideProfit ? 'opacity:0' : 'opacity:1' "></div>
+                        <div v-show="snapshotDate" class="snapshotIcon"
+                             v-bind:style="snapshot.hideProfit ? 'opacity:0' : '' ">
+                            <i class="fas fa-camera"></i>
+                        </div>
                     </div>
                     <div class="boxLite">
                         <div id="profitLine" class="graph"></div>
@@ -1318,7 +1412,17 @@
             <!--OPEX GRAPHS-->
             <div class="box">
                 <div class="splitTwo">
-                    <div class="title">OPERATING COSTS {{period}}</div>
+                    <div class="title">
+                        <span>OPERATING COSTS {{period}} </span>
+                        <span v-if="snapshotDate">
+                            <div class="snapshotText" v-on:mouseenter="snapshot.hideOpex = true;"
+                                 v-on:mouseout="snapshot.hideOpex = false;"
+                                 v-bind:style="snapshot.hideOpex ? 'opacity:0' : 'opacity:1' ">
+                                <i class="fas fa-camera"></i>
+                                {{ new Date(snapshotDate).toString().substring(0,15).toUpperCase() }}
+                            </div>
+                        </span>
+                    </div>
                     <div class="optionsHolder">
                         <div class="options">
                             <template v-if="splitOpex">
@@ -1342,6 +1446,12 @@
                 <div class="splitTwo">
                     <div class="boxLite">
                         <div id="opexBar" class="graph"></div>
+                        <div v-show="snapshotDate" id="opexBarSnapshot" class="graph snapshotGraph"
+                             v-bind:style="snapshot.hideOpex ? 'opacity:0' : 'opacity:1' "></div>
+                        <div v-show="snapshotDate" class="snapshotIcon"
+                             v-bind:style="snapshot.hideOpex ? 'opacity:0' : '' ">
+                            <i class="fas fa-camera"></i>
+                        </div>
                     </div>
                     <div class="boxLite">
                         <div id="opexLine" class="graph"></div>
@@ -1352,7 +1462,17 @@
             <!--NET PROFIT GRAPHS-->
             <div class="box">
                 <div class="splitTwo">
-                    <div class="title">NET PROFIT {{period}}</div>
+                    <div class="title">
+                        <span>NET PROFIT {{period}} </span>
+                        <span v-if="snapshotDate">
+                            <div class="snapshotText" v-on:mouseenter="snapshot.hideNetProfit = true;"
+                                 v-on:mouseout="snapshot.hideNetProfit = false;"
+                                 v-bind:style="snapshot.hideNetProfit ? 'opacity:0' : 'opacity:1' ">
+                                <i class="fas fa-camera"></i>
+                                {{ new Date(snapshotDate).toString().substring(0,15).toUpperCase() }}
+                            </div>
+                        </span>
+                    </div>
                     <div class="optionsHolder">
                         <div class="options">
                             <div class="option confirmed"
@@ -1367,6 +1487,12 @@
                 <div class="splitTwo">
                     <div class="boxLite">
                         <div id="netProfitBar" class="graph"></div>
+                        <div v-show="snapshotDate" id="netProfitBarSnapshot" class="graph snapshotGraph"
+                             v-bind:style="snapshot.hideNetProfit ? 'opacity:0' : 'opacity:1' "></div>
+                        <div v-show="snapshotDate" class="snapshotIcon"
+                             v-bind:style="snapshot.hideNetProfit ? 'opacity:0' : '' ">
+                            <i class="fas fa-camera"></i>
+                        </div>
                     </div>
                     <div class="boxLite">
                         <div id="netProfitLine" class="graph"></div>
@@ -1377,7 +1503,17 @@
             <!--TOTAL CONFIRMED FIGURES -->
             <div class="box">
                 <div class="splitTwo">
-                    <div class="title">TOTAL CONFIRMED FIGURES {{period}}</div>
+                    <div class="title">
+                        <span>TOTAL CONFIRMED FIGURES {{period}} </span>
+                        <span v-if="snapshotDate">
+                            <div class="snapshotText" v-on:mouseenter="snapshot.hideTotals = true;"
+                                 v-on:mouseout="snapshot.hideTotals = false;"
+                                 v-bind:style="snapshot.hideTotals ? 'opacity:0' : 'opacity:1' ">
+                                <i class="fas fa-camera"></i>
+                                {{ new Date(snapshotDate).toString().substring(0,15).toUpperCase() }}
+                            </div>
+                        </span>
+                    </div>
                     <div class="optionsHolder" v-if="showChanges && graphData.SNAPSHOTS">
                         <span>SHOW CHANGES IN THE LAST </span>
                         <div style="width:100px;">
@@ -1756,9 +1892,64 @@
         <span v-show="setting === 'changes'">
 
             <div class="box">
-                <template v-for="entry in changeData">
-                    <div class="boxLite">
-                        <!--{{ entry }}-->
+                <template v-for="entry, index of changeData">
+                    <div class="boxLite" style="margin-top: 30px;">
+
+                        <div class="changeGrid" style="font-size: 20px;margin-top:-20px;width:100%;margin-bottom:5px;">
+                            <div><span style="background-color: white;margin-left:20px;">{{ entry.name }}</span></div>
+                            <div>
+                                <span class="dayChangeFigure" v-bind:style=" entry.revenue < 0 ? 'color:red' : entry.revenue === 0 ? 'color:grey' : 'color:green'">
+                                    {{ '£' + Math.abs(entry.revenue).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}
+                                </span>
+                            </div>
+                            <div>
+                                <span style="background-color: white;" v-bind:style=" entry.cos < 0 ? 'color:red' : entry.cos === 0 ? 'color:grey' : 'color:green'">
+                                    {{ '£' + Math.abs(entry.cos).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}
+                                </span>
+                            </div>
+                            <div>
+                                <span style="background-color: white;" v-bind:style=" entry.profit < 0 ? 'color:red' : entry.profit === 0 ? 'color:grey' : 'color:green'">
+                                    {{ '£' + Math.abs(entry.profit).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <template v-for="record in entry.records">
+                            <template v-if="record.Operation === 'lost'">
+                                <div class="changeGrid changeRow">
+                                    <span><a v-bind:href=" '/' + record.Id " target="_blank" >{{ record.Name }}</a>{{ ' was set to closed lost by ' + record.Names[0]}}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd - record.ProfitEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.ProfitEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                </div>
+                            </template>
+                            <template v-if="record.Operation === 'won'">
+                                <div class="changeGrid changeRow">
+                                    <span><a v-bind:href=" '/' + record.Id " target="_blank" >{{ record.Name }}</a>{{ ' was confirmed by ' + record.Names[0]}}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd - record.ProfitEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.ProfitEnd).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                </div>
+                            </template>
+                            <template v-if="record.Operation === 'value'">
+                                <div class="changeGrid changeRow">
+                                    <span><a v-bind:href=" '/' + record.Id " target="_blank" >{{ record.Name }}</a>{{' was updated by ' + record.Names[0]}}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd - record.RevenueStart).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs((record.RevenueEnd - record.RevenueStart) - (record.ProfitEnd - record.ProfitStart)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.ProfitEnd - record.ProfitStart).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                </div>
+                            </template>
+                            <template v-if="record.Operation === 'statAdjustment'">
+                                <div class="changeGrid changeRow">
+                                    <span>{{ record.CreatedBy.Name + ' added a statutory adjustment to ' + adj.EventMonthYear__c }}</span>
+                                    <span>{{ '£' +  Math.abs(record.RevenueEnd - record.RevenueStart).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs((record.RevenueEnd - record.RevenueStart) - (record.ProfitEnd - record.ProfitStart)).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                    <span>{{ '£' +  Math.abs(record.ProfitEnd - record.ProfitStart).toFixed(0).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,") }}</span>
+                                </div>
+                            </template>
+
+                        </template>
+
 
                         <!--<div style="position:absolute;top:0;right:0;">-->
                             <!--<span>{{ entry.VALUE[0].TotalRevenue__c  }}</span>-->
@@ -3064,7 +3255,7 @@
             <div class="newEntryFormHolder">
                 <div class="newEntryForm">
                     <div class="entryFormTitle">CONFIGURE SOURCE INFORMATION</div>
-                    <span v-if="!QBSourceOptions" style="margin-left:10px;">retrieving settings...</span>
+                    <span v-if="!QBSourceOptions" style="margin-left:12px;">retrieving settings...</span>
                     <span v-if="QBSourceOptions">
                         <div class="managerGrid">
                             <div>Salesforce commit date: </div>
@@ -3085,7 +3276,7 @@
                                 </template>
                             </select>
                         </div>
-                        <div class="managerGrid" v-if="QBSourceOptions">
+                        <div class="managerGrid">
                             <div>Forecast source:</div>
                             <select v-model="QBSourceOptions.forecastSource">
                                 <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
@@ -3093,11 +3284,11 @@
                                 </template>
                             </select>
                         </div>
-                        <div class="managerGrid" v-if="QBSourceOptions">
+                        <div class="managerGrid">
                             <div>Budget source:</div>
                             <select v-model="QBSourceOptions.budgetSource">
                                 <template v-for="Budget in QBSourceOptions.budgets.QueryResponse.Budget">
-                                    <option  v-bind:value="Budget.Id">{{Budget.Name}}</option>
+                                    <option v-bind:value="Budget.Id">{{Budget.Name}}</option>
                                 </template>
                             </select>
                         </div>
@@ -3294,6 +3485,16 @@
                 hideNav : '',
                 showSideOptions : false,
                 activeSnapshot : 6,
+                setSnapshot : false,
+                snapshotDate : '',
+                snapshot : {
+                    hideRevenue : false,
+                    hideProfit : false,
+                    hideOpex : false,
+                    hideNetProfit : false,
+                    hideTotals : false
+                },
+                snapshotData : '',
                 period : 'CURRENT FY',
                 today : '',
                 yearText : '',
@@ -3386,8 +3587,11 @@
                 message : '',
                 brand : {
                     main : '#262d3f',
+                    mainSnap : '#33363f',
                     second : '#2d7175',
+                    secondSnap : '#506e70',
                     third : '#60c5c1',
+                    thirdSnap : '#82b3b3',
                     payroll : '#5e3134',
                     iT : '#7b4447',
                     busDev : '#D45057',
@@ -3460,13 +3664,34 @@
                         app.loadData();
                     }
                 },
+                loadData : function(){
+
+                    // step 1: get all performance figures
+                    this.getOppRecords();
+
+                    if (this.showChanges){
+
+                        // step 2: get all cashflow figures for the current period
+                        this.getCashflowLong(true);
+
+                        // step 3: get all cashflow data for the next three months
+                        this.getCashflowShort();
+
+                    }
+
+                },
+
                 toggle : function(stage, type){
-                    app[stage] = !app[stage];
-                    app.drawData(false);
+                    if (!app.setSnapshot){
+                        app[stage] = !app[stage];
+                        app.drawData(false,false);
+                    }
                 },
                 renderOpex : function(){
-                    app.splitOpex = !app.splitOpex;
-                    app.drawBar('opex',app.graphData['opex']);
+                    if (!app.setSnapshot) {
+                        app.splitOpex = !app.splitOpex;
+                        app.drawBar('opex', app.graphData['opex']);
+                    }
                 },
                 getOppRecords : function(){
                     Visualforce.remoting.Manager.invokeAction(
@@ -3478,9 +3703,46 @@
                             app.message         = '';
                             app.graphData       = result;
                             console.log(result);
-                            app.drawData(true);
+                            app.drawData(true,false);
+
+                            if (app.showChanges && app.period !== 'PREVIOUS FY'){
+                                app.getRecordChanges();
+                            }
+
                         },
                         {escape: false});
+                },
+                getSnapshotData : function(){
+                    Visualforce.remoting.Manager.invokeAction(
+                        '{!$RemoteAction.InsightsController.getSnapshotData}',
+                        this.snapshotDate,
+                        this.endDate,
+                        function (result) {
+                            console.log(result);
+                            if (result){
+
+
+                                if (!app.confirmed || !app.weighted || !app.pipeline){
+                                    app.confirmed   = true;
+                                    app.weighted    = true;
+                                    app.pipeline    = true;
+                                    app.drawData(true,false);
+                                }
+                                app.snapshotData = result[0];
+                                app.drawBar('revenue', true);
+                                app.drawBar('profit', true);
+                                app.drawBar('opex', true);
+                                app.drawBar('netProfit', true);
+
+
+                            }
+                            // if (renderGraph){
+                            //     app.drawLine('cashFlow', app.cashGraphData,true);
+                            // }
+                        },
+                        {escape: false});
+
+                    // getSnapshotData(String createdDate, String endDate)
                 },
                 getCashflowLong : function(renderGraph){
                     Visualforce.remoting.Manager.invokeAction(
@@ -3513,38 +3775,103 @@
                         20,
                         10909,
                         function (result) {
-                            app.changeData = result;
-                            console.log(result);
+
+                            app.changeData = [];
+
+                            var days = [];
+
+                            console.log(typeof result === Object());
+
+                            Object.keys(result).forEach(function(date){
+                                var today = new Date();
+                                // console.log(today.getDate() - new Date(today.setDate(date)).getDate());
+                                // console.log((new Date().setDate(date)).getDate());
+                                days.push(today.getDate() - new Date(today.setDate(date)).getDate());
+                            });
+
+                            days.reverse();
+
+                            for (var x = 0; x < days.length; x++){
+
+                                var day = {};
+                                var today = new Date();
+                                var dayOfMonth = new Date(today.setDate(today.getDate() - x)).getDate();
+
+                                // var date = today.
+
+                                if (x === 0){
+                                    day.name = 'TODAY';
+                                    day.revenue = app.graphData.TOTALS.revenue - app.graphData.SNAPSHOTS[x].TotalRevenue__c;
+                                    day.cos     = (app.graphData.TOTALS.revenue - app.graphData.TOTALS.profit) - (app.graphData.SNAPSHOTS[x].TotalRevenue__c - app.graphData.SNAPSHOTS[x].TotalGrossProfit__c);
+                                    day.profit  = app.graphData.TOTALS.profit - app.graphData.SNAPSHOTS[x].TotalGrossProfit__c;
+
+
+                                } else {
+                                    if (x === 1){
+                                        day.name = 'YESTERDAY';
+                                    } else {
+                                        day.name = x + ' DAYS AGO';
+                                    }
+                                    day.revenue = app.graphData.SNAPSHOTS[x].TotalRevenue__c - app.graphData.SNAPSHOTS[x + 1].TotalRevenue__c;
+                                    day.cos     = (app.graphData.SNAPSHOTS[x].TotalRevenue__c - app.graphData.SNAPSHOTS[x].TotalGrossProfit__c) - (app.graphData.SNAPSHOTS[x + 1].TotalRevenue__c - app.graphData.SNAPSHOTS[x + 1].TotalGrossProfit__c);
+                                    day.profit  = app.graphData.SNAPSHOTS[x].TotalGrossProfit__c - app.graphData.SNAPSHOTS[x + 1].TotalGrossProfit__c;
+
+                                }
+                                day.records = result[dayOfMonth];
+
+                                console.log(result[dayOfMonth]);
+                                app.changeData.push(day);
+
+                            }
+
+                            // console.log(days.reverse());
+
+                            // result.forEach(function(element){
+                            //     app.changeData.push(element);
+                            // })
+
+                                // result;
+
+                            // console.log(app.changeData);
+                            //
+                            // app.changeData.reverse();
+                            //
+                            // console.log(app.changeData);
+
+                            // for (var x = result.length -1; x = 0;x++){
+                            //     app.changeData.push(result[x]);
+                            // }
+                            // // app.changeData = result;
+                            // // app.changeData.reverse();
+                            // console.log(app.changeData);
                         },
                         {escape: false});
                 },
-                loadData : function(){
-
-                    // step 1: get all performance figures
-                    this.getOppRecords();
-
-                    // step 2: get all cashflow figures for the current period
-                    this.getCashflowLong(true);
-
-                    // step 3: get all cashflow data for the next three months
-                    this.getCashflowShort();
-
-                    // step 4: get all database changes
-                    this.getRecordChanges();
-                },
-                drawData : function(includeOpex){
-                    this.drawBar('revenue',this.graphData['revenue']);
-                    this.drawLine('revenue', this.graphData['revenue']);
-                    this.drawBar('profit', this.graphData['profit']);
-                    this.drawLine('profit', this.graphData['profit']);
+                drawData : function(includeOpex, isSnapshot){
+                    this.drawBar('revenue', isSnapshot);
+                    this.drawLine('revenue', isSnapshot);
+                    this.drawBar('profit', isSnapshot);
+                    this.drawLine('profit', isSnapshot);
                     if (includeOpex){
-                        this.drawBar('opex', this.graphData['opex']);
-                        this.drawLine('opex', this.graphData['opex']);
+                        this.drawBar('opex', isSnapshot);
+                        this.drawLine('opex', isSnapshot);
                     }
-                    this.drawBar('netProfit', this.graphData['netProfit']);
-                    this.drawLine('netProfit', this.graphData['netProfit']);
+                    this.drawBar('netProfit', isSnapshot);
+                    this.drawLine('netProfit', isSnapshot);
                 },
-                drawBar : function(type, graphData) {
+                drawSnapshotData : function(includeOpex){
+                    this.drawBar('revenue',this.graphData['revenue'],true);
+                    this.drawLine('revenue', this.graphData['revenue'],true);
+                    this.drawBar('profit', this.graphData['profit'],true);
+                    this.drawLine('profit', this.graphData['profit'],true);
+                    this.drawBar('opex', this.graphData['opex'],true);
+                    this.drawLine('opex', this.graphData['opex'],true);
+                    this.drawBar('netProfit', this.graphData['netProfit'],true);
+                    this.drawLine('netProfit', this.graphData['netProfit'],true);
+                },
+                drawBar : function(type, isSnapshot) {
+
+                    var graphData = this.graphData[type];
 
                     google.charts.load('current', {
                         'packages': ['corechart', 'bar'], 'callback': function () {
@@ -3574,15 +3901,43 @@
                                 chartData.addColumn('number', 'Confirmed');
                                 chartData.addColumn('number', 'Weighted');
                                 chartData.addColumn('number', 'Pipeline');
-                                Object.keys(graphData).forEach(function (date) {
-                                    var confirmed   = (app.confirmed) ? graphData[date][0] : null;
-                                    var weighted    = (app.weighted) ? graphData[date][1] : null;
-                                    var pipeline    = (app.pipeline) ? graphData[date][2] +
-                                        (!app.weighted ? graphData[date][1] : 0)
-                                        : null;
-                                    chartData.addRow([date, confirmed, weighted, pipeline]);
-                                });
+                                if (!isSnapshot){
+                                    Object.keys(graphData).forEach(function (date) {
+                                        var confirmed   = (app.confirmed) ? graphData[date][0] : null;
+                                        var weighted    = (app.weighted) ? graphData[date][1] : null;
+                                        var pipeline    = (app.pipeline) ? graphData[date][2] +
+                                            (!app.weighted ? graphData[date][1] : 0)
+                                            : null;
+                                        chartData.addRow([date, confirmed, weighted, pipeline]);
+                                    });
+                                } else {
+                                    for (var x = 1; x < 13; x++){
+                                        if (type === 'netProfit'){
+                                            chartData.addRow([app.graphData.MONTHS[x-1],
+                                                app.snapshotData['GPConf' + x + '__c'] - app.snapshotData['Opex' + x + '__c'],
+                                                app.snapshotData['GPWeighted' + x + '__c'] - app.snapshotData['Opex' + x + '__c'],
+                                                app.snapshotData['GPPipeline' + x + '__c'] - app.snapshotData['Opex' + x + '__c']]);
+                                        } else if (type === 'revenue'){
+                                            chartData.addRow([app.graphData.MONTHS[x-1],
+                                                app.snapshotData['RevConf' + x + '__c'],
+                                                app.snapshotData['RevWeighted' + x + '__c'],
+                                                app.snapshotData['RevPipeline' + x + '__c']]);
+                                        } else if (type === 'profit'){
+                                            chartData.addRow([app.graphData.MONTHS[x-1],
+                                                app.snapshotData['GPConf' + x + '__c'],
+                                                app.snapshotData['GPWeighted' + x + '__c'],
+                                                app.snapshotData['GPPipeline' + x + '__c']]);
+                                        } else if (type === 'opex'){
+                                            chartData.addRow([app.graphData.MONTHS[x-1],
+                                                app.snapshotData['Opex' + x + '__c'],
+                                                app.snapshotData['Opex' + x + '__c'],
+                                                app.snapshotData['Opex' + x + '__c']]);
+                                        }
+                                    }
+                                }
                             }
+
+                            var snap = isSnapshot ? 'Snap' : '';
 
                             var options = {
                                 annotations: {
@@ -3599,9 +3954,9 @@
                                 enableInteractivity: false,
                                 series: {
                                     0: {color: (type === 'opex' && app.splitOpex) ? app.brand.payroll :
-                                            (type === 'opex' && !app.splitOpex) ? app.brand.opex : app.brand.main},
-                                    1: {color: (type === 'opex') ? app.brand.iT : app.brand.second},
-                                    2: {color: (type === 'opex') ? app.brand.busDev : app.brand.third},
+                                            (type === 'opex' && !app.splitOpex) ? app.brand['opex' + snap] : app.brand['main' + snap]},
+                                    1: {color: (type === 'opex') ? app.brand.iT : app.brand['second' + snap]},
+                                    2: {color: (type === 'opex') ? app.brand.busDev : app.brand['third' + snap]},
                                     3: {color: (type === 'opex') ? app.brand.other : "transparent"},
                                     4: {color: "transparent"}
                                 },
@@ -3609,7 +3964,7 @@
                             };
 
                             options = Object.assign(app.getOptions(), options);
-                            var chart = new google.visualization.ColumnChart(document.getElementById(type + 'Bar'));
+                            var chart = new google.visualization.ColumnChart(document.getElementById(type + 'Bar' + (isSnapshot ? 'Snapshot' : '')));
                             var formatter = new google.visualization.NumberFormat({prefix: '£'});
 
                             var view = new google.visualization.DataView(chartData);
@@ -3679,7 +4034,10 @@
                         }
                     });
                 },
-                drawLine : function(type, graphData, viewMin){
+                drawLine : function(type, isSnapshot, viewMin){
+
+                    var graphData = this.graphData[type];
+
                     google.charts.load('current', {
                         packages: ['corechart', 'line'],'callback': function () {
 
@@ -3754,7 +4112,9 @@
                                 series: {
                                     0: {color: app.brand[type],
                                         format: '£#,###',
-                                        areaOpacity : (type === 'opex') ? 0.7 : 0.2
+                                        areaOpacity : (type === 'opex') ? 0.7 : 0.2,
+                                        lineWidth: 4,
+                                        lineDashStyle : [5,1,3]
                                     },
                                     1: {color: (type === 'opex') ? app.brand.budget : app.brand.third,
                                         format: '£#,###'
@@ -3768,7 +4128,9 @@
                                         areaOpacity : 0.6
                                     },
                                     4 : {color: app.brand.budget,
-                                        format: '£#,###'
+                                        format: '£#,###',
+                                        lineWidth: 4,
+                                        areaOpacity : 1
                                     }
                                 }
                             };
@@ -4353,8 +4715,8 @@
                                             'Name' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Name + '"' : '',
                                             'Account' : records[x].Opportunity__c ? '"' + records[x].Opportunity__r.Account.Name + '"' : '',
                                             'Calder' : false,
-                                            'Start Date' : new Date(records[x].EventMonthYear__c).toString().substring(4,15),
-                                            'End Date' : new Date(records[x].EventMonthYear__c).toString().substring(4,15),
+                                            'Start Date' : (new Date(records[x].EventMonthYear__c).getMonth() + 1)  + '/' + new Date(records[x].EventMonthYear__c).getFullYear(),
+                                            'End Date' : (new Date(records[x].EventMonthYear__c).getMonth() + 1) + '/' + new Date(records[x].EventMonthYear__c).getFullYear(),
                                             'Stage' : stage,
                                             'Revenue' : records[x].Revenue__c,
                                             'Cost of sale' : records[x].CostOfSale__c,
@@ -4377,8 +4739,8 @@
                                             'Name' : '"' + records[x].Name + '"',
                                             'Account' : '"' + records[x].Account.Name + '"',
                                             'Calder' : records[x].Calder_Opportunity__c,
-                                            'Start Date' : new Date(records[x].Event_start__c).toString().substring(4,15),
-                                            'End Date' : new Date(records[x].Event_end__c).toString().substring(4,15),
+                                            'Start Date' : (new Date(records[x].Event_start__c).getMonth() + 1) + '/' + new Date(records[x].Event_start__c).getFullYear(),
+                                            'End Date' : (new Date(records[x].Event_end__c).getMonth() + 1) + '/' + new Date(records[x].Event_end__c).getFullYear(),
                                             'Stage' : stage,
                                             'Revenue' : records[x].Committed__c ? records[x].CommittedRevenue__c : records[x].Amount_Calder__c,
                                             'Cost of sale' : records[x].Committed__c ? records[x].CommittedCOS__c : records[x].Filtered_Cost_of_Sale__c,
