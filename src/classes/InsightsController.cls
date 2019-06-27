@@ -398,7 +398,7 @@ public class InsightsController {
         return  [SELECT
                 QBCloseDate__c, PeriodEnd__c, DateCreated__c, Budget11__c, Budget12__c,
                 Budget1__c, Budget2__c, Budget3__c, Budget4__c, Budget5__c, Budget6__c,
-                Budget7__c, Budget8__c, Budget9__c, GPConf10__c, GPConf11__c, GPConf12__c,
+                Budget7__c, Budget8__c, Budget9__c, Budget10__c, GPConf10__c, GPConf11__c, GPConf12__c,
                 GPConf1__c, GPConf2__c, GPConf3__c, GPConf4__c, GPConf5__c, GPConf6__c,
                 GPConf7__c, GPConf8__c, GPConf9__c, GPPipeline10__c, GPPipeline11__c,
                 GPPipeline12__c, GPPipeline1__c, GPPipeline2__c, GPPipeline3__c, GPPipeline4__c,
@@ -910,13 +910,6 @@ public class InsightsController {
 
     }
 
-    @RemoteAction
-    public static Object getDataChanges(String period){
-
-
-        return null;
-
-    }
 
     @RemoteAction
     public static Map<Integer,Map<String,InsightsController.RecordChange>> getRecordChanges(String start,
@@ -933,9 +926,7 @@ public class InsightsController {
             change.RevenueEnd   = 0;
             change.ProfitEnd    = 0;
             changeMap.get(Date.today().addDays(x * -1).day()).put('total',change);
-
         }
-
 
         // find any opportunities which were set to won in the last 7 days, and create a map which contains
         // the time at which the job is won. this is necessary to prevent including revenue and profit changes
@@ -1178,7 +1169,7 @@ public class InsightsController {
 
     }
 
-    private class RecordChange {
+    public class RecordChange {
         String Name;
         String Id;
         String Operation;

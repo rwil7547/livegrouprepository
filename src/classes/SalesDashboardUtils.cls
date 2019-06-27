@@ -79,53 +79,31 @@ public class SalesDashboardUtils  {
             Date startDate = snapshot.PeriodEnd__c.addYears(-1).addDays(1);
             Date endDate   = snapshot.PeriodEnd__c;
 
-            Map<String, List<Decimal>> currentFYRevenue =
-                    SalesDashboardRemoter.getOppRevenueTotals(String.valueOf(startDate), String.valueOf(endDate));
-
-            Map<String, List<Decimal>> currentFYProfit =
-                    SalesDashboardRemoter.getOppProfitTotals(String.valueOf(startDate), String.valueOf(endDate));
-
-            Map<String, List<Decimal>> currentFYOpex =
-                    SalesDashboardRemoter.getOperatingCosts(String.valueOf(startDate), String.valueOf(endDate));
-
-//            Map<Date, List<Object>> balances =
-//                    SalesDashboardRemoter.getBalances(String.valueOf(startDate), String.valueOf(endDate));
-
-            List<String> months = new List<String>(currentFYRevenue.keySet());
+            Map<String,Object> oppRecords       = InsightsController.getOppRecords(String.valueOf(startDate), String.valueOf(endDate));
+            List<String> months                 = (List<String>)oppRecords.get('MONTHS');
+            Map<String,List<Decimal>> revenue   = (Map<String,List<Decimal>>)oppRecords.get('revenue');
+            Map<String,List<Decimal>> profit    = (Map<String,List<Decimal>>)oppRecords.get('profit');
+            Map<String,List<Decimal>> opex      = (Map<String,List<Decimal>>)oppRecords.get('opex');
+            Map<String,Decimal> totals          = (Map<String,Decimal>)oppRecords.get('TOTALS');
 
             for (Integer x = 0; x < 12; x++) {
-                snapshot.put('RevConf' + (x + 1) + '__c', currentFYRevenue.get(months[x])[0]);
-                snapshot.put('RevWeighted' + (x + 1) + '__c', currentFYRevenue.get(months[x])[1]);
-                snapshot.put('RevPipeline' + (x + 1) + '__c', currentFYRevenue.get(months[x])[2]);
-                snapshot.put('RevTarget' + (x + 1) + '__c', currentFYRevenue.get(months[x])[3]);
+                snapshot.put('RevConf' + (x + 1) + '__c', revenue.get(months[x])[0]);
+                snapshot.put('RevWeighted' + (x + 1) + '__c', revenue.get(months[x])[1]);
+                snapshot.put('RevPipeline' + (x + 1) + '__c', revenue.get(months[x])[2]);
+                snapshot.put('RevTarget' + (x + 1) + '__c', revenue.get(months[x])[3]);
 
-                snapshot.put('GPConf' + (x + 1) + '__c', currentFYProfit.get(months[x])[0]);
-                snapshot.put('GPWeighted' + (x + 1) + '__c', currentFYProfit.get(months[x])[1]);
-                snapshot.put('GPPipeline' + (x + 1) + '__c', currentFYProfit.get(months[x])[2]);
+                snapshot.put('GPConf' + (x + 1) + '__c', profit.get(months[x])[0]);
+                snapshot.put('GPWeighted' + (x + 1) + '__c', profit.get(months[x])[1]);
+                snapshot.put('GPPipeline' + (x + 1) + '__c', profit.get(months[x])[2]);
 
-                snapshot.put('Opex' + (x + 1) + '__c', currentFYOpex.get(months[x])[0] + currentFYOpex.get(months[x])[1]);
-                snapshot.put('Budget' + (x + 1) + '__c', currentFYOpex.get(months[x])[3]);
+                snapshot.put('Opex' + (x + 1) + '__c', opex.get(months[x])[1]);
+                snapshot.put('Budget' + (x + 1) + '__c', opex.get(months[x])[2]);
             }
 
-//            for (Date balDate : balances.keySet()){
-//
-//                Decimal balOne      = (balances.get(balDate)[1] == null) ? 0 : ((Decimal)balances.get(balDate)[1]).setScale(2);
-//                Decimal balTwo      = (balances.get(balDate)[2] == null) ? 0 : ((Decimal)balances.get(balDate)[2]).setScale(2);
-//                Decimal balThree    = (balances.get(balDate)[3] == null) ? 0 : ((Decimal)balances.get(balDate)[3]).setScale(2);
-//                Decimal balFour     = (balances.get(balDate)[4] == null) ? 0 : ((Decimal)balances.get(balDate)[4]).setScale(2);
-//
-//                snapshot.Balance__c += ':' + balances.get(balDate)[0] +
-//                        ' *' + balOne +
-//                        ' *' + balTwo +
-//                        ' *' + balThree +
-//                        ' *' + balFour + ' ';
-//            }
-
-            List<Decimal> totals = SalesDashboardRemoter.getHeadlineTotals(String.valueOf(startDate), String.valueOf(endDate));
-            snapshot.TotalRevenue__c        = totals[0];
-            snapshot.TotalGrossProfit__c    = totals[1];
-            snapshot.TotalOpex__c           = totals[2];
-            snapshot.TotalNetProfit__c      = totals[3];
+            snapshot.TotalRevenue__c        = totals.get('revenue');
+            snapshot.TotalGrossProfit__c    = totals.get('profit');
+            snapshot.TotalOpex__c           = totals.get('opex');
+            snapshot.TotalNetProfit__c      = totals.get('netProfit');
 
 
             List<SalesDashboardSnapshot__c> priorSnaps =
@@ -136,10 +114,10 @@ public class SalesDashboardUtils  {
                                                 ORDER BY CreatedDate DESC LIMIT 1];
 
             if (priorSnaps.isEmpty()){
-                snapshot.PriorRevenue__c        = totals[0];
-                snapshot.PriorGrossProfit__c    = totals[1];
-                snapshot.PriorOpex__c           = totals[2];
-                snapshot.PriorNetProfit__c      = totals[3];
+                snapshot.TotalRevenue__c        = totals.get('revenue');
+                snapshot.TotalGrossProfit__c    = totals.get('profit');
+                snapshot.TotalOpex__c           = totals.get('opex');
+                snapshot.TotalNetProfit__c      = totals.get('netProfit');
             } else {
                 snapshot.PriorRevenue__c        = priorSnaps[0].TotalRevenue__c;
                 snapshot.PriorGrossProfit__c    = priorSnaps[0].TotalGrossProfit__c;

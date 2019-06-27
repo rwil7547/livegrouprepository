@@ -367,7 +367,7 @@ public class InsightsTest {
     public static void testCashflowDateChange() {
 
         CashFlowEntry__c entry = [SELECT Id, Description__c FROM CashFlowEntry__c LIMIT 1];
-        InsightsController.changeEntryDate(entry.Id, String.valueOf(Date.today()));
+        InsightsController.changeEntryDate(entry.Id, String.valueOf(Date.today().addMonths(1)));
     }
 
 
@@ -542,6 +542,21 @@ public class InsightsTest {
 
         update oppToLose;
 
+        // set opp to won
+        Opportunity oppToWon = [
+                SELECT Id, Event_end__c, Amount, Forecast_COS__c, StageName
+                FROM Opportunity
+                WHERE StageName != 'Closed Won'
+                AND StageName != 'Closed Lost'
+                AND Event_end__c > :Date.today()
+                LIMIT 1
+        ];
+
+        oppToWon.Invoice_Schedule__c = 'Two stage invoice';
+        oppToWon.StageName = 'Closed Won';
+
+        update oppToWon;
+
         // change opp date
         Opportunity oppToDateChange = [
                 SELECT Id, Event_end__c, Amount, Forecast_COS__c, StageName
@@ -556,10 +571,10 @@ public class InsightsTest {
 
         update oppToDateChange;
 
-        Map<String, Map<String, List<Object>>> recordChanges =
+        Map<Integer,Map<String,InsightsController.RecordChange>> recordChanges =
                 InsightsController.getRecordChanges(
                         String.valueOf(Date.today().addMonths(-6)),
-                        String.valueOf(Date.today().addMonths(6)),
+                        String.valueOf(Date.today().addMonths(12)),
                         7,
                         10000
                 );
@@ -647,6 +662,16 @@ public class InsightsTest {
     }
 
     @IsTest
+    public static void testgetQBSourceOptions(){
+
+        Test.setMock(HttpCalloutMock.class, new QBOBudgetMock());
+
+        Test.startTest();
+        InsightsController.getQBSourceOptions('CURRENT FY');
+        Test.stopTest();
+    }
+
+    @IsTest
     public static void testAdjustCalderCommission(){
         SalesDashboardUtils.adjustCalderCommissions();
     }
@@ -672,6 +697,7 @@ public class InsightsTest {
 
         QBClosedMonth__c closedMonth = new QBClosedMonth__c();
         closedMonth.Name = 'SFCommitMonth';
+        closedMonth.Month__c = Date.today().addMonths(-2);
         insert closedMonth;
 
         Object priorsnapshot = SalesDashboardRemoter.getPriorTotals(endDate);
@@ -701,4 +727,8 @@ public class InsightsTest {
         Test.stopTest();
     }
 
+    @IsTest
+    public static void testPostAdjustment(){
+        InsightsController.postAdjustment('2018-04-06',100,100,100,'Test comment');
+    }
 }

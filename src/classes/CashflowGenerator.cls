@@ -68,12 +68,15 @@ public class CashflowGenerator {
         List<CashFlowEntry__c> newEntries           = new List<CashFlowEntry__c>();
 
         for (CashFlowEntry__c entry : [SELECT Id, Amount__c, AmountAdjusted__c, Adjusted__c, Paid__c, Comment__c,
-                                            QuickbooksId__c, OutFlow__c, InFlow__c, AdjustedDate__c,
-                                            OutFlow__r.Date__c, InFlow__r.Date__c, Description__c, Date__c
+                                            QuickbooksId__c, AdjustedDate__c, Description__c, Date__c
                                         FROM CashFlowEntry__c]){
 
+            if (entry.QuickbooksId__c == 'Gross Salaries2019-06-30'){
+                system.debug('PAYROLL ENTRY IS ' + entry.Paid__c);
+            }
+
             // add the old entries to a map which will allow new entries to check for any custom values
-            // which need to be preserved (amount, date, comments)
+            // which need to be preserved (amount, date, comments, paid)
             String identifier = (entry.QuickbooksId__c != null) ? entry.QuickbooksId__c : entry.Id;
             oldEntryMap.put(identifier, entry);
         }
@@ -655,6 +658,8 @@ public class CashflowGenerator {
                     }
                     // check if the entity has been marked as already paid
                     paid = oldEntryMap.get(entryKey).Paid__c;
+
+                    system.debug('PAYROLL' + ' the entry for ' + entryKey + ' is ' + oldEntryMap.get(entryKey).Paid__c);
                 }
 
                 String comment  = oldEntryMap.containsKey(entryKey) ? oldEntryMap.get(entryKey).Comment__c : '';
